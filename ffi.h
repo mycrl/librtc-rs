@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include "api/peer_connection_interface.h"
+#include "observer.h"
 
 FFI_API struct Strings {
     char** strs;
@@ -154,6 +155,7 @@ the connection, and close the connection once it's no longer needed.
 */
 FFI_API struct RTCPeerConnection {
     rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection;
+    std::shared_ptr<Observer> observer;
 };
 
 /*

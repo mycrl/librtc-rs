@@ -18,7 +18,7 @@
     <ClCompile Include="ffi.cc">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="base.cc">
+    <ClCompile Include="convert.cc">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="observer.cc">
@@ -32,7 +32,7 @@
     <ClInclude Include="ffi.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="base.h">
+    <ClInclude Include="convert.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

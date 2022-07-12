@@ -1,5 +1,6 @@
 #include "ffi.h"
-#include "base.h"
+#include "convert.h"
+#include "observer.h"
 
 #include "api/create_peerconnection_factory.h"
 #include "api/peer_connection_interface.h"
@@ -28,11 +29,13 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
     }
 
     struct RTCPeerConnection* peer = new RTCPeerConnection();
+
+    peer->observer = std::make_shared<Observer>();
     peer->peer_connection = peer_factory->CreatePeerConnection(
         from_c(c_config),
         nullptr,
         nullptr,
-        observer
+        peer->observer.get()
     );
 
     if (!peer->peer_connection) {
@@ -40,4 +43,9 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
     }
 
     return peer;
+}
+
+void rtc_add_ice_candidate(struct RTCPeerConnection* peer, struct RTCIceCandidate icecandidate)
+{
+    peer->peer_connection.get()->AddIceCandidate(from_c(icecandidate));
 }

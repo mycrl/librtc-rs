@@ -51,3 +51,10 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectio
 	config.ice_candidate_pool_size = raw->ice_candidate_pool_size;
 	return config;
 }
+
+const webrtc::IceCandidateInterface* from_c(struct RTCIceCandidate candidate)
+{
+	return webrtc::CreateIceCandidate(&from_c(candidate.sdp_Mid),
+		candidate.sdp_mline_index,
+		candidate.candidate);
+}
