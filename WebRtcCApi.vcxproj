@@ -82,8 +82,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\quasi\Desktop\webrtc_source\src\third_party\libyuv\include;C:\Users\quasi\Desktop\webrtc_source\src\third_party\abseil-cpp;C:\Users\quasi\Desktop\webrtc_source\src;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\quasi\Desktop\webrtc_source\src\out\Release\obj;$(LibraryPath)</LibraryPath>
+    <IncludePath>third_party\webrtc\src\third_party\libyuv\include;third_party\webrtc\src\third_party\abseil-cpp;third_party\webrtc\src;$(IncludePath)</IncludePath>
+    <LibraryPath>third_party\webrtc\src\out\Release\obj;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)out\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>out\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
