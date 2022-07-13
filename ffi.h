@@ -222,7 +222,7 @@ This is covered in more detail in the articles WebRTC connectivity and Signaling
 */
 FFI_API void rtc_add_ice_candidate(
     struct RTCPeerConnection* peer,
-    struct RTCIceCandidate icecandidate
+    struct RTCIceCandidate* icecandidate
 );
 
 /*
@@ -321,16 +321,20 @@ An enum describing the session description's type.
 */
 FFI_API enum RTC_SESSION_DESCRIPTION_TYPE {
     /*
+    The session description object describes the initial proposal in an offer/answer exchange.
+    The session negotiation process begins with an offer being sent from the caller to the callee.
+    */
+    RTC_SESSION_DESCRIPTION_TYPE_OFFER,
+    /*
+    Description must be treated as an SDP answer, but not a final answer.
+    */
+    RTC_SESSION_DESCRIPTION_TYPE_PRANSWER,
+    /*
     The SDP contained in the sdp property is the definitive choice in the exchange.
     In other words, this session description describes the agreed-upon configuration,
     and is being sent to finalize negotiation.
     */
     RTC_SESSION_DESCRIPTION_TYPE_ANSWER,
-    /*
-    The session description object describes the initial proposal in an offer/answer exchange.
-    The session negotiation process begins with an offer being sent from the caller to the callee.
-    */
-    RTC_SESSION_DESCRIPTION_TYPE_OFFER,
     /*
     This special type with an empty session description is used to
     roll back to the previous stable state.
@@ -348,7 +352,7 @@ FFI_API struct RTCSessionDescription {
     /*
     A string containing the SDP describing the session.
     */
-    char* sdp;
+    const char* sdp;
 };
 
 /*
@@ -358,7 +362,10 @@ information about any media already attached to the session, codecs and options 
 and any ICE candidates already gathered. The answer is delivered to the returned Promise, and should
 then be sent to the source of the offer to continue the negotiation process.
 */
-FFI_API struct RTCSessionDescription rtc_create_answer(struct RTCPeerConnection* peer);
+FFI_API void rtc_create_answer(
+    struct RTCPeerConnection* peer,
+    void (*callback)(struct RTCSessionDescription* desc)
+);
 
 /*
 The createOffer() method of the RTCPeerConnection interface initiates the creation of an SDP offer for
@@ -368,7 +375,10 @@ by the browser, and any candidates already gathered by the ICE agent, for the pu
 over the signaling channel to a potential peer to request a connection or to update the configuration
 of an existing connection.
 */
-FFI_API struct RTCSessionDescription rtc_create_offer(struct RTCPeerConnection* peer);
+FFI_API void rtc_create_offer(
+    struct RTCPeerConnection* peer,
+    void (*callback)(struct RTCSessionDescription* desc)
+);
 
 /*
 RTCDataChannel
@@ -397,7 +407,8 @@ remains in place until negotiation is complete. Only then does the agreed-upon c
 */
 FFI_API void rtc_set_local_description(
     struct RTCPeerConnection* peer,
-    struct RTCSessionDescription* desc
+    struct RTCSessionDescription* desc,
+    void (*callback)(int)
 );
 
 /*

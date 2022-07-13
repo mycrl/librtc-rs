@@ -24,6 +24,9 @@
     <ClCompile Include="observer.cc">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="promisify.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="observer.h">
@@ -33,6 +36,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="convert.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="promisify.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

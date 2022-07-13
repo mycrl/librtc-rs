@@ -1,6 +1,7 @@
 #include "ffi.h"
 #include "convert.h"
 #include "observer.h"
+#include "promisify.h"
 
 #include "api/create_peerconnection_factory.h"
 #include "api/peer_connection_interface.h"
@@ -24,7 +25,8 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
         nullptr /* audio_processing */
     );
 
-    if (!peer_factory) {
+    if (!peer_factory) 
+    {
         return NULL;
     }
 
@@ -38,14 +40,35 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
         peer->observer.get()
     );
 
-    if (!peer->peer_connection) {
+    if (!peer->peer_connection) 
+    {
         return NULL;
     }
 
     return peer;
 }
 
-void rtc_add_ice_candidate(struct RTCPeerConnection* peer, struct RTCIceCandidate icecandidate)
+void rtc_add_ice_candidate(struct RTCPeerConnection* peer, struct RTCIceCandidate* icecandidate)
 {
     peer->peer_connection.get()->AddIceCandidate(from_c(icecandidate));
+}
+
+void rtc_create_answer(struct RTCPeerConnection* peer, void (*callback)(struct RTCSessionDescription*))
+{
+    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(callback);
+    auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
+    peer->peer_connection.get()->CreateAnswer(promisify, options);
+}
+
+void rtc_create_offer(struct RTCPeerConnection* peer, void (*callback)(struct RTCSessionDescription*))
+{
+    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(callback);
+    auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
+    peer->peer_connection.get()->CreateOffer(promisify, options);
+}
+
+void rtc_set_local_description(struct RTCPeerConnection* peer, struct RTCSessionDescription* c_desc, void (*callback)(int))
+{
+    auto promisify = new rtc::RefCountedObject<SetDescPromisify>(callback);
+    peer->peer_connection.get()->SetLocalDescription(promisify, from_c(c_desc));
 }

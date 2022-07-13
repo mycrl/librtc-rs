@@ -3,37 +3,32 @@
 
 void Observer::OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState new_state)
 {
-	if (this->_on_connectionstatechange_handler) {
-		this->_on_connectionstatechange_handler(new_state);
-	}
+	if (this->_on_connectionstatechange_handler == NULL) return;
+	this->_on_connectionstatechange_handler(new_state);
 }
 
 void Observer::OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
 {
-	if (this->_on_datachannel_handler) {
-		this->_on_datachannel_handler(data_channel);
-	}
+	if (this->_on_datachannel_handler == NULL) return;
+	this->_on_datachannel_handler(data_channel);
 }
 
 void Observer::OnRenegotiationNeeded()
 {
-	if (this->_on_renegotiationneeded_handler) {
-		this->_on_renegotiationneeded_handler();
-	}
+	if (this->_on_renegotiationneeded_handler == NULL) return;
+	this->_on_renegotiationneeded_handler();
 }
 
 void Observer::OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState new_state)
 {
-	if (this->_on_icegatheringchange_handler) {
-		this->_on_icegatheringchange_handler(new_state);
-	}
+	if (this->_on_icegatheringchange_handler == NULL) return;
+	this->_on_icegatheringchange_handler(new_state);
 }
 
 void Observer::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
 {
-	if (this->_on_icecandidate_handler) {
-		this->_on_icecandidate_handler(candidate);
-	}
+	if (this->_on_icecandidate_handler == NULL) return;
+	this->_on_icecandidate_handler(candidate);
 }
 void Observer::set_connectionstatechange_handler(void (*handler)(webrtc::PeerConnectionInterface::SignalingState new_state))
 {
