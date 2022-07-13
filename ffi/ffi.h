@@ -10,6 +10,11 @@
 #include "api/peer_connection_interface.h"
 #include "observer.h"
 
+/*
+free c type
+*/
+FFI_API void rtc_free(struct RTCSessionDescription*);
+
 FFI_API struct Strings {
     char** strs;
     int len;

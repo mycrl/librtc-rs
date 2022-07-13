@@ -3,10 +3,15 @@ target/
 .vscode
 *dist*
 *node_modules*
-/third_party
+*/third_party
 build/
 .DS_Store
 */doc/*
 .idea/
 pkg/
 out/
+
+
+# Added by cargo
+
+/target

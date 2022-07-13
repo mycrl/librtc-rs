@@ -1,6 +1,7 @@
 #include "ffi.h"
 #include <string>
 #include <vector>
+#include <assert.h>
 #include "api/peer_connection_interface.h"
 
 const std::string from_c(char* raw)
@@ -89,14 +90,24 @@ webrtc::SessionDescriptionInterface* from_c(struct RTCSessionDescription* desc)
 	return webrtc::CreateSessionDescription(type, sdp, nullptr);
 }
 
-struct RTCSessionDescription into_c(webrtc::SessionDescriptionInterface* desc)
+struct RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 {
+	auto c_desc = (struct RTCSessionDescription*)malloc(sizeof(struct RTCSessionDescription));
+	if (!c_desc)
+	{
+		return NULL;
+	}
+
 	std::string sdp;
 	desc->ToString(&sdp);
+	c_desc->sdp = (char*)malloc(sizeof(char) * sdp.size());
+	if (!c_desc->sdp)
+	{
+		return NULL;
+	}
 
-	struct RTCSessionDescription c_desc;
-	c_desc.type = (enum RTC_SESSION_DESCRIPTION_TYPE)(desc->GetType());
-	c_desc.sdp = sdp.c_str();
+    strcpy((char*)c_desc->sdp, sdp.c_str());
+	c_desc->type = (enum RTC_SESSION_DESCRIPTION_TYPE)(desc->GetType());
 
 	return c_desc;
 }

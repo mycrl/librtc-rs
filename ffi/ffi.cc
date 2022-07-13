@@ -53,6 +53,12 @@ void rtc_add_ice_candidate(struct RTCPeerConnection* peer, struct RTCIceCandidat
     peer->peer_connection.get()->AddIceCandidate(from_c(icecandidate));
 }
 
+void rtc_free(struct RTCSessionDescription* raw)
+{
+    free((void*)raw->sdp);
+    free(raw);
+}
+
 void rtc_create_answer(struct RTCPeerConnection* peer, void (*callback)(struct RTCSessionDescription*))
 {
     auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(callback);
