@@ -13,7 +13,7 @@
 /*
 free c type
 */
-FFI_API void rtc_free(struct RTCSessionDescription*);
+FFI_API void rtc_free(struct RTCSessionDescription* desc);
 
 FFI_API struct Strings {
     char** strs;
@@ -293,13 +293,13 @@ FFI_API struct MediaStreamTrackFrame {
 };
 
 FFI_API void media_stream_track_write_frame(
-    struct MediaStreamTrack track,
+    struct MediaStreamTrack* track,
     struct MediaStreamTrackFrame frame
 );
 
 FFI_API void media_stream_track_on_frame(
-    struct MediaStreamTrack track,
-    void (*on_frame_handler)(struct MediaStreamTrackFrame)
+    struct MediaStreamTrack* track,
+    void (*callback)(struct MediaStreamTrackFrame frame)
 );
 
 /*
@@ -413,7 +413,7 @@ remains in place until negotiation is complete. Only then does the agreed-upon c
 FFI_API void rtc_set_local_description(
     struct RTCPeerConnection* peer,
     struct RTCSessionDescription* desc,
-    void (*callback)(int)
+    void (*callback)(int res)
 );
 
 /*
@@ -455,7 +455,7 @@ and is one of the string values: new, connecting, connected, disconnected, faile
 */
 FFI_API void rtc_on_connectionstatechange(
     struct RTCPeerConnection* peer,
-    void (*handler)(enum CONNECTION_STATE)
+    void (*handler)(enum CONNECTION_STATE state)
 );
 
 /*
@@ -465,5 +465,5 @@ RTCPeerConnection.createDataChannel().
 */
 FFI_API void rtc_on_datachannel(
     struct RTCPeerConnection* peer,
-    void (*handler)(struct RTCDataChannel)
+    void (*handler)(struct RTCDataChannel state)
 );

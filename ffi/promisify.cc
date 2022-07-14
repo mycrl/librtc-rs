@@ -9,9 +9,8 @@ CreateDescPromisify::CreateDescPromisify(void (*callback)(struct RTCSessionDescr
 
 void CreateDescPromisify::OnSuccess(webrtc::SessionDescriptionInterface* desc)
 {
-    auto c_desc = into_c(desc);
     if (this->_callback == NULL) return;
-    this->_callback(&c_desc);
+    this->_callback(into_c(desc));
 }
 
 void CreateDescPromisify::OnFailure(const std::string& _error)
@@ -20,7 +19,7 @@ void CreateDescPromisify::OnFailure(const std::string& _error)
     this->_callback(nullptr);
 }
 
-SetDescPromisify::SetDescPromisify(void (*callback)(int))
+SetDescPromisify::SetDescPromisify(void (*callback)(int res))
 {
     this->_callback = callback;
 }

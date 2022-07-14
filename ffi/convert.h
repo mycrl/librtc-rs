@@ -19,4 +19,4 @@ webrtc::SessionDescriptionInterface* from_c(struct RTCSessionDescription* desc);
 /*
 * c++ type to c type
 */
-struct RTCSessionDescription into_c(webrtc::SessionDescriptionInterface* raw);
+struct RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* raw);

@@ -13,9 +13,9 @@ private:
 
 class SetDescPromisify: public webrtc::SetSessionDescriptionObserver {
 public:
-    SetDescPromisify(void (*callback)(int));
+    SetDescPromisify(void (*callback)(int res));
     void OnSuccess();
     void OnFailure(const std::string& error);
 private:
-    void (*_callback)(int);
+    void (*_callback)(int res);
 };

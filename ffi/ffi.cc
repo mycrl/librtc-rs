@@ -12,7 +12,8 @@
 
 struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionConfigure* c_config) 
 {
-    rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_factory = webrtc::CreatePeerConnectionFactory(
+    struct RTCPeerConnection* rtc = new RTCPeerConnection();
+    auto peer_factory = webrtc::CreatePeerConnectionFactory(
         nullptr /* network_thread */,
         nullptr /* worker_thread */,
         nullptr /* signaling_thread */,
@@ -30,27 +31,25 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
         return NULL;
     }
 
-    struct RTCPeerConnection* peer = new RTCPeerConnection();
-
-    peer->observer = std::make_shared<Observer>();
-    peer->peer_connection = peer_factory->CreatePeerConnection(
+    rtc->observer = std::make_shared<Observer>();
+    rtc->peer_connection = peer_factory->CreatePeerConnection(
         from_c(c_config),
         nullptr,
         nullptr,
-        peer->observer.get()
+        rtc->observer.get()
     );
 
-    if (!peer->peer_connection) 
+    if (!rtc->peer_connection)
     {
         return NULL;
     }
 
-    return peer;
+    return rtc;
 }
 
-void rtc_add_ice_candidate(struct RTCPeerConnection* peer, struct RTCIceCandidate* icecandidate)
+void rtc_add_ice_candidate(struct RTCPeerConnection* rtc, struct RTCIceCandidate* icecandidate)
 {
-    peer->peer_connection.get()->AddIceCandidate(from_c(icecandidate));
+    rtc->peer_connection->AddIceCandidate(from_c(icecandidate));
 }
 
 void rtc_free(struct RTCSessionDescription* raw)
@@ -59,22 +58,22 @@ void rtc_free(struct RTCSessionDescription* raw)
     free(raw);
 }
 
-void rtc_create_answer(struct RTCPeerConnection* peer, void (*callback)(struct RTCSessionDescription*))
+void rtc_create_answer(struct RTCPeerConnection* rtc, void (*callback)(struct RTCSessionDescription*))
 {
     auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(callback);
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-    peer->peer_connection.get()->CreateAnswer(promisify, options);
+    rtc->peer_connection->CreateAnswer(promisify, options);
 }
 
-void rtc_create_offer(struct RTCPeerConnection* peer, void (*callback)(struct RTCSessionDescription*))
+void rtc_create_offer(struct RTCPeerConnection* rtc, void (*callback)(struct RTCSessionDescription*))
 {
     auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(callback);
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-    peer->peer_connection.get()->CreateOffer(promisify, options);
+    rtc->peer_connection->CreateOffer(promisify, options);
 }
 
-void rtc_set_local_description(struct RTCPeerConnection* peer, struct RTCSessionDescription* c_desc, void (*callback)(int))
+void rtc_set_local_description(struct RTCPeerConnection* rtc, struct RTCSessionDescription* c_desc, void (*callback)(int))
 {
     auto promisify = new rtc::RefCountedObject<SetDescPromisify>(callback);
-    peer->peer_connection.get()->SetLocalDescription(promisify, from_c(c_desc));
+    rtc->peer_connection->SetLocalDescription(promisify, from_c(c_desc));
 }
