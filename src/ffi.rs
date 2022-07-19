@@ -281,7 +281,7 @@ pub enum CONNECTION_STATE {
     CONNECTION_STATE_FAILED,
 }
 
-#[link(name = "rtc_warpper")]
+#[link(name = "rtc_wrapper")]
 extern "C" {
     /// Returns a newly-created RTCPeerConnection, which represents a
     /// connection between the local device and a remote peer.

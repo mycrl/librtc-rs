@@ -83,7 +83,7 @@
     <IntDir>out\$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>third_party\webrtc\src\third_party\libyuv\include;third_party\webrtc\src\third_party\abseil-cpp;third_party\webrtc\src;$(IncludePath)</IncludePath>
     <LibraryPath>third_party\webrtc\src\out\Release\obj;$(LibraryPath)</LibraryPath>
-    <TargetName>rtc_warpper</TargetName>
+    <TargetName>rtc_wrapper</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -91,7 +91,7 @@
     <LibraryPath>third_party\webrtc\src\out\Release\obj;$(LibraryPath)</LibraryPath>
     <OutDir>..\target\release</OutDir>
     <IntDir>out\$(Platform)\$(Configuration)\</IntDir>
-    <TargetName>rtc_warpper</TargetName>
+    <TargetName>rtc_wrapper</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
