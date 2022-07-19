@@ -30,6 +30,7 @@ void Observer::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
 	if (this->_on_icecandidate_handler == NULL) return;
 	this->_on_icecandidate_handler(candidate);
 }
+
 void Observer::set_connectionstatechange_handler(void (*handler)(webrtc::PeerConnectionInterface::SignalingState new_state))
 {
 	this->_on_connectionstatechange_handler = handler;

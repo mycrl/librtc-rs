@@ -2,7 +2,8 @@
 
 #include "api/peer_connection_interface.h"
 
-class CreateDescPromisify: public webrtc::CreateSessionDescriptionObserver {
+class CreateDescPromisify: public webrtc::CreateSessionDescriptionObserver 
+{
 public:
     CreateDescPromisify(void (*callback)(struct RTCSessionDescription* desc));
     void OnSuccess(webrtc::SessionDescriptionInterface* desc);
@@ -11,7 +12,8 @@ private:
     void (*_callback)(struct RTCSessionDescription* desc);
 };
 
-class SetDescPromisify: public webrtc::SetSessionDescriptionObserver {
+class SetDescPromisify: public webrtc::SetSessionDescriptionObserver 
+{
 public:
     SetDescPromisify(void (*callback)(int res));
     void OnSuccess();

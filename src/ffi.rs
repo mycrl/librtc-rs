@@ -1,9 +1,37 @@
-use libc::{c_char, c_int, c_void};
+use libc::*;
+use std::ffi::CString;
 
 #[repr(C)]
 pub struct Strings {
-    pub strs: *const c_char,
+    pub strs: *const *const c_char,
     pub len: c_int,
+}
+
+pub struct CStrins {
+    c_strs: Vec<CString>,
+    ptrs: Vec<*const c_char>
+}
+
+impl CStrins {
+    pub fn new() -> Self {
+        Self {
+            c_strs: Vec::with_capacity(10),
+            ptrs: Vec::with_capacity(10),
+        }
+    }
+
+    pub fn push(&mut self, source: &str) {
+        let c_str = CString::new(source).unwrap();
+        self.ptrs.push(c_str.as_ptr());
+        self.c_strs.push(c_str);
+    }
+
+    pub fn as_cstrings(&self) -> Strings {
+        Strings {
+            strs: self.ptrs.as_ptr(),
+            len: self.c_strs.len() as c_int
+        }
+    }
 }
 
 /// Specifies how to handle negotiation of candidates when the remote peer is not compatible
@@ -19,7 +47,7 @@ pub enum BUNDLE_POLICY {
     /// The ICE agent initially creates one RTCDtlsTransport for each type of content added: audio, video,
     /// and data channels. If the remote endpoint is not BUNDLE-aware, then each of these DTLS transports
     /// handles all the communication for one type of data.
-    BUNDLE_POLICY_BALANCED,
+    BUNDLE_POLICY_BALANCED = 1,
     /// The ICE agent initially creates one RTCDtlsTransport per media track and a separate one for data channels.
     /// If the remote endpoint is not BUNDLE-aware, everything is negotiated on these separate DTLS transports.
     BUNDLE_POLICY_MAX_COMPAT,
@@ -32,7 +60,7 @@ pub enum BUNDLE_POLICY {
 /// allowing all candidates to be considered. Possible values are:
 #[repr(C)]
 pub enum ICE_TRANSPORT_POLICY {
-    ICE_TRANSPORT_POLICY_NONE,
+    ICE_TRANSPORT_POLICY_NONE = 1,
     /// Only ICE candidates whose IP addresses are being relayed, such as those being passed
     /// through a STUN or TURN server, will be considered.
     ICE_TRANSPORT_POLICY_RELAY,
@@ -52,7 +80,7 @@ pub enum RTCP_MUX_POLICY {
     /// If the remote peer can multiplex RTCP,
     /// then RTCP candidates are multiplexed atop the corresponding RTP candidates.
     /// Otherwise, both the RTP and RTCP candidates are returned, separately.
-    RTCP_MUX_POLICY_NEGOTIATE,
+    RTCP_MUX_POLICY_NEGOTIATE = 1,
     /// Tells the ICE agent to gather ICE candidates for only RTP,
     /// and to multiplex RTCP atop them. If the remote peer doesn't support RTCP multiplexing,
     /// then session negotiation fails. This is the default value.
@@ -66,16 +94,17 @@ pub enum RTCP_MUX_POLICY {
 /// the connection attempt will be made with no STUN or TURN server available,
 /// which limits the connection to local peers.
 #[repr(C)]
+#[derive(Default)]
 pub struct RTCIceServer {
     /// The credential to use when logging into the server.
     /// This is only used if the RTCIceServer represents a TURN server.
-    pub credential: *const c_char,
+    pub credential: Option<*const c_char>,
     /// This required property is either a single string or an array of strings,
     /// each specifying a URL which can be used to connect to the server.
-    pub urls: Strings,
+    pub urls: Option<*const Strings>,
     /// If the RTCIceServer is a TURN server, then this is the username to use during the
     /// authentication process.
-    pub username: *const c_char,
+    pub username: Option<*const c_char>,
 }
 
 #[repr(C)]
@@ -89,22 +118,23 @@ pub struct RTCIceServers {
 /// The RTCPeerConnection is a newly-created RTCPeerConnection,
 /// which represents a connection between the local device and a remote peer.
 #[repr(C)]
+#[derive(Default)]
 pub struct RTCPeerConnectionConfigure {
-    pub bundle_policy: BUNDLE_POLICY,
-    pub ice_transport_policy: ICE_TRANSPORT_POLICY,
+    pub bundle_policy: Option<BUNDLE_POLICY>,
+    pub ice_transport_policy: Option<ICE_TRANSPORT_POLICY>,
     /// TODO: 未实现
     /// A string which specifies the target peer identity for the RTCPeerConnection.
     /// If this value is set (it defaults to null), the RTCPeerConnection will not connect to a remote peer
     /// unless it can successfully authenticate with the given name.
-    pub peer_identity: *const c_char,
-    pub rtcp_mux_policy: RTCP_MUX_POLICY,
-    pub ice_servers: RTCIceServers,
+    pub peer_identity: Option<*const c_char>,
+    pub rtcp_mux_policy: Option<RTCP_MUX_POLICY>,
+    pub ice_servers: Option<*const RTCIceServers>,
     /// An unsigned 16-bit integer value which specifies the size of the prefetched ICE candidate pool.
     /// The default value is 0 (meaning no candidate prefetching will occur).
     /// You may find in some cases that connections can be established more quickly by allowing the ICE agent
     /// to start fetching ICE candidates before you start trying to connect, so that they're already available
     /// for inspection when RTCPeerConnection.setLocalDescription() is called.
-    pub ice_candidate_pool_size: c_int,
+    pub ice_candidate_pool_size: Option<c_int>,
 }
 
 /// RTCPeerConnection
@@ -195,7 +225,7 @@ pub struct MediaStreamTrackFrame {
 pub enum RTC_SESSION_DESCRIPTION_TYPE {
     /// The session description object describes the initial proposal in an offer/answer exchange.
     /// The session negotiation process begins with an offer being sent from the caller to the callee.
-    RTC_SESSION_DESCRIPTION_TYPE_OFFER,
+    RTC_SESSION_DESCRIPTION_TYPE_OFFER = 1,
     /// Description must be treated as an SDP answer, but not a final answer.
     RTC_SESSION_DESCRIPTION_TYPE_PRANSWER,
     /// The SDP contained in the sdp property is the definitive choice in the exchange.
@@ -234,7 +264,7 @@ pub enum CONNECTION_STATE {
     /// At least one of the connection's ICE transports (RTCIceTransport or RTCDtlsTransport objects) 
     /// is in the new state, and none of them are in one of the following states: connecting, checking,
     /// failed, disconnected, or all of the connection's transports are in the closed state.
-    CONNECTION_STATE_NEW,
+    CONNECTION_STATE_NEW = 1,
     /// One or more of the ICE transports are currently in the process of establishing a connection; 
     /// that is, their iceConnectionState is either checking or connected, and no transports are in 
     /// the failed state.
@@ -251,7 +281,7 @@ pub enum CONNECTION_STATE {
     CONNECTION_STATE_FAILED,
 }
 
-#[link(name = "webrtc")]
+#[link(name = "rtc_warpper")]
 extern "C" {
     /// Returns a newly-created RTCPeerConnection, which represents a
     /// connection between the local device and a remote peer.

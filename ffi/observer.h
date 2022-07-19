@@ -2,7 +2,8 @@
 
 #include "api/peer_connection_interface.h"
 
-class Observer: public webrtc::PeerConnectionObserver {
+class Observer: public webrtc::PeerConnectionObserver 
+{
 public:
     Observer() {}
     ~Observer() {}

@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef FFI_EXPORTS
 #define FFI_API __declspec(dllexport)
-#else
-#define FFI_API __declspec(dllimport)
-#endif
 
 #include <cstdint>
 #include "api/peer_connection_interface.h"
@@ -13,9 +9,9 @@
 /*
 free c type
 */
-FFI_API void rtc_free(struct RTCSessionDescription* desc);
+extern "C" FFI_API void rtc_free(struct RTCSessionDescription* desc);
 
-FFI_API struct Strings {
+extern "C" FFI_API struct Strings {
     char** strs;
     int len;
 };
@@ -36,7 +32,7 @@ FFI_API enum BUNDLE_POLICY {
     and data channels. If the remote endpoint is not BUNDLE-aware, then each of these DTLS transports
     handles all the communication for one type of data.
     */
-    BUNDLE_POLICY_BALANCED,
+    BUNDLE_POLICY_BALANCED = 1,
     /*
     The ICE agent initially creates one RTCDtlsTransport per media track and a separate one for data channels.
     If the remote endpoint is not BUNDLE-aware, everything is negotiated on these separate DTLS transports.
@@ -54,7 +50,7 @@ The current ICE transport policy; if the policy isn't specified, all is assumed 
 allowing all candidates to be considered. Possible values are:
 */
 FFI_API enum ICE_TRANSPORT_POLICY {
-    ICE_TRANSPORT_POLICY_NONE,
+    ICE_TRANSPORT_POLICY_NONE = 1,
     /*
     Only ICE candidates whose IP addresses are being relayed, such as those being passed
     through a STUN or TURN server, will be considered.
@@ -83,7 +79,7 @@ FFI_API enum RTCP_MUX_POLICY {
     then RTCP candidates are multiplexed atop the corresponding RTP candidates.
     Otherwise, both the RTP and RTCP candidates are returned, separately.
     */
-    RTCP_MUX_POLICY_NEGOTIATE,
+    RTCP_MUX_POLICY_NEGOTIATE = 1,
     /*
     Tells the ICE agent to gather ICE candidates for only RTP,
     and to multiplex RTCP atop them. If the remote peer doesn't support RTCP multiplexing,
@@ -100,7 +96,7 @@ these are typically STUN and/or TURN servers. If this isn't specified,
 the connection attempt will be made with no STUN or TURN server available,
 which limits the connection to local peers.
 */
-FFI_API struct RTCIceServer {
+extern "C" FFI_API struct RTCIceServer {
     /*
     The credential to use when logging into the server.
     This is only used if the RTCIceServer represents a TURN server.
@@ -110,7 +106,7 @@ FFI_API struct RTCIceServer {
     This required property is either a single string or an array of strings,
     each specifying a URL which can be used to connect to the server.
     */
-    struct Strings urls;
+    struct Strings* urls;
     /*
     If the RTCIceServer is a TURN server, then this is the username to use during the
     authentication process.
@@ -118,7 +114,7 @@ FFI_API struct RTCIceServer {
     char* username;
 };
 
-FFI_API struct RTCIceServers {
+extern "C" FFI_API struct RTCIceServers {
     struct RTCIceServer* servers;
     int len;
 };
@@ -129,7 +125,7 @@ RTCPeerConnection
 The RTCPeerConnection is a newly-created RTCPeerConnection,
 which represents a connection between the local device and a remote peer.
 */
-FFI_API struct RTCPeerConnectionConfigure {
+extern "C" FFI_API struct RTCPeerConnectionConfigure {
     enum BUNDLE_POLICY bundle_policy;
     enum ICE_TRANSPORT_POLICY ice_transport_policy;
     /*
@@ -140,7 +136,7 @@ FFI_API struct RTCPeerConnectionConfigure {
     */
     char* peer_identity;
     enum RTCP_MUX_POLICY rtcp_mux_policy;
-    struct RTCIceServers ice_servers;
+    struct RTCIceServers* ice_servers;
     /*
     An unsigned 16-bit integer value which specifies the size of the prefetched ICE candidate pool.
     The default value is 0 (meaning no candidate prefetching will occur).
@@ -158,7 +154,7 @@ The RTCPeerConnection interface represents a WebRTC connection between the local
 and a remote peer. It provides methods to connect to a remote peer, maintain and monitor
 the connection, and close the connection once it's no longer needed.
 */
-FFI_API struct RTCPeerConnection {
+extern "C" FFI_API struct RTCPeerConnection {
     rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection;
     std::shared_ptr<Observer> observer;
 };
@@ -167,7 +163,7 @@ FFI_API struct RTCPeerConnection {
 Returns a newly-created RTCPeerConnection, which represents a
 connection between the local device and a remote peer.
 */
-FFI_API struct RTCPeerConnection* create_rtc_peer_connection(
+extern "C" FFI_API struct RTCPeerConnection* create_rtc_peer_connection(
     struct RTCPeerConnectionConfigure* config
 );
 
@@ -186,7 +182,7 @@ to initiate the connection.
 For details on how the ICE process works, see Lifetime of a WebRTC session.
 The article WebRTC connectivity provides additional useful details.
 */
-FFI_API struct RTCIceCandidate {
+extern "C" FFI_API struct RTCIceCandidate {
     /*
     A string describing the properties of the candidate, taken directly from the SDP attribute "candidate".
     The candidate string specifies the network connectivity information for the candidate.
@@ -198,7 +194,7 @@ FFI_API struct RTCIceCandidate {
     A string containing the identification tag of the media stream with which the candidate is associated,
     or null if there is no associated media stream. The default is null.
     */
-    char* sdp_Mid;
+    char* sdp_mid;
     /*
     A number property containing the zero-based index of the m-line with which the candidate is associated,
     within the SDP of the media description, or null if no such associated exists.
@@ -225,7 +221,7 @@ During negotiation, your app will likely receive many candidates which you'll de
 the ICE agent in this way, allowing it to build up a list of potential connection methods.
 This is covered in more detail in the articles WebRTC connectivity and Signaling and video calling.
 */
-FFI_API void rtc_add_ice_candidate(
+extern "C" FFI_API void rtc_add_ice_candidate(
     struct RTCPeerConnection* peer,
     struct RTCIceCandidate* icecandidate
 );
@@ -236,7 +232,7 @@ MediaStreamTrack
 The MediaStreamTrack interface represents a single media track within a stream;
 typically, these are audio or video tracks, but other track types may exist as well.
 */
-FFI_API struct MediaStreamTrack {
+extern "C" FFI_API struct MediaStreamTrack {
     /*
     A Boolean whose value of true if the track is enabled,
     that is allowed to render the media source stream;
@@ -287,17 +283,17 @@ FFI_API struct MediaStreamTrack {
     int frame_rate;
 };
 
-FFI_API struct MediaStreamTrackFrame {
+extern "C" FFI_API struct MediaStreamTrackFrame {
     char* buf;
     int64_t len;
 };
 
-FFI_API void media_stream_track_write_frame(
+extern "C" FFI_API void media_stream_track_write_frame(
     struct MediaStreamTrack* track,
     struct MediaStreamTrackFrame frame
 );
 
-FFI_API void media_stream_track_on_frame(
+extern "C" FFI_API void media_stream_track_on_frame(
     struct MediaStreamTrack* track,
     void (*callback)(struct MediaStreamTrackFrame frame)
 );
@@ -306,7 +302,7 @@ FFI_API void media_stream_track_on_frame(
 The RTCPeerConnection method addTrack() adds a new media track to the set of tracks
 which will be transmitted to the other peer.
 */
-FFI_API void rtc_add_track(
+extern "C" FFI_API void rtc_add_track(
     struct RTCPeerConnection* peer,
     struct MediaStreamTrack* track
 );
@@ -319,7 +315,7 @@ and any active streams. This also releases any resources in use by the ICE agent
 including TURN permissions. All RTCRtpSender objects are considered to be stopped once this
 returns (they may still be in the process of stopping, but for all intents and purposes, they're stopped).
 */
-FFI_API void rtc_close(struct RTCPeerConnection* peer);
+extern "C" FFI_API void rtc_close(struct RTCPeerConnection* peer);
 
 /*
 An enum describing the session description's type.
@@ -329,7 +325,7 @@ FFI_API enum RTC_SESSION_DESCRIPTION_TYPE {
     The session description object describes the initial proposal in an offer/answer exchange.
     The session negotiation process begins with an offer being sent from the caller to the callee.
     */
-    RTC_SESSION_DESCRIPTION_TYPE_OFFER,
+    RTC_SESSION_DESCRIPTION_TYPE_OFFER = 1,
     /*
     Description must be treated as an SDP answer, but not a final answer.
     */
@@ -352,7 +348,7 @@ The RTCSessionDescription interface describes one end of a connection¡ªor pote
 how it's configured. Each RTCSessionDescription consists of a description type indicating which part
 of the offer/answer negotiation process it describes and of the SDP descriptor of the session.
 */
-FFI_API struct RTCSessionDescription {
+extern "C" FFI_API struct RTCSessionDescription {
     enum RTC_SESSION_DESCRIPTION_TYPE type;
     /*
     A string containing the SDP describing the session.
@@ -367,7 +363,7 @@ information about any media already attached to the session, codecs and options 
 and any ICE candidates already gathered. The answer is delivered to the returned Promise, and should
 then be sent to the source of the offer to continue the negotiation process.
 */
-FFI_API void rtc_create_answer(
+extern "C" FFI_API void rtc_create_answer(
     struct RTCPeerConnection* peer,
     void (*callback)(struct RTCSessionDescription* desc)
 );
@@ -380,7 +376,7 @@ by the browser, and any candidates already gathered by the ICE agent, for the pu
 over the signaling channel to a potential peer to request a connection or to update the configuration
 of an existing connection.
 */
-FFI_API void rtc_create_offer(
+extern "C" FFI_API void rtc_create_offer(
     struct RTCPeerConnection* peer,
     void (*callback)(struct RTCSessionDescription* desc)
 );
@@ -393,7 +389,7 @@ peer-to-peer transfers of arbitrary data. Every data channel is associated with 
 and each peer connection can have up to a theoretical maximum of 65,534 data channels
 (the actual limit may vary from browser to browser).
 */
-FFI_API struct RTCDataChannel {
+extern "C" FFI_API struct RTCDataChannel {
     char* id;
     char* label;
 };
@@ -410,7 +406,7 @@ exchanged until the two peers agree on a configuration, the description submitte
 setLocalDescription() does not immediately take effect. Instead, the current connection configuration
 remains in place until negotiation is complete. Only then does the agreed-upon configuration take effect.
 */
-FFI_API void rtc_set_local_description(
+extern "C" FFI_API void rtc_set_local_description(
     struct RTCPeerConnection* peer,
     struct RTCSessionDescription* desc,
     void (*callback)(int res)
@@ -433,13 +429,13 @@ the description submitted by calling setRemoteDescription() does not immediately
 Instead, the current connection configuration remains in place until negotiation is complete.
 Only then does the agreed-upon configuration take effect.
 */
-FFI_API void rtc_set_remote_description(
+extern "C" FFI_API void rtc_set_remote_description(
     struct RTCPeerConnection* peer,
     struct RTCSessionDescription* desc
 );
 
 FFI_API enum CONNECTION_STATE {
-    CONNECTION_STATE_NEW,
+    CONNECTION_STATE_NEW = 1,
     CONNECTION_STATE_CHECKING,
     CONNECTION_STATE_CONNECTED,
     CONNECTION_STATE_DISCONNECTED,
@@ -453,7 +449,7 @@ an RTCPeerConnection object after a new track has been added to an RTCRtpReceive
 is part of the connection. The new connection state can be found in connectionState,
 and is one of the string values: new, connecting, connected, disconnected, failed, or closed.
 */
-FFI_API void rtc_on_connectionstatechange(
+extern "C" FFI_API void rtc_on_connectionstatechange(
     struct RTCPeerConnection* peer,
     void (*handler)(enum CONNECTION_STATE state)
 );
@@ -463,7 +459,7 @@ A datachannel event is sent to an RTCPeerConnection instance when an RTCDataChan
 been added to the connection, as a result of the remote peer calling
 RTCPeerConnection.createDataChannel().
 */
-FFI_API void rtc_on_datachannel(
+extern "C" FFI_API void rtc_on_datachannel(
     struct RTCPeerConnection* peer,
     void (*handler)(struct RTCDataChannel state)
 );

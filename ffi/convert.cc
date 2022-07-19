@@ -23,9 +23,22 @@ std::vector<std::string> from_c(struct Strings raw)
 webrtc::PeerConnectionInterface::IceServer from_c(struct RTCIceServer raw)
 {
 	webrtc::PeerConnectionInterface::IceServer server;
-	server.password = from_c(raw.credential);
-	server.username = from_c(raw.username);
-	server.urls = from_c(raw.urls);
+
+	if (raw.credential)
+	{
+		server.password = from_c(raw.credential);
+	}
+
+	if (raw.username)
+	{
+		server.username = from_c(raw.username);
+	}
+
+	if (raw.urls)
+	{
+		server.urls = from_c(*raw.urls);
+	}
+
 	return server;
 }
 
@@ -42,25 +55,41 @@ webrtc::PeerConnectionInterface::IceServers from_c(struct RTCIceServers raw)
 
 webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectionConfigure* raw)
 {
-	webrtc::PeerConnectionInterface::RTCConfiguration config;
-	config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
+	using Peer = webrtc::PeerConnectionInterface;
+
+	Peer::RTCConfiguration config;
 	config.enable_dtls_srtp = true;
-	config.type = (webrtc::PeerConnectionInterface::IceTransportsType)raw->ice_transport_policy;
-	config.bundle_policy = (webrtc::PeerConnectionInterface::BundlePolicy)raw->bundle_policy;
-	config.rtcp_mux_policy = (webrtc::PeerConnectionInterface::RtcpMuxPolicy)raw->rtcp_mux_policy;
-	config.servers = from_c(raw->ice_servers);
+	config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
 	config.ice_candidate_pool_size = raw->ice_candidate_pool_size;
+
+	if (raw->ice_transport_policy)
+	{
+		config.type = (Peer::IceTransportsType)(raw->ice_transport_policy - 1);
+	}
+	
+	if (raw->bundle_policy) {
+		config.bundle_policy = (Peer::BundlePolicy)(raw->bundle_policy - 1);
+	}
+	
+	if (raw->rtcp_mux_policy)
+	{
+		config.rtcp_mux_policy = (Peer::RtcpMuxPolicy)(raw->rtcp_mux_policy - 1);
+	}
+
+	if (raw->ice_servers)
+	{
+		config.servers = from_c(*raw->ice_servers);
+	}
+	
 	return config;
 }
 
-const webrtc::IceCandidateInterface* from_c(struct RTCIceCandidate* candidate)
+const webrtc::IceCandidateInterface* from_c(struct RTCIceCandidate* ice_candidate)
 {
-	return webrtc::CreateIceCandidate(
-		from_c(candidate->sdp_Mid),
-		candidate->sdp_mline_index,
-		from_c(candidate->candidate),
-		nullptr
-	);
+	int index = ice_candidate->sdp_mline_index;
+	const std::string mid = from_c(ice_candidate->sdp_mid);
+	const std::string candidate = from_c(ice_candidate->candidate);
+	return webrtc::CreateIceCandidate(mid, index, candidate, nullptr);
 }
 
 const std::string sdp_type_to_string(enum RTC_SESSION_DESCRIPTION_TYPE type)
