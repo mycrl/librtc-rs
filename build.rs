@@ -1,9 +1,5 @@
 #[cfg(target_os = "windows")]
-use std::{
-    process::Command,
-    path::Path,
-    env
-};
+use std::{env, path::Path, process::Command};
 
 #[cfg(target_os = "windows")]
 fn main() {

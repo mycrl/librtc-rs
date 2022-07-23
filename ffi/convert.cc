@@ -9,12 +9,12 @@ const std::string from_c(char* raw)
 	return std::string(raw);
 }
 
-std::vector<std::string> from_c(struct Strings raw)
+std::vector<std::string> from_c(char** raw, int size)
 {
 	std::vector<std::string> strings;
-	for (int i = 0; i < raw.len; i++)
+	for (int i = 0; i < size; i++)
 	{
-		strings.push_back(from_c(raw.strs[i]));
+		strings.push_back(from_c(raw[i]));
 	}
 	
 	return strings;
@@ -36,18 +36,18 @@ webrtc::PeerConnectionInterface::IceServer from_c(struct RTCIceServer raw)
 
 	if (raw.urls)
 	{
-		server.urls = from_c(*raw.urls);
+		server.urls = from_c(raw.urls, raw.urls_size);
 	}
 
 	return server;
 }
 
-webrtc::PeerConnectionInterface::IceServers from_c(struct RTCIceServers raw) 
+webrtc::PeerConnectionInterface::IceServers from_c(struct RTCIceServer* raw, int size)
 {
 	webrtc::PeerConnectionInterface::IceServers servers;
-	for (int i = 0; i < raw.len; i++)
+	for (int i = 0; i < size; i++)
 	{
-		servers.push_back(from_c(raw.servers[i]));
+		servers.push_back(from_c(raw[i]));
 	}
 
 	return servers;
@@ -78,7 +78,7 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectio
 
 	if (raw->ice_servers)
 	{
-		config.servers = from_c(*raw->ice_servers);
+		config.servers = from_c(raw->ice_servers, raw->ice_servers_size);
 	}
 	
 	return config;

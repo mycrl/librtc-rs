@@ -1,38 +1,4 @@
 use libc::*;
-use std::ffi::CString;
-
-#[repr(C)]
-pub struct Strings {
-    pub strs: *const *const c_char,
-    pub len: c_int,
-}
-
-pub struct CStrins {
-    c_strs: Vec<CString>,
-    ptrs: Vec<*const c_char>
-}
-
-impl CStrins {
-    pub fn new() -> Self {
-        Self {
-            c_strs: Vec::with_capacity(10),
-            ptrs: Vec::with_capacity(10),
-        }
-    }
-
-    pub fn push(&mut self, source: &str) {
-        let c_str = CString::new(source).unwrap();
-        self.ptrs.push(c_str.as_ptr());
-        self.c_strs.push(c_str);
-    }
-
-    pub fn as_cstrings(&self) -> Strings {
-        Strings {
-            strs: self.ptrs.as_ptr(),
-            len: self.c_strs.len() as c_int
-        }
-    }
-}
 
 /// Specifies how to handle negotiation of candidates when the remote peer is not compatible
 /// with the SDP BUNDLE standard. If the remote endpoint is BUNDLE-aware, all media tracks and
@@ -101,16 +67,11 @@ pub struct RTCIceServer {
     pub credential: Option<*const c_char>,
     /// This required property is either a single string or an array of strings,
     /// each specifying a URL which can be used to connect to the server.
-    pub urls: Option<*const Strings>,
+    pub urls: Option<*const *const c_char>,
+    pub urls_size: c_int,
     /// If the RTCIceServer is a TURN server, then this is the username to use during the
     /// authentication process.
     pub username: Option<*const c_char>,
-}
-
-#[repr(C)]
-pub struct RTCIceServers {
-    pub servers: *const RTCIceServer,
-    pub len: c_int,
 }
 
 /// RTCPeerConnection
@@ -128,7 +89,8 @@ pub struct RTCPeerConnectionConfigure {
     /// unless it can successfully authenticate with the given name.
     pub peer_identity: Option<*const c_char>,
     pub rtcp_mux_policy: Option<RTCP_MUX_POLICY>,
-    pub ice_servers: Option<*const RTCIceServers>,
+    pub ice_servers: Option<*const RTCIceServer>,
+    pub ice_servers_size: c_int,
     /// An unsigned 16-bit integer value which specifies the size of the prefetched ICE candidate pool.
     /// The default value is 0 (meaning no candidate prefetching will occur).
     /// You may find in some cases that connections can be established more quickly by allowing the ICE agent
@@ -261,18 +223,18 @@ pub struct RTCDataChannel {
 
 #[repr(C)]
 pub enum CONNECTION_STATE {
-    /// At least one of the connection's ICE transports (RTCIceTransport or RTCDtlsTransport objects) 
+    /// At least one of the connection's ICE transports (RTCIceTransport or RTCDtlsTransport objects)
     /// is in the new state, and none of them are in one of the following states: connecting, checking,
     /// failed, disconnected, or all of the connection's transports are in the closed state.
     CONNECTION_STATE_NEW = 1,
-    /// One or more of the ICE transports are currently in the process of establishing a connection; 
-    /// that is, their iceConnectionState is either checking or connected, and no transports are in 
+    /// One or more of the ICE transports are currently in the process of establishing a connection;
+    /// that is, their iceConnectionState is either checking or connected, and no transports are in
     /// the failed state.
     CONNECTION_STATE_CHECKING,
-    /// Every ICE transport used by the connection is either in use (state connected or completed) 
+    /// Every ICE transport used by the connection is either in use (state connected or completed)
     /// or is closed (state closed); in addition, at least one transport is either connected or completed.
     CONNECTION_STATE_CONNECTED,
-    /// At least one of the ICE transports for the connection is in the disconnected state and none 
+    /// At least one of the ICE transports for the connection is in the disconnected state and none
     /// of the other transports are in the state failed, connecting, or checking.
     CONNECTION_STATE_DISCONNECTED,
     /// The RTCPeerConnection is closed.

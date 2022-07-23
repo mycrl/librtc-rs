@@ -11,11 +11,6 @@ free c type
 */
 extern "C" FFI_API void rtc_free(struct RTCSessionDescription* desc);
 
-extern "C" FFI_API struct Strings {
-    char** strs;
-    int len;
-};
-
 /*
 Specifies how to handle negotiation of candidates when the remote peer is not compatible
 with the SDP BUNDLE standard. If the remote endpoint is BUNDLE-aware, all media tracks and
@@ -106,17 +101,13 @@ extern "C" FFI_API struct RTCIceServer {
     This required property is either a single string or an array of strings,
     each specifying a URL which can be used to connect to the server.
     */
-    struct Strings* urls;
+    char** urls;
+    int urls_size;
     /*
     If the RTCIceServer is a TURN server, then this is the username to use during the
     authentication process.
     */
     char* username;
-};
-
-extern "C" FFI_API struct RTCIceServers {
-    struct RTCIceServer* servers;
-    int len;
 };
 
 /*
@@ -136,7 +127,8 @@ extern "C" FFI_API struct RTCPeerConnectionConfigure {
     */
     char* peer_identity;
     enum RTCP_MUX_POLICY rtcp_mux_policy;
-    struct RTCIceServers* ice_servers;
+    struct RTCIceServer* ice_servers;
+    int ice_servers_size;
     /*
     An unsigned 16-bit integer value which specifies the size of the prefetched ICE candidate pool.
     The default value is 0 (meaning no candidate prefetching will occur).

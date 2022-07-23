@@ -9,9 +9,9 @@
 * c type to c++ type
 */
 std::string from_c(char* raw);
-std::vector<std::string> from_c(struct Strings raw);
+std::vector<std::string> from_c(char** raw, int size);
 webrtc::PeerConnectionInterface::IceServer from_c(struct RTCIceServer raw);
-webrtc::PeerConnectionInterface::IceServers from_c(struct RTCIceServers raw);
+webrtc::PeerConnectionInterface::IceServers from_c(struct RTCIceServer* raw, int size);
 webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectionConfigure* raw);
 const webrtc::IceCandidateInterface* from_c(struct RTCIceCandidate* candidate);
 webrtc::SessionDescriptionInterface* from_c(struct RTCSessionDescription* desc);
