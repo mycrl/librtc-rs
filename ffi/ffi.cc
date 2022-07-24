@@ -10,8 +10,6 @@
 #include "api/video_codecs/builtin_video_decoder_factory.h"
 #include "api/video_codecs/builtin_video_encoder_factory.h"
 
-#include <stdio.h>
-
 struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionConfigure* c_config) 
 {
     struct RTCPeerConnection* rtc = new RTCPeerConnection();
