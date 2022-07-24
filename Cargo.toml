@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 libc = "0.2.121"
 anyhow = "1.0.52"
+futures = "0.3"
 
 [dev-dependencies]
 tokio-tungstenite = "0.17.2"

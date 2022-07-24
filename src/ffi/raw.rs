@@ -9,6 +9,7 @@ use libc::*;
 /// that is, from a single IP and port on one peer to a single IP and port on the other peer,
 /// using the same transport protocol.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum BUNDLE_POLICY {
     /// The ICE agent initially creates one RTCDtlsTransport for each type of content added: audio, video,
     /// and data channels. If the remote endpoint is not BUNDLE-aware, then each of these DTLS transports
@@ -25,6 +26,7 @@ pub enum BUNDLE_POLICY {
 /// The current ICE transport policy; if the policy isn't specified, all is assumed by default,
 /// allowing all candidates to be considered. Possible values are:
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum ICE_TRANSPORT_POLICY {
     ICE_TRANSPORT_POLICY_NONE = 1,
     /// Only ICE candidates whose IP addresses are being relayed, such as those being passed
@@ -41,6 +43,7 @@ pub enum ICE_TRANSPORT_POLICY {
 /// in order to support non-multiplexed RTCP.
 /// Possible values are:
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum RTCP_MUX_POLICY {
     /// Instructs the ICE agent to gather both RTP and RTCP candidates.
     /// If the remote peer can multiplex RTCP,
@@ -184,6 +187,7 @@ pub struct MediaStreamTrackFrame {
 
 /// An enum describing the session description's type.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum RTC_SESSION_DESCRIPTION_TYPE {
     /// The session description object describes the initial proposal in an offer/answer exchange.
     /// The session negotiation process begins with an offer being sent from the caller to the callee.
@@ -222,6 +226,7 @@ pub struct RTCDataChannel {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum CONNECTION_STATE {
     /// At least one of the connection's ICE transports (RTCIceTransport or RTCDtlsTransport objects)
     /// is in the new state, and none of them are in one of the following states: connecting, checking,
@@ -297,7 +302,8 @@ extern "C" {
     /// then be sent to the source of the offer to continue the negotiation process.
     pub fn rtc_create_answer(
         peer: *const RTCPeerConnection,
-        callback: extern "C" fn(*const RTCSessionDescription),
+        ctx: *mut c_void,
+        callback: extern "C" fn(*const RTCSessionDescription, *mut c_void),
     );
     /// The createOffer() method of the RTCPeerConnection interface initiates the creation of an SDP offer for
     /// the purpose of starting a new WebRTC connection to a remote peer. The SDP offer includes information
@@ -307,7 +313,8 @@ extern "C" {
     /// of an existing connection.
     pub fn rtc_create_offer(
         peer: *const RTCPeerConnection,
-        callback: extern "C" fn(*const RTCSessionDescription),
+        ctx: *mut c_void,
+        callback: extern "C" fn(*const RTCSessionDescription, *mut c_void),
     );
     /// The RTCPeerConnection method setLocalDescription() changes the local description associated with
     /// the connection. This description specifies the properties of the local end of the connection,
