@@ -1,7 +1,6 @@
-mod promisify;
 mod raw;
 
-use anyhow::Ok;
+use anyhow::{Result, anyhow};
 use libc::*;
 use std::ffi::CString;
 use std::future::Future;
@@ -53,20 +52,20 @@ impl RTCIceServer {
 
 #[derive(Default)]
 pub struct RTCConfiguration {
-    pub bundle_policy: Option<raw::BUNDLE_POLICY>,
-    pub ice_transport_policy: Option<raw::ICE_TRANSPORT_POLICY>,
+    pub bundle_policy: Option<raw::BundelPolicy>,
+    pub ice_transport_policy: Option<raw::IceTransportPolicy>,
     pub peer_identity: Option<CString>,
-    pub rtcp_mux_policy: Option<raw::RTCP_MUX_POLICY>,
+    pub rtcp_mux_policy: Option<raw::RtcpMuxPolicy>,
     pub ice_servers: Option<Vec<raw::RTCIceServer>>,
     pub ice_candidate_pool_size: Option<u8>,
 }
 
 impl RTCConfiguration {
-    pub fn set_bundle_policy(&mut self, bundle_policy: raw::BUNDLE_POLICY) {
+    pub fn set_bundle_policy(&mut self, bundle_policy: raw::BundelPolicy) {
         self.bundle_policy = Some(bundle_policy);
     }
 
-    pub fn set_ice_transport_policy(&mut self, ice_transport_policy: raw::ICE_TRANSPORT_POLICY) {
+    pub fn set_ice_transport_policy(&mut self, ice_transport_policy: raw::IceTransportPolicy) {
         self.ice_transport_policy = Some(ice_transport_policy);
     }
 
@@ -74,7 +73,7 @@ impl RTCConfiguration {
         self.peer_identity = Some(CString::new(peer_identity).unwrap());
     }
 
-    pub fn set_rtcp_mux_policy(&mut self, rtcp_mux_policy: raw::RTCP_MUX_POLICY) {
+    pub fn set_rtcp_mux_policy(&mut self, rtcp_mux_policy: raw::RtcpMuxPolicy) {
         self.rtcp_mux_policy = Some(rtcp_mux_policy);
     }
 
@@ -102,18 +101,46 @@ impl RTCConfiguration {
     }
 }
 
+pub struct RTCSessionDescription {
+    r#type: raw::RtcSessionDescriptionType,
+    sdp: CString,
+}
+
+impl RTCSessionDescription {
+    pub fn from_raw(raw: *const raw::RTCSessionDescription) -> Self {
+        let raw = unsafe { &*raw };
+        Self { 
+            r#type: raw.r#type, 
+            sdp: unsafe { CString::from_raw(raw.sdp as *mut c_char) }
+        }
+    }
+
+    pub fn get_type(&self) -> raw::RtcSessionDescriptionType {
+        self.r#type
+    }
+
+    pub fn get_sdp(&self) -> Result<&str> {
+        Ok(self.sdp.to_str()?)
+    }
+}
+
 pub struct RTCPeerConnection {
     raw: *const raw::RTCPeerConnection,
     config: Box<raw::RTCPeerConnectionConfigure>,
 }
 
 impl RTCPeerConnection {
-    pub fn new(config: &RTCConfiguration) -> Self {
+    pub fn new(config: &RTCConfiguration) -> Result<Self> {
         let config = Box::new(config.as_raw());
-        Self {
-            raw: unsafe { raw::create_rtc_peer_connection(config.as_ref()) },
-            config,
+        let raw = unsafe { raw::create_rtc_peer_connection(config.as_ref()) };
+        if raw.is_null() {
+            return Err(anyhow!("crate RTCPeerConnection failed!"))
         }
+
+        Ok(Self {
+            raw,
+            config,
+        })
     }
 
     pub fn create_offer(&self) -> CreateSessionDescription {
@@ -156,14 +183,18 @@ impl CreateSessionDescription {
 }
 
 impl Future for CreateSessionDescription {
-    type Output = anyhow::Result<*const raw::RTCSessionDescription>;
+    type Output = anyhow::Result<RTCSessionDescription>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.as_ref().waker.register(cx.waker());
 
         if !self.as_ref().begin {
             extern "C" fn callback(desc: *const raw::RTCSessionDescription, ctx: *mut c_void) {
                 let mut ctx = unsafe { Box::from_raw(ctx as *mut CreateSessionDescriptionContext) };
-                (ctx.callback)(desc);
+                if desc.is_null() {
+                    (ctx.callback)(desc);
+                }
+                
+                println!("CreateSessionDescription callback");
             }
 
             let waker = self.as_ref().waker.clone();
@@ -176,6 +207,7 @@ impl Future for CreateSessionDescription {
             });
 
             if self.as_ref().kind == CreateSessionDescriptionKind::Offer {
+                println!("CreateSessionDescription offer");
                 unsafe {
                     raw::rtc_create_offer(
                         self.as_ref().peer,
@@ -198,9 +230,9 @@ impl Future for CreateSessionDescription {
         } else {
             let desc = self.as_ref().desc.load(Ordering::Relaxed);
             Poll::Ready(if desc.is_null() {
-                Err(anyhow::anyhow!("create offer failed!"))
+                Err(anyhow!("create offer failed!"))
             } else {
-                Ok(desc)
+                Ok(RTCSessionDescription::from_raw(desc))
             })
         }
     }

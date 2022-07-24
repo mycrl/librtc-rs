@@ -13,18 +13,18 @@ fn main() {
         .unwrap()
         .to_str()
         .unwrap();
-    let profile = env::var("PROFILE")
-        .unwrap()
-        .replace('r', "R")
-        .replace('d', "D");
-    let vs_home = env::var("VS_HOME")
-        .unwrap_or("C:/Program Files (x86)/Microsoft Visual Studio/2019/Community".into());
-    Command::new(format!("{}/Common7/IDE/devenv.exe", vs_home))
-        .arg("./ffi/ffi.sln")
-        .arg("/Build")
-        .arg(format!("{}|x64", profile))
-        .output()
-        .unwrap();
+    //  let profile = env::var("PROFILE")
+    //      .unwrap()
+    //      .replace('r', "R")
+    //      .replace('d', "D");
+    //  let vs_home = env::var("VS_HOME")
+    //      .unwrap_or("C:/Program Files (x86)/Microsoft Visual Studio/2019/Community".into());
+    //  Command::new(format!("{}/Common7/IDE/devenv.exe", vs_home))
+    //      .arg("./ffi/ffi.sln")
+    //      .arg("/Build")
+    //      .arg(format!("{}|x64", profile))
+    //      .output()
+    //      .unwrap();
     println!("cargo:rustc-link-search=all={}", target_dir);
 }
 

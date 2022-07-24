@@ -357,7 +357,8 @@ then be sent to the source of the offer to continue the negotiation process.
 */
 extern "C" FFI_API void rtc_create_answer(
     struct RTCPeerConnection* peer,
-    void (*callback)(struct RTCSessionDescription* desc)
+    void* ctx,
+    void (*callback)(struct RTCSessionDescription* desc, void* ctx)
 );
 
 /*
@@ -370,7 +371,8 @@ of an existing connection.
 */
 extern "C" FFI_API void rtc_create_offer(
     struct RTCPeerConnection* peer,
-    void (*callback)(struct RTCSessionDescription* desc)
+    void* ctx,
+    void (*callback)(struct RTCSessionDescription* desc, void* ctx)
 );
 
 /*
@@ -401,7 +403,8 @@ remains in place until negotiation is complete. Only then does the agreed-upon c
 extern "C" FFI_API void rtc_set_local_description(
     struct RTCPeerConnection* peer,
     struct RTCSessionDescription* desc,
-    void (*callback)(int res)
+    void* ctx,
+    void (*callback)(int res, void* ctx)
 );
 
 /*
@@ -423,7 +426,9 @@ Only then does the agreed-upon configuration take effect.
 */
 extern "C" FFI_API void rtc_set_remote_description(
     struct RTCPeerConnection* peer,
-    struct RTCSessionDescription* desc
+    struct RTCSessionDescription* desc,
+    void* ctx,
+    void (*callback)(int res, void* ctx)
 );
 
 FFI_API enum CONNECTION_STATE {

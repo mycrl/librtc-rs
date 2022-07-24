@@ -10,6 +10,8 @@
 #include "api/video_codecs/builtin_video_decoder_factory.h"
 #include "api/video_codecs/builtin_video_encoder_factory.h"
 
+#include <stdio.h>
+
 struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionConfigure* c_config) 
 {
     struct RTCPeerConnection* rtc = new RTCPeerConnection();
@@ -47,7 +49,10 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
     return rtc;
 }
 
-void rtc_add_ice_candidate(struct RTCPeerConnection* rtc, struct RTCIceCandidate* icecandidate)
+void rtc_add_ice_candidate(
+    struct RTCPeerConnection* rtc, 
+    struct RTCIceCandidate* icecandidate
+)
 {
     rtc->peer_connection->AddIceCandidate(from_c(icecandidate));
 }
@@ -58,22 +63,35 @@ void rtc_free(struct RTCSessionDescription* raw)
     free(raw);
 }
 
-void rtc_create_answer(struct RTCPeerConnection* rtc, void (*callback)(struct RTCSessionDescription*))
+void rtc_create_answer(
+    struct RTCPeerConnection* rtc,
+    void* ctx,
+    void (*callback)(struct RTCSessionDescription* desc, void* ctx)
+)
 {
-    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(callback);
+    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
     rtc->peer_connection->CreateAnswer(promisify, options);
 }
 
-void rtc_create_offer(struct RTCPeerConnection* rtc, void (*callback)(struct RTCSessionDescription*))
+void rtc_create_offer(
+    struct RTCPeerConnection* rtc,
+    void* ctx,
+    void (*callback)(struct RTCSessionDescription* desc, void* ctx)
+)
 {
-    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(callback);
+    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
     rtc->peer_connection->CreateOffer(promisify, options);
 }
 
-void rtc_set_local_description(struct RTCPeerConnection* rtc, struct RTCSessionDescription* c_desc, void (*callback)(int))
+void rtc_set_local_description(
+    struct RTCPeerConnection* rtc, 
+    struct RTCSessionDescription* c_desc, 
+    void* ctx, 
+    void (*callback)(int res, void* ctx)
+)
 {
-    auto promisify = new rtc::RefCountedObject<SetDescPromisify>(callback);
+    auto promisify = new rtc::RefCountedObject<SetDescPromisify>(ctx, callback);
     rtc->peer_connection->SetLocalDescription(promisify, from_c(c_desc));
 }
