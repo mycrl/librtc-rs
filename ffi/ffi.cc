@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "ffi.h"
 #include "convert.h"
 #include "observer.h"
@@ -14,31 +16,27 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
 {
     struct RTCPeerConnection* rtc = new RTCPeerConnection();
     auto peer_factory = webrtc::CreatePeerConnectionFactory(
-        nullptr /* network_thread */,
-        nullptr /* worker_thread */,
-        nullptr /* signaling_thread */,
-        nullptr /* default_adm */,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
         webrtc::CreateBuiltinAudioEncoderFactory(),
         webrtc::CreateBuiltinAudioDecoderFactory(),
         webrtc::CreateBuiltinVideoEncoderFactory(),
         webrtc::CreateBuiltinVideoDecoderFactory(),
-        nullptr /* audio_mixer */,
-        nullptr /* audio_processing */
-    );
-
+        nullptr,
+        nullptr);
     if (!peer_factory) 
     {
         return NULL;
     }
 
-    rtc->observer = std::make_shared<Observer>();
+    rtc->observer = std::shared_ptr<Observer>();
     rtc->peer_connection = peer_factory->CreatePeerConnection(
         from_c(c_config),
         nullptr,
         nullptr,
-        rtc->observer.get()
-    );
-
+        rtc->observer.get());
     if (!rtc->peer_connection)
     {
         return NULL;
@@ -67,9 +65,9 @@ void rtc_create_answer(
     void (*callback)(struct RTCSessionDescription* desc, void* ctx)
 )
 {
-    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
+    rtc::scoped_refptr<CreateDescPromisify> observer = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-    rtc->peer_connection->CreateAnswer(promisify, options);
+    rtc->peer_connection->CreateAnswer(observer, options);
 }
 
 void rtc_create_offer(
@@ -92,4 +90,21 @@ void rtc_set_local_description(
 {
     auto promisify = new rtc::RefCountedObject<SetDescPromisify>(ctx, callback);
     rtc->peer_connection->SetLocalDescription(promisify, from_c(c_desc));
+}
+
+void callback_rtc(struct RTCSessionDescription* desc, void* ctx)
+{
+    printf("callback_rtc\n");
+}
+
+int main()
+{
+    struct RTCPeerConnection* peer = create_rtc_peer_connection(nullptr);
+    if (peer == nullptr)
+    {
+        return -1;
+    }
+
+    rtc_create_offer(peer, nullptr, callback_rtc);
+    Sleep(100000);
 }

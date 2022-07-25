@@ -60,7 +60,15 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectio
 	Peer::RTCConfiguration config;
 	config.enable_dtls_srtp = true;
 	config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
-	config.ice_candidate_pool_size = raw->ice_candidate_pool_size;
+
+	if (raw)
+	{
+		config.ice_candidate_pool_size = raw->ice_candidate_pool_size;
+	}
+	else
+	{
+		return config;
+	}
 
 	if (raw->ice_transport_policy)
 	{

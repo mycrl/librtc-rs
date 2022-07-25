@@ -15,6 +15,7 @@ void Observer::OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> da
 
 void Observer::OnRenegotiationNeeded()
 {
+	printf("OnRenegotiationNeeded\n");
 	if (this->_on_renegotiationneeded_handler == NULL) return;
 	this->_on_renegotiationneeded_handler();
 }
