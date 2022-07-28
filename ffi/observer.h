@@ -5,9 +5,6 @@
 class Observer: public webrtc::PeerConnectionObserver 
 {
 public:
-    Observer() {}
-    ~Observer() {}
-
     void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState new_state);
     void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
     void OnRenegotiationNeeded();

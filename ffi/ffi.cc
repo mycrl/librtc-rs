@@ -26,12 +26,12 @@ struct RTCPeerConnection* create_rtc_peer_connection(struct RTCPeerConnectionCon
         webrtc::CreateBuiltinVideoDecoderFactory(),
         nullptr,
         nullptr);
-    if (!peer_factory) 
+    if (!peer_factory)
     {
         return NULL;
     }
 
-    rtc->observer = std::shared_ptr<Observer>();
+    rtc->observer = std::make_shared<Observer>();
     rtc->peer_connection = peer_factory->CreatePeerConnection(
         from_c(c_config),
         nullptr,
@@ -65,9 +65,9 @@ void rtc_create_answer(
     void (*callback)(struct RTCSessionDescription* desc, void* ctx)
 )
 {
-    rtc::scoped_refptr<CreateDescPromisify> observer = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
+    auto desc = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-    rtc->peer_connection->CreateAnswer(observer, options);
+    rtc->peer_connection->CreateAnswer(desc, options);
 }
 
 void rtc_create_offer(
@@ -76,9 +76,9 @@ void rtc_create_offer(
     void (*callback)(struct RTCSessionDescription* desc, void* ctx)
 )
 {
-    auto promisify = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
+    auto desc = new rtc::RefCountedObject<CreateDescPromisify>(ctx, callback);
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-    rtc->peer_connection->CreateOffer(promisify, options);
+    rtc->peer_connection->CreateOffer(desc, options);
 }
 
 void rtc_set_local_description(
@@ -90,21 +90,4 @@ void rtc_set_local_description(
 {
     auto promisify = new rtc::RefCountedObject<SetDescPromisify>(ctx, callback);
     rtc->peer_connection->SetLocalDescription(promisify, from_c(c_desc));
-}
-
-void callback_rtc(struct RTCSessionDescription* desc, void* ctx)
-{
-    printf("callback_rtc\n");
-}
-
-int main()
-{
-    struct RTCPeerConnection* peer = create_rtc_peer_connection(nullptr);
-    if (peer == nullptr)
-    {
-        return -1;
-    }
-
-    rtc_create_offer(peer, nullptr, callback_rtc);
-    Sleep(100000);
 }

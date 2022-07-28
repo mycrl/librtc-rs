@@ -158,6 +158,7 @@
   <ItemGroup>
     <ClCompile Include="convert.cc" />
     <ClCompile Include="ffi.cc" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="observer.cc" />
     <ClCompile Include="promisify.cc" />
   </ItemGroup>
