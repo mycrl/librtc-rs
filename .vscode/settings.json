@@ -1,6 +1,12 @@
 {
     "files.associations": {
         "*.vue": "html",
-        "*.idl": "cpp"
+        "*.idl": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "vector": "cpp",
+        "xstring": "cpp",
+        "__split_buffer": "cpp",
+        "string": "cpp"
     }
 }

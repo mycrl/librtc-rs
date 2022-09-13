@@ -1,8 +1,6 @@
-#include "ffi.h"
+﻿#include "convert.h"
 #include <string>
 #include <vector>
-#include <assert.h>
-#include "api/peer_connection_interface.h"
 
 const std::string from_c(char* raw)
 {
@@ -20,7 +18,7 @@ std::vector<std::string> from_c(char** raw, int size)
 	return strings;
 }
 
-webrtc::PeerConnectionInterface::IceServer from_c(struct RTCIceServer raw)
+webrtc::PeerConnectionInterface::IceServer from_c(RTCIceServer raw)
 {
 	webrtc::PeerConnectionInterface::IceServer server;
 
@@ -42,7 +40,7 @@ webrtc::PeerConnectionInterface::IceServer from_c(struct RTCIceServer raw)
 	return server;
 }
 
-webrtc::PeerConnectionInterface::IceServers from_c(struct RTCIceServer* raw, int size)
+webrtc::PeerConnectionInterface::IceServers from_c(RTCIceServer* raw, int size)
 {
 	webrtc::PeerConnectionInterface::IceServers servers;
 	for (int i = 0; i < size; i++)
@@ -53,7 +51,8 @@ webrtc::PeerConnectionInterface::IceServers from_c(struct RTCIceServer* raw, int
 	return servers;
 }
 
-webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectionConfigure* raw)
+webrtc::PeerConnectionInterface::RTCConfiguration from_c(
+    RTCPeerConnectionConfigure* raw)
 {
 	using Peer = webrtc::PeerConnectionInterface;
 
@@ -61,18 +60,19 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectio
 	config.enable_dtls_srtp = true;
 	config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
 
-	if (raw)
-	{
-		config.ice_candidate_pool_size = raw->ice_candidate_pool_size;
-	}
-	else
+	if (!raw)
 	{
 		return config;
 	}
 
+	if (raw->ice_candidate_pool_size)
+	{
+		config.ice_candidate_pool_size = raw->ice_candidate_pool_size;
+	}
+
 	if (raw->ice_transport_policy)
 	{
-		config.type = (Peer::IceTransportsType)(raw->ice_transport_policy - 1);
+		config.type = (Peer::IceTransportsType)(raw->ice_transport_policy);
 	}
 	
 	if (raw->bundle_policy) {
@@ -92,7 +92,7 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(struct RTCPeerConnectio
 	return config;
 }
 
-const webrtc::IceCandidateInterface* from_c(struct RTCIceCandidate* ice_candidate)
+const webrtc::IceCandidateInterface* from_c(RTCIceCandidate* ice_candidate)
 {
 	int index = ice_candidate->sdp_mline_index;
 	const std::string mid = from_c(ice_candidate->sdp_mid);
@@ -100,7 +100,7 @@ const webrtc::IceCandidateInterface* from_c(struct RTCIceCandidate* ice_candidat
 	return webrtc::CreateIceCandidate(mid, index, candidate, nullptr);
 }
 
-const std::string sdp_type_to_string(enum RTC_SESSION_DESCRIPTION_TYPE type)
+const std::string sdp_type_to_string(RTC_SESSION_DESCRIPTION_TYPE type)
 {
 	if (type == RTC_SESSION_DESCRIPTION_TYPE_ANSWER) 
 	{
@@ -120,16 +120,16 @@ const std::string sdp_type_to_string(enum RTC_SESSION_DESCRIPTION_TYPE type)
 	}
 }
 
-webrtc::SessionDescriptionInterface* from_c(struct RTCSessionDescription* desc)
+webrtc::SessionDescriptionInterface* from_c(RTCSessionDescription* desc)
 {
 	const std::string type = sdp_type_to_string(desc->type);
 	const std::string sdp = from_c((char*)desc->sdp);
 	return webrtc::CreateSessionDescription(type, sdp, nullptr);
 }
 
-struct RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
+RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 {
-	auto c_desc = (struct RTCSessionDescription*)malloc(sizeof(struct RTCSessionDescription));
+	auto c_desc = (RTCSessionDescription*)malloc(sizeof(RTCSessionDescription));
 	if (!c_desc)
 	{
 		return NULL;
@@ -144,7 +144,13 @@ struct RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 	}
 
     strcpy((char*)c_desc->sdp, sdp.c_str());
-	c_desc->type = (enum RTC_SESSION_DESCRIPTION_TYPE)(desc->GetType());
+	c_desc->type = (RTC_SESSION_DESCRIPTION_TYPE)(desc->GetType());
 
 	return c_desc;
+}
+
+void free_session_description(RTCSessionDescription* raw)
+{
+	free((void*)raw->sdp);
+	free(raw);
 }
