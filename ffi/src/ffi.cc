@@ -53,7 +53,7 @@ RTCPeerConnection* create_rtc_peer_connection(
 
 void rtc_close(RTCPeerConnection* peer)
 {
-    
+    delete peer;
 }
 
 void rtc_add_ice_candidate(RTCPeerConnection* rtc, 

@@ -19,6 +19,7 @@ impl Default for RtcSessionDescriptionType {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RawRTCSessionDescription {
     kind: RtcSessionDescriptionType,
     sdp: *const c_char,
@@ -61,12 +62,7 @@ impl TryFrom<RawRTCSessionDescription> for RTCSessionDescription {
     fn try_from(value: RawRTCSessionDescription) -> Result<Self, Self::Error> {
         Ok(RTCSessionDescription {
             kind: value.kind,
-            sdp: unsafe {
-                CString::from_raw(value.sdp as *mut c_char)
-                    .as_c_str()
-                    .to_str()?
-                    .to_string()
-            },
+            sdp: unsafe { CString::from_raw(value.sdp as *mut c_char).into_string()? },
         })
     }
 }

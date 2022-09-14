@@ -191,7 +191,7 @@ impl Into<RawRTCPeerConnectionConfigure> for RTCConfiguration {
                     .into_raw_parts()
             })
             .unwrap_or((std::ptr::null_mut(), 0, 0));
-        
+
         RawRTCPeerConnectionConfigure {
             bundle_policy: self.bundle_policy.map(|i| i as u8).unwrap_or(0),
             ice_transport_policy: self.ice_transport_policy.map(|i| i as u8).unwrap_or(0),
