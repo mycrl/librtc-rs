@@ -1,7 +1,7 @@
 use anyhow::Result;
 use libc::*;
 use std::convert::{TryFrom, TryInto};
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug)]
@@ -62,7 +62,7 @@ impl TryFrom<RawRTCSessionDescription> for RTCSessionDescription {
     fn try_from(value: RawRTCSessionDescription) -> Result<Self, Self::Error> {
         Ok(RTCSessionDescription {
             kind: value.kind,
-            sdp: unsafe { CString::from_raw(value.sdp as *mut c_char).into_string()? },
+            sdp: unsafe { CStr::from_ptr(value.sdp).to_str()?.to_string() },
         })
     }
 }

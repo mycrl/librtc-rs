@@ -63,6 +63,7 @@ impl<'a> Future for CreateSessionDescriptionPromisify<'a> {
                         })),
                         Ordering::Relaxed,
                     );
+
                     waker.wake();
                 }),
             });
@@ -93,9 +94,7 @@ impl<'a> Future for CreateSessionDescriptionPromisify<'a> {
                 Poll::Pending
             } else {
                 Poll::Ready(match Box::into_inner(unsafe { Box::from_raw(inner) }) {
-                    Ok(c_desc) => RTCSessionDescription::try_from(Box::into_inner(unsafe {
-                        Box::from_raw(c_desc)
-                    })),
+                    Ok(c_desc) => RTCSessionDescription::try_from(unsafe { *c_desc }),
                     Err(e) => Err(e),
                 })
             }
@@ -109,5 +108,6 @@ extern "C" fn create_session_desc_callback(
     ctx: *mut c_void,
 ) {
     let mut ctx = unsafe { Box::from_raw(ctx as *mut CreateSessionDescriptionContext) };
+    // todo: desc 已经释放 当场copy
     (ctx.callback)(error, desc);
 }

@@ -1,17 +1,8 @@
 use super::promisify::CreateSessionDescriptionPromisify;
 use super::raw;
 use super::rtc_peerconnection_configure::*;
-use super::rtc_session_description::*;
-use anyhow::{anyhow, Result};
-use futures::task::AtomicWaker;
+use anyhow::Result;
 use libc::*;
-use std::convert::{TryFrom, TryInto};
-use std::ffi::CString;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::atomic::{AtomicPtr, Ordering};
-use std::sync::Arc;
-use std::task::*;
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug)]
@@ -37,18 +28,38 @@ pub struct RTCPeerConnection<'a> {
 }
 
 impl<'a> RTCPeerConnection<'a> {
+    /// By default, RTCPeerConnection::run() calls Thread::Current()->Run().
+    /// To receive and dispatch messages, call ProcessMessages occasionally.
     pub fn run() {
         raw::safe_rtc_run()
     }
 
+    /// The RTCPeerConnection constructor returns a newly-created 
+    /// RTCPeerConnection, which represents a connection between the local 
+    /// device and a remote peer.
     pub fn new(config: RTCConfiguration) -> Result<Self> {
         raw::safe_create_rtc_peerconnection(config)
     }
 
+    /// The create_answer() method on the RTCPeerConnection interface creates an 
+    /// SDP answer to an offer received from a remote peer during the 
+    /// offer/answer negotiation of a WebRTC connection. The answer contains 
+    /// information about any media already attached to the session, codecs and 
+    /// options supported by the browser, and any ICE candidates already gathered. 
+    /// The answer is delivered to the returned Future, and should then be sent 
+    /// to the source of the offer to continue the negotiation process.
     pub fn create_answer(&self) -> CreateSessionDescriptionPromisify {
         raw::safe_rtc_create_answer(self.raw)
     }
 
+    /// The create_offer() method of the RTCPeerConnection interface initiates 
+    /// the creation of an SDP offer for the purpose of starting a new WebRTC 
+    /// connection to a remote peer. The SDP offer includes information about 
+    /// any MediaStreamTrack objects already attached to the WebRTC session, 
+    /// codec, and options supported by the browser, and any candidates already 
+    /// gathered by the ICE agent, for the purpose of being sent over the 
+    /// signaling channel to a potential peer to request a connection or to 
+    /// update the configuration of an existing connection.
     pub fn create_offer(&self) -> CreateSessionDescriptionPromisify {
         raw::safe_rtc_create_offer(self.raw)
     }

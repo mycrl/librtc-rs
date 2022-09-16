@@ -17,7 +17,8 @@ void rtc_run()
 }
 
 RTCPeerConnection* create_rtc_peer_connection(
-    RTCPeerConnectionConfigure* c_config) 
+    RTCPeerConnectionConfigure* c_config,
+    EventBus events)
 {
     RTCPeerConnection* rtc = new RTCPeerConnection();
     auto peer_factory = webrtc::CreatePeerConnectionFactory(
@@ -37,7 +38,7 @@ RTCPeerConnection* create_rtc_peer_connection(
     }
 
     rtc::scoped_refptr<Observer> observer(
-        new rtc::RefCountedObject<Observer>());
+        new rtc::RefCountedObject<Observer>(events));
     rtc->peer_connection = peer_factory->CreatePeerConnection(
         from_c(c_config),
         nullptr,

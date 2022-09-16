@@ -1,7 +1,11 @@
 ﻿#include "api/peer_connection_interface.h"
 #include "convert.h"
 #include "observer.h"
-#include "ffi.h"
+
+Observer::Observer(EventBus events)
+{
+    _events = events;
+}
 
 void Observer::OnSignalingChange(
     webrtc::PeerConnectionInterface::SignalingState new_state)
@@ -31,10 +35,22 @@ void Observer::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
 	
 }
 
+void Observer::OnConnectionChange(
+    webrtc::PeerConnectionInterface::PeerConnectionState state)
+{
+    _events.on_connectionstatechange(_events.ctx, into_c(state));
+}
+
 void Observer::OnIceConnectionChange(
     webrtc::PeerConnectionInterface::IceConnectionState new_state)
 {
-    printf("OnIceConnectionChange\n");
+    
+}
+
+void Observer::OnTrack(
+    rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver)
+{
+
 }
 
 DummyCreateDescObserver::DummyCreateDescObserver(CreateDescCallback callback, 
@@ -63,6 +79,7 @@ void DummyCreateDescObserver::OnSuccess(
     else 
     {
         _callback(NULL, res, _ctx);
+        free_session_description(res);
     }
 }
 

@@ -8,6 +8,7 @@ class Observer
     , public rtc::RefCountInterface
 {
 public:
+    Observer(EventBus events);
     void OnSignalingChange(
         webrtc::PeerConnectionInterface::SignalingState new_state);
     void OnDataChannel(
@@ -18,6 +19,12 @@ public:
     void OnRenegotiationNeeded();
     void OnIceConnectionChange(
         webrtc::PeerConnectionInterface::IceConnectionState new_state);
+    void OnTrack(
+        rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver);
+    void OnConnectionChange(
+        webrtc::PeerConnectionInterface::PeerConnectionState new_state);
+private:
+    EventBus _events;
 };
 
 class DummyCreateDescObserver

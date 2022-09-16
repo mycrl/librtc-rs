@@ -1,7 +1,9 @@
+mod raw;
+mod events;
+
 pub mod media_stream;
 pub mod media_stream_track;
 pub mod promisify;
-mod raw;
 pub mod rtc_datachannel;
 pub mod rtc_icecandidate;
 pub mod rtc_peerconnection;

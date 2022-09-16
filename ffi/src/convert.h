@@ -19,5 +19,6 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(
 * c++ type to c type
 */
 RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* raw);
+CONNECTION_STATE into_c(webrtc::PeerConnectionInterface::PeerConnectionState state);
 
 void free_session_description(RTCSessionDescription * desc);

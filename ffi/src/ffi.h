@@ -154,13 +154,6 @@ typedef struct {
 } RTCPeerConnection;
 
 /*
-Returns a newly-created RTCPeerConnection, which represents a
-connection between the local device and a remote peer.
-*/
-extern "C" FFI_API RTCPeerConnection* create_rtc_peer_connection(
-    RTCPeerConnectionConfigure* config);
-
-/*
 RTCIceCandidate
 
 The RTCIceCandidate interface¡ªpart of the WebRTC API¡ªrepresents a candidate 
@@ -436,31 +429,41 @@ extern "C" FFI_API void rtc_set_remote_description(RTCPeerConnection* peer,
     void* ctx);
 
 typedef enum {
-    CONNECTION_STATE_NEW = 1,
-    CONNECTION_STATE_CHECKING,
+    CONNECTION_STATE_NEW,
+    CONNECTION_STATE_CONNECTING,
     CONNECTION_STATE_CONNECTED,
     CONNECTION_STATE_DISCONNECTED,
     CONNECTION_STATE_CLOSED,
     CONNECTION_STATE_FAILED
 } CONNECTION_STATE;
 
-/*
-The connectionstatechange event is sent to the onconnectionstatechange event 
-handler on an RTCPeerConnection object after a new track has been added to an 
-RTCRtpReceiver which is part of the connection. The new connection state can be 
-found in connectionState, and is one of the string values: new, connecting, 
-connected, disconnected, failed, or closed.
-*/
-extern "C" FFI_API void rtc_on_connectionstatechange(RTCPeerConnection* peer,
-    void (*handler)(CONNECTION_STATE state));
+typedef struct EventBus
+{
+    void* ctx;
+
+    /*
+    The connectionstatechange event is sent to the onconnectionstatechange event
+    handler on an RTCPeerConnection object after a new track has been added to an
+    RTCRtpReceiver which is part of the connection. The new connection state can be
+    found in connectionState, and is one of the string values: new, connecting,
+    connected, disconnected, failed, or closed.
+    */
+    void (*on_connectionstatechange)(void* ctx, CONNECTION_STATE state);
+    /*
+    A datachannel event is sent to an RTCPeerConnection instance when an
+    RTCDataChannel has been added to the connection, as a result of the remote peer
+    calling RTCPeerConnection.createDataChannel().
+    */
+    void (*on_datachannel)(void* ctx, RTCDataChannel state);
+};
 
 /*
-A datachannel event is sent to an RTCPeerConnection instance when an 
-RTCDataChannel has been added to the connection, as a result of the remote peer 
-calling RTCPeerConnection.createDataChannel().
+Returns a newly-created RTCPeerConnection, which represents a
+connection between the local device and a remote peer.
 */
-extern "C" FFI_API void rtc_on_datachannel(RTCPeerConnection* peer,
-    void (*handler)(RTCDataChannel state));
+extern "C" FFI_API RTCPeerConnection * create_rtc_peer_connection(
+    RTCPeerConnectionConfigure * config,
+    EventBus events);
 
 /*
 The RTCPeerConnection.close() method closes the current peer connection.

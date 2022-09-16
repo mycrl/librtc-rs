@@ -72,7 +72,7 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(
 
 	if (raw->ice_transport_policy)
 	{
-		config.type = (Peer::IceTransportsType)(raw->ice_transport_policy);
+		config.type = (Peer::IceTransportsType)(raw->ice_transport_policy - 1);
 	}
 	
 	if (raw->bundle_policy) {
@@ -105,11 +105,13 @@ const std::string sdp_type_to_string(RTC_SESSION_DESCRIPTION_TYPE type)
 	if (type == RTC_SESSION_DESCRIPTION_TYPE_ANSWER) 
 	{
 		return "answer";
-	} else
+	} 
+	else
 	if (type == RTC_SESSION_DESCRIPTION_TYPE_OFFER)
 	{
 		return "offer";
-	} else
+	} 
+	else
 	if (type == RTC_SESSION_DESCRIPTION_TYPE_PRANSWER)
 	{
 		return "pranswer";
@@ -147,6 +149,39 @@ RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 	c_desc->type = (RTC_SESSION_DESCRIPTION_TYPE)(desc->GetType());
 
 	return c_desc;
+}
+
+CONNECTION_STATE into_c(webrtc::PeerConnectionInterface::PeerConnectionState state)
+{
+	using PeerConnectionState = webrtc::PeerConnectionInterface::PeerConnectionState;
+	if (state == PeerConnectionState::kNew)
+	{
+		return CONNECTION_STATE::CONNECTION_STATE_NEW;
+	} 
+	else
+	if (state == PeerConnectionState::kConnecting)
+	{
+		return CONNECTION_STATE::CONNECTION_STATE_CONNECTING;
+	} 
+	else
+	if (state == PeerConnectionState::kConnected)
+	{
+		return CONNECTION_STATE::CONNECTION_STATE_CONNECTED;
+	} 
+	else
+	if (state == PeerConnectionState::kDisconnected)
+	{
+		return CONNECTION_STATE::CONNECTION_STATE_DISCONNECTED;
+	}
+	else
+	if (state == PeerConnectionState::kClosed)
+	{
+		return CONNECTION_STATE::CONNECTION_STATE_CLOSED;
+	} 
+	else
+	{
+		return CONNECTION_STATE::CONNECTION_STATE_FAILED;
+	}
 }
 
 void free_session_description(RTCSessionDescription* raw)

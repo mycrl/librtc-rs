@@ -39,7 +39,11 @@ pub fn safe_create_rtc_peerconnection<'a>(
     config: RTCConfiguration,
 ) -> Result<RTCPeerConnection<'a>> {
     let raw_config: RawRTCPeerConnectionConfigure = config.into();
-    let raw = unsafe { create_rtc_peer_connection(raw_config.into_raw()) };
+    let raw_config = raw_config.into_raw();
+
+    let raw = unsafe { create_rtc_peer_connection(raw_config) };
+    let _ = RawRTCPeerConnectionConfigure::from_raw(raw_config);
+    
     if raw.is_null() {
         Err(anyhow!("create peerconnection failed!"))
     } else {

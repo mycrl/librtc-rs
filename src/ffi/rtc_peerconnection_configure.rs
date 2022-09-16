@@ -1,4 +1,3 @@
-use anyhow::Result;
 use libc::*;
 use std::convert::Into;
 use std::ffi::CString;
@@ -28,11 +27,12 @@ pub enum RtcpMuxPolicy {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct RawRTCIceServer {
     credential: *const c_char,
     urls: *const *const c_char,
-    urls_size: u8,
-    urls_capacity: u8,
+    urls_size: c_int,
+    urls_capacity: c_int,
     username: *const c_char,
 }
 
@@ -53,15 +53,16 @@ impl Drop for RawRTCIceServer {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct RawRTCPeerConnectionConfigure {
-    bundle_policy: u8,        // BundelPolicy
-    ice_transport_policy: u8, // IceTransportPolicy
+    bundle_policy: c_int,        // BundelPolicy
+    ice_transport_policy: c_int, // IceTransportPolicy
     peer_identity: *const c_char,
-    rtcp_mux_policy: u8, // RtcpMuxPolicy
+    rtcp_mux_policy: c_int, // RtcpMuxPolicy
     ice_servers: *const RawRTCIceServer,
-    ice_servers_size: u8,
-    ice_servers_capacity: u8,
-    ice_candidate_pool_size: u8,
+    ice_servers_size: c_int,
+    ice_servers_capacity: c_int,
+    ice_candidate_pool_size: c_int,
 }
 
 impl Drop for RawRTCPeerConnectionConfigure {
@@ -127,8 +128,8 @@ impl Into<RawRTCIceServer> for RTCIceServer {
                 .username
                 .map(|s| CString::new(s).unwrap().into_raw())
                 .unwrap_or(std::ptr::null_mut()),
-            urls_capacity: urls_capacity as u8,
-            urls_size: urls_size as u8,
+            urls_capacity: urls_capacity as c_int,
+            urls_size: urls_size as c_int,
             urls,
         }
     }
@@ -193,16 +194,16 @@ impl Into<RawRTCPeerConnectionConfigure> for RTCConfiguration {
             .unwrap_or((std::ptr::null_mut(), 0, 0));
 
         RawRTCPeerConnectionConfigure {
-            bundle_policy: self.bundle_policy.map(|i| i as u8).unwrap_or(0),
-            ice_transport_policy: self.ice_transport_policy.map(|i| i as u8).unwrap_or(0),
+            bundle_policy: self.bundle_policy.map(|i| i as c_int).unwrap_or(0),
+            ice_transport_policy: self.ice_transport_policy.map(|i| i as c_int).unwrap_or(0),
             peer_identity: self
                 .peer_identity
                 .map(|s| CString::new(s).unwrap().into_raw())
                 .unwrap_or(std::ptr::null_mut()),
-            rtcp_mux_policy: self.rtcp_mux_policy.map(|i| i as u8).unwrap_or(0),
-            ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0),
-            ice_servers_capacity: ice_servers_capacity as u8,
-            ice_servers_size: ice_servers_size as u8,
+            rtcp_mux_policy: self.rtcp_mux_policy.map(|i| i as c_int).unwrap_or(0),
+            ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0) as c_int,
+            ice_servers_capacity: ice_servers_capacity as c_int,
+            ice_servers_size: ice_servers_size as c_int,
             ice_servers,
         }
     }

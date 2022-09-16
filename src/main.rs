@@ -12,7 +12,7 @@ async fn main() {
 
     tokio::spawn(async move {
         let offer = peer.create_offer().await.unwrap();
-        println!("offer: {:?}", offer);
+        println!("================================= offer: {:?}", offer);
     });
 
     rtc_peerconnection::RTCPeerConnection::run()
