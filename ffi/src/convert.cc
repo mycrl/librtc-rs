@@ -134,14 +134,16 @@ RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 	auto c_desc = (RTCSessionDescription*)malloc(sizeof(RTCSessionDescription));
 	if (!c_desc)
 	{
+        free(c_desc);
 		return NULL;
 	}
 
 	std::string sdp;
 	desc->ToString(&sdp);
-	c_desc->sdp = (char*)malloc(sizeof(char) * sdp.size());
+	c_desc->sdp = (char*)malloc(sizeof(char) * (sdp.size() + 1));
 	if (!c_desc->sdp)
 	{
+        free(c_desc);
 		return NULL;
 	}
 
@@ -149,6 +151,12 @@ RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 	c_desc->type = (RTC_SESSION_DESCRIPTION_TYPE)(desc->GetType());
 
 	return c_desc;
+}
+
+void free_session_description(RTCSessionDescription* desc)
+{
+	free((void*)desc->sdp);
+	free(desc);
 }
 
 CONNECTION_STATE into_c(webrtc::PeerConnectionInterface::PeerConnectionState state)
@@ -182,10 +190,4 @@ CONNECTION_STATE into_c(webrtc::PeerConnectionInterface::PeerConnectionState sta
 	{
 		return CONNECTION_STATE::CONNECTION_STATE_FAILED;
 	}
-}
-
-void free_session_description(RTCSessionDescription* raw)
-{
-	free((void*)raw->sdp);
-	free(raw);
 }

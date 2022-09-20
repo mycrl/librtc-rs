@@ -1,3 +1,4 @@
+use super::events::*;
 use super::promisify::*;
 use super::rtc_peerconnection::*;
 use super::rtc_peerconnection_configure::*;
@@ -12,6 +13,7 @@ extern "C" {
 
     pub(crate) fn create_rtc_peer_connection(
         config: *const RawRTCPeerConnectionConfigure,
+        eventer: RawEvents,
     ) -> *const RawRTCPeerConnection;
 
     pub(crate) fn rtc_create_answer(
@@ -36,20 +38,16 @@ pub fn safe_rtc_close(peer: &RawRTCPeerConnection) {
 }
 
 pub fn safe_create_rtc_peerconnection<'a>(
-    config: RTCConfiguration,
-) -> Result<RTCPeerConnection<'a>> {
+    config: &RTCConfiguration,
+    eventer: RawEvents,
+) -> Result<&'a RawRTCPeerConnection> {
     let raw_config: RawRTCPeerConnectionConfigure = config.into();
-    let raw_config = raw_config.into_raw();
+    let raw = unsafe { create_rtc_peer_connection(&raw_config, eventer) };
 
-    let raw = unsafe { create_rtc_peer_connection(raw_config) };
-    let _ = RawRTCPeerConnectionConfigure::from_raw(raw_config);
-    
     if raw.is_null() {
         Err(anyhow!("create peerconnection failed!"))
     } else {
-        Ok(RTCPeerConnection {
-            raw: unsafe { &*raw },
-        })
+        Ok(unsafe { &*raw })
     }
 }
 

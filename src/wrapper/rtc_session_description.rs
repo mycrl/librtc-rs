@@ -1,3 +1,4 @@
+use super::base::*;
 use anyhow::Result;
 use libc::*;
 use std::convert::{TryFrom, TryInto};
@@ -19,10 +20,16 @@ impl Default for RtcSessionDescriptionType {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct RawRTCSessionDescription {
     kind: RtcSessionDescriptionType,
     sdp: *const c_char,
+}
+
+impl Drop for RawRTCSessionDescription {
+    fn drop(&mut self) {
+        free_cstring(self.sdp as *mut c_char);
+    }
 }
 
 impl RawRTCSessionDescription {
@@ -47,19 +54,19 @@ pub struct RTCSessionDescription {
     pub sdp: String,
 }
 
-impl TryInto<RawRTCSessionDescription> for RTCSessionDescription {
+impl TryInto<RawRTCSessionDescription> for &RTCSessionDescription {
     type Error = anyhow::Error;
     fn try_into(self) -> Result<RawRTCSessionDescription, Self::Error> {
         Ok(RawRTCSessionDescription {
             kind: self.kind,
-            sdp: CString::new(self.sdp)?.into_raw(),
+            sdp: CString::new(self.sdp.to_string())?.into_raw(),
         })
     }
 }
 
-impl TryFrom<RawRTCSessionDescription> for RTCSessionDescription {
+impl TryFrom<&RawRTCSessionDescription> for RTCSessionDescription {
     type Error = anyhow::Error;
-    fn try_from(value: RawRTCSessionDescription) -> Result<Self, Self::Error> {
+    fn try_from(value: &RawRTCSessionDescription) -> Result<Self, Self::Error> {
         Ok(RTCSessionDescription {
             kind: value.kind,
             sdp: unsafe { CStr::from_ptr(value.sdp).to_str()?.to_string() },

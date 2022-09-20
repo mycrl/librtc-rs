@@ -437,7 +437,7 @@ typedef enum {
     CONNECTION_STATE_FAILED
 } CONNECTION_STATE;
 
-typedef struct EventBus
+typedef struct
 {
     void* ctx;
 
@@ -455,7 +455,7 @@ typedef struct EventBus
     calling RTCPeerConnection.createDataChannel().
     */
     void (*on_datachannel)(void* ctx, RTCDataChannel state);
-};
+} EventBus;
 
 /*
 Returns a newly-created RTCPeerConnection, which represents a

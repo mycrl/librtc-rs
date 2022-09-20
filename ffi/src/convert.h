@@ -21,4 +21,4 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(
 RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* raw);
 CONNECTION_STATE into_c(webrtc::PeerConnectionInterface::PeerConnectionState state);
 
-void free_session_description(RTCSessionDescription * desc);
+void free_session_description(RTCSessionDescription* raw);

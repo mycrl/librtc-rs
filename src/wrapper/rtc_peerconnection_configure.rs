@@ -1,3 +1,4 @@
+use super::base::*;
 use libc::*;
 use std::convert::Into;
 use std::ffi::CString;
@@ -38,15 +39,17 @@ pub struct RawRTCIceServer {
 
 impl Drop for RawRTCIceServer {
     fn drop(&mut self) {
+        free_cstring(self.credential as *mut c_char);
+        free_cstring(self.username as *mut c_char);
         unsafe {
-            let _ = CString::from_raw(self.credential as *mut c_char);
-            let _ = CString::from_raw(self.username as *mut c_char);
-            for url in Vec::from_raw_parts(
-                self.urls as *mut *const c_char,
-                self.urls_size as usize,
-                self.urls_capacity as usize,
-            ) {
-                let _ = CString::from_raw(url as *mut c_char);
+            if !self.urls.is_null() {
+                for url in Vec::from_raw_parts(
+                    self.urls as *mut *const c_char,
+                    self.urls_size as usize,
+                    self.urls_capacity as usize,
+                ) {
+                    free_cstring(url as *mut c_char);
+                }
             }
         }
     }
@@ -68,23 +71,15 @@ pub struct RawRTCPeerConnectionConfigure {
 impl Drop for RawRTCPeerConnectionConfigure {
     fn drop(&mut self) {
         unsafe {
-            let _ = CString::from_raw(self.peer_identity as *mut c_char);
-            let _ = Vec::from_raw_parts(
-                self.ice_servers as *mut RawRTCIceServer,
-                self.ice_servers_size as usize,
-                self.ice_servers_capacity as usize,
-            );
+            free_cstring(self.peer_identity as *mut c_char);
+            if !self.ice_servers.is_null() {
+                let _ = Vec::from_raw_parts(
+                    self.ice_servers as *mut RawRTCIceServer,
+                    self.ice_servers_size as usize,
+                    self.ice_servers_capacity as usize,
+                );
+            }
         }
-    }
-}
-
-impl RawRTCPeerConnectionConfigure {
-    pub fn into_raw(self) -> *const Self {
-        Box::into_raw(Box::new(self))
-    }
-
-    pub fn from_raw(raw: *const Self) -> Box<Self> {
-        unsafe { Box::from_raw(raw as *mut Self) }
     }
 }
 
@@ -107,10 +102,11 @@ pub struct RTCIceServer {
     pub urls: Option<Vec<String>>,
 }
 
-impl Into<RawRTCIceServer> for RTCIceServer {
+impl Into<RawRTCIceServer> for &RTCIceServer {
     fn into(self) -> RawRTCIceServer {
         let (urls, urls_size, urls_capacity) = self
             .urls
+            .as_ref()
             .map(|v| {
                 v.iter()
                     .map(|s| CString::new(s.clone()).unwrap().into_raw() as *const c_char)
@@ -122,11 +118,13 @@ impl Into<RawRTCIceServer> for RTCIceServer {
         RawRTCIceServer {
             credential: self
                 .credential
-                .map(|s| CString::new(s).unwrap().into_raw())
+                .as_ref()
+                .map(|s| CString::new(s.to_string()).unwrap().into_raw())
                 .unwrap_or(std::ptr::null_mut()),
             username: self
                 .username
-                .map(|s| CString::new(s).unwrap().into_raw())
+                .as_ref()
+                .map(|s| CString::new(s.to_string()).unwrap().into_raw())
                 .unwrap_or(std::ptr::null_mut()),
             urls_capacity: urls_capacity as c_int,
             urls_size: urls_size as c_int,
@@ -181,13 +179,14 @@ pub struct RTCConfiguration {
     pub ice_candidate_pool_size: Option<u8>,
 }
 
-impl Into<RawRTCPeerConnectionConfigure> for RTCConfiguration {
+impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
     fn into(self) -> RawRTCPeerConnectionConfigure {
         let (ice_servers, ice_servers_size, ice_servers_capacity) = self
             .ice_servers
+            .as_ref()
             .map(|i| {
                 i.iter()
-                    .map(|s| s.clone().into())
+                    .map(|s| s.into())
                     .collect::<Vec<RawRTCIceServer>>()
                     .into_raw_parts()
             })
@@ -198,7 +197,8 @@ impl Into<RawRTCPeerConnectionConfigure> for RTCConfiguration {
             ice_transport_policy: self.ice_transport_policy.map(|i| i as c_int).unwrap_or(0),
             peer_identity: self
                 .peer_identity
-                .map(|s| CString::new(s).unwrap().into_raw())
+                .as_ref()
+                .map(|s| CString::new(s.to_string()).unwrap().into_raw())
                 .unwrap_or(std::ptr::null_mut()),
             rtcp_mux_policy: self.rtcp_mux_policy.map(|i| i as c_int).unwrap_or(0),
             ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0) as c_int,

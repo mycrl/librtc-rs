@@ -1,4 +1,4 @@
-use super::raw;
+use super::functions;
 use super::rtc_peerconnection::*;
 use super::rtc_session_description::*;
 use anyhow::{anyhow, Result};
@@ -19,14 +19,14 @@ pub enum SessionDescriptionKind {
 }
 
 struct CreateSessionDescriptionContext {
-    callback: Box<dyn FnMut(*const c_char, *const RawRTCSessionDescription)>,
+    callback: Box<dyn FnMut(Result<RTCSessionDescription>)>,
 }
 
 pub struct CreateSessionDescriptionPromisify<'a> {
     waker: Arc<AtomicWaker>,
     kind: SessionDescriptionKind,
     peer: &'a RawRTCPeerConnection,
-    ret: Arc<AtomicPtr<Result<*mut RawRTCSessionDescription>>>,
+    ret: Arc<AtomicPtr<Result<RTCSessionDescription>>>,
     begin: bool,
 }
 
@@ -51,26 +51,15 @@ impl<'a> Future for CreateSessionDescriptionPromisify<'a> {
             let waker = self.as_ref().waker.clone();
             let desc = self.as_mut().ret.clone();
             let ctx = Box::new(CreateSessionDescriptionContext {
-                callback: Box::new(move |err, c_desc| {
-                    desc.store(
-                        Box::into_raw(Box::new(if err.is_null() {
-                            Ok(c_desc as *mut RawRTCSessionDescription)
-                        } else {
-                            match unsafe { CString::from_raw(err as *mut c_char).into_string() } {
-                                Ok(e) => Err(anyhow!(e)),
-                                Err(e) => Err(anyhow!(e.to_string())),
-                            }
-                        })),
-                        Ordering::Relaxed,
-                    );
-
+                callback: Box::new(move |res| {
+                    desc.store(Box::into_raw(Box::new(res)), Ordering::Relaxed);
                     waker.wake();
                 }),
             });
 
             if self.as_ref().kind == SessionDescriptionKind::Offer {
                 unsafe {
-                    raw::rtc_create_offer(
+                    functions::rtc_create_offer(
                         self.as_ref().peer,
                         create_session_desc_callback,
                         Box::into_raw(ctx) as *const c_void,
@@ -78,7 +67,7 @@ impl<'a> Future for CreateSessionDescriptionPromisify<'a> {
                 };
             } else {
                 unsafe {
-                    raw::rtc_create_answer(
+                    functions::rtc_create_answer(
                         self.as_ref().peer,
                         create_session_desc_callback,
                         Box::into_raw(ctx) as *const c_void,
@@ -93,10 +82,7 @@ impl<'a> Future for CreateSessionDescriptionPromisify<'a> {
             if inner.is_null() {
                 Poll::Pending
             } else {
-                Poll::Ready(match Box::into_inner(unsafe { Box::from_raw(inner) }) {
-                    Ok(c_desc) => RTCSessionDescription::try_from(unsafe { *c_desc }),
-                    Err(e) => Err(e),
-                })
+                Poll::Ready(Box::into_inner(unsafe { Box::from_raw(inner) }))
             }
         }
     }
@@ -108,6 +94,12 @@ extern "C" fn create_session_desc_callback(
     ctx: *mut c_void,
 ) {
     let mut ctx = unsafe { Box::from_raw(ctx as *mut CreateSessionDescriptionContext) };
-    // todo: desc 已经释放 当场copy
-    (ctx.callback)(error, desc);
+    (ctx.callback)(if error.is_null() {
+        RTCSessionDescription::try_from(unsafe { &*desc })
+    } else {
+        match unsafe { CString::from_raw(error as *mut c_char).into_string() } {
+            Ok(e) => Err(anyhow!(e)),
+            Err(e) => Err(anyhow!(e.to_string())),
+        }
+    });
 }
