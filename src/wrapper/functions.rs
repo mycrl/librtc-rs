@@ -19,13 +19,27 @@ extern "C" {
     pub(crate) fn rtc_create_answer(
         peer: *const RawRTCPeerConnection,
         callback: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void),
-        ctx: *const c_void,
+        ctx: *mut c_void,
     );
 
     pub(crate) fn rtc_create_offer(
         peer: *const RawRTCPeerConnection,
         callback: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void),
-        ctx: *const c_void,
+        ctx: *mut c_void,
+    );
+
+    pub(crate) fn rtc_set_local_description(
+        peer: *const RawRTCPeerConnection,
+        desc: *const RawRTCSessionDescription,
+        callback: extern "C" fn(*const c_char, *mut c_void),
+        ctx: *mut c_void,
+    );
+
+    pub(crate) fn rtc_set_remote_description(
+        peer: *const RawRTCPeerConnection,
+        desc: *const RawRTCSessionDescription,
+        callback: extern "C" fn(*const c_char, *mut c_void),
+        ctx: *mut c_void,
     );
 }
 
@@ -61,4 +75,18 @@ pub fn safe_rtc_create_offer<'a>(
     peer: &'a RawRTCPeerConnection,
 ) -> CreateSessionDescriptionPromisify<'a> {
     CreateSessionDescriptionPromisify::new(peer, SessionDescriptionKind::Offer)
+}
+
+pub fn safe_rtc_set_local_description<'a>(
+    peer: &'a RawRTCPeerConnection,
+    desc: &'a RTCSessionDescription,
+) -> SetSessionDescriptionPromisify<'a> {
+    SetSessionDescriptionPromisify::new(peer, desc, SetSessionDescriptionKind::Local)
+}
+
+pub fn safe_rtc_set_remote_description<'a>(
+    peer: &'a RawRTCPeerConnection,
+    desc: &'a RTCSessionDescription,
+) -> SetSessionDescriptionPromisify<'a> {
+    SetSessionDescriptionPromisify::new(peer, desc, SetSessionDescriptionKind::Remote)
 }
