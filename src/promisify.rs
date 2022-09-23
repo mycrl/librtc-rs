@@ -1,5 +1,5 @@
 use super::base::*;
-use super::functions;
+use super::sys;
 use super::rtc_peerconnection::*;
 use super::rtc_session_description::*;
 use anyhow::{anyhow, Result};
@@ -14,7 +14,41 @@ use std::sync::Arc;
 use std::task::*;
 
 pub type CreateDescriptionFuture<'a> = ObserverPromisify<CreateDescriptionObserver<'a>>;
+impl<'a> CreateDescriptionFuture<'a> {
+    pub(crate) fn new(pc: &'a RawRTCPeerConnection, kind: CreateDescriptionKind) -> Self {
+        Self {
+            waker: Arc::new(AtomicWaker::new()),
+
+            begin: false,
+            ext: CreateDescriptionObserver {
+                ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
+                kind,
+                pc,
+            },
+        }
+    }
+}
+
 pub type SetDescriptionFuture<'a> = ObserverPromisify<SetDescriptionObserver<'a>>;
+impl<'a> SetDescriptionFuture<'a> {
+    pub(crate) fn new(
+        pc: &'a RawRTCPeerConnection,
+        desc: &'a RTCSessionDescription,
+        kind: SetDescriptionKind,
+    ) -> Self {
+        Self {
+            waker: Arc::new(AtomicWaker::new()),
+
+            begin: false,
+            ext: SetDescriptionObserver {
+                ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
+                desc,
+                kind,
+                pc,
+            },
+        }
+    }
+}
 
 pub trait ObserverPromisifyExt {
     type Output;
@@ -54,7 +88,7 @@ where
 }
 
 #[derive(PartialEq, PartialOrd)]
-pub enum SessionDescriptionKind {
+pub enum CreateDescriptionKind {
     Offer,
     Answer,
 }
@@ -103,7 +137,7 @@ extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
 }
 
 pub struct CreateDescriptionObserver<'a> {
-    kind: SessionDescriptionKind,
+    kind: CreateDescriptionKind,
     pc: &'a RawRTCPeerConnection,
     ret: Arc<AtomicPtr<Result<RTCSessionDescription>>>,
 }
@@ -120,10 +154,10 @@ impl<'a> ObserverPromisifyExt for CreateDescriptionObserver<'a> {
             }),
         })) as *mut c_void;
 
-        if self.kind == SessionDescriptionKind::Offer {
-            unsafe { functions::rtc_create_offer(self.pc, create_description_callback, ctx) };
+        if self.kind == CreateDescriptionKind::Offer {
+            unsafe { sys::rtc_create_offer(self.pc, create_description_callback, ctx) };
         } else {
-            unsafe { functions::rtc_create_answer(self.pc, create_description_callback, ctx) };
+            unsafe { sys::rtc_create_answer(self.pc, create_description_callback, ctx) };
         }
 
         Ok(())
@@ -163,11 +197,11 @@ impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
 
         if self.kind == SetDescriptionKind::Local {
             unsafe {
-                functions::rtc_set_local_description(self.pc, desc, set_description_callback, ctx)
+                sys::rtc_set_local_description(self.pc, desc, set_description_callback, ctx)
             };
         } else {
             unsafe {
-                functions::rtc_set_remote_description(self.pc, desc, set_description_callback, ctx)
+                sys::rtc_set_remote_description(self.pc, desc, set_description_callback, ctx)
             };
         }
 

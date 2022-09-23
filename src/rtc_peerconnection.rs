@@ -1,5 +1,5 @@
 use super::events::*;
-use super::functions;
+use super::sys;
 use super::promisify::*;
 use super::rtc_peerconnection_configure::*;
 use super::rtc_session_description::RTCSessionDescription;
@@ -35,7 +35,7 @@ impl<'a> RTCPeerConnection<'a> {
     /// By default, RTCPeerConnection::run() calls Thread::Current()->Run().
     /// To receive and dispatch messages, call ProcessMessages occasionally.
     pub fn run() {
-        functions::safe_rtc_run()
+        sys::safe_rtc_run()
     }
 
     /// The RTCPeerConnection constructor returns a newly-created
@@ -43,19 +43,8 @@ impl<'a> RTCPeerConnection<'a> {
     /// device and a remote peer.
     pub fn new(config: &RTCConfiguration) -> Result<Self> {
         let eventer = Arc::new(Eventer::new());
-        let raw = functions::safe_create_rtc_peerconnection(config, eventer.ctx.get_raw())?;
+        let raw = sys::safe_create_rtc_peerconnection(config, eventer.ctx.get_raw())?;
         Ok(Self { raw, eventer })
-    }
-
-    /// The create_answer() method on the RTCPeerConnection interface creates an
-    /// SDP answer to an offer received from a remote peer during the
-    /// offer/answer negotiation of a WebRTC connection. The answer contains
-    /// information about any media already attached to the session, codecs and
-    /// options supported by the browser, and any ICE candidates already gathered.
-    /// The answer is delivered to the returned Future, and should then be sent
-    /// to the source of the offer to continue the negotiation process.
-    pub fn create_answer(&self) -> CreateDescriptionFuture {
-        functions::safe_rtc_create_answer(self.raw)
     }
 
     /// The create_offer() method of the RTCPeerConnection interface initiates
@@ -67,26 +56,37 @@ impl<'a> RTCPeerConnection<'a> {
     /// signaling channel to a potential peer to request a connection or to
     /// update the configuration of an existing connection.
     pub fn create_offer(&self) -> CreateDescriptionFuture {
-        functions::safe_rtc_create_offer(self.raw)
+        CreateDescriptionFuture::new(self.raw, CreateDescriptionKind::Offer)
+    }
+
+    /// The create_answer() method on the RTCPeerConnection interface creates an
+    /// SDP answer to an offer received from a remote peer during the
+    /// offer/answer negotiation of a WebRTC connection. The answer contains
+    /// information about any media already attached to the session, codecs and
+    /// options supported by the browser, and any ICE candidates already gathered.
+    /// The answer is delivered to the returned Future, and should then be sent
+    /// to the source of the offer to continue the negotiation process.
+    pub fn create_answer(&self) -> CreateDescriptionFuture {
+        CreateDescriptionFuture::new(self.raw, CreateDescriptionKind::Answer)
     }
 
     pub fn set_local_description<'b>(
         &'b self,
         desc: &'b RTCSessionDescription,
     ) -> SetDescriptionFuture<'b> {
-        functions::safe_rtc_set_local_description(self.raw, desc)
+        SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Local)
     }
 
     pub fn set_remote_description<'b>(
         &'b self,
         desc: &'b RTCSessionDescription,
     ) -> SetDescriptionFuture<'b> {
-        functions::safe_rtc_set_remote_description(self.raw, desc)
+        SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Remote)
     }
 }
 
 impl Drop for RTCPeerConnection<'_> {
     fn drop(&mut self) {
-        functions::safe_rtc_close(self.raw)
+        sys::safe_rtc_close(self.raw)
     }
 }

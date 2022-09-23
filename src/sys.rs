@@ -1,5 +1,4 @@
 use super::events::*;
-use super::promisify::*;
 use super::rtc_peerconnection::*;
 use super::rtc_peerconnection_configure::*;
 use super::rtc_session_description::*;
@@ -63,26 +62,4 @@ pub fn safe_create_rtc_peerconnection<'a>(
     } else {
         Ok(unsafe { &*raw })
     }
-}
-
-pub fn safe_rtc_create_answer<'a>(peer: &'a RawRTCPeerConnection) -> CreateDescriptionFuture<'a> {
-    CreateDescriptionFuture::new(peer, SessionDescriptionKind::Answer)
-}
-
-pub fn safe_rtc_create_offer<'a>(peer: &'a RawRTCPeerConnection) -> CreateDescriptionFuture<'a> {
-    CreateDescriptionFuture::new(peer, SessionDescriptionKind::Offer)
-}
-
-pub fn safe_rtc_set_local_description<'a>(
-    peer: &'a RawRTCPeerConnection,
-    desc: &'a RTCSessionDescription,
-) -> SetSessionDescriptionPromisify<'a> {
-    SetSessionDescriptionPromisify::new(peer, desc, SetSessionDescriptionKind::Local)
-}
-
-pub fn safe_rtc_set_remote_description<'a>(
-    peer: &'a RawRTCPeerConnection,
-    desc: &'a RTCSessionDescription,
-) -> SetSessionDescriptionPromisify<'a> {
-    SetSessionDescriptionPromisify::new(peer, desc, SetSessionDescriptionKind::Remote)
 }

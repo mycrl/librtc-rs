@@ -1,9 +1,4 @@
-#![feature(vec_into_raw_parts)]
-#![feature(box_into_inner)]
-
-mod wrapper;
-
-use wrapper::*;
+use webrtc_wrapper::*;
 
 #[tokio::main]
 async fn main() {
