@@ -65,16 +65,12 @@ pub fn safe_create_rtc_peerconnection<'a>(
     }
 }
 
-pub fn safe_rtc_create_answer<'a>(
-    peer: &'a RawRTCPeerConnection,
-) -> CreateSessionDescriptionPromisify<'a> {
-    CreateSessionDescriptionPromisify::new(peer, SessionDescriptionKind::Answer)
+pub fn safe_rtc_create_answer<'a>(peer: &'a RawRTCPeerConnection) -> CreateDescriptionFuture<'a> {
+    CreateDescriptionFuture::new(peer, SessionDescriptionKind::Answer)
 }
 
-pub fn safe_rtc_create_offer<'a>(
-    peer: &'a RawRTCPeerConnection,
-) -> CreateSessionDescriptionPromisify<'a> {
-    CreateSessionDescriptionPromisify::new(peer, SessionDescriptionKind::Offer)
+pub fn safe_rtc_create_offer<'a>(peer: &'a RawRTCPeerConnection) -> CreateDescriptionFuture<'a> {
+    CreateDescriptionFuture::new(peer, SessionDescriptionKind::Offer)
 }
 
 pub fn safe_rtc_set_local_description<'a>(

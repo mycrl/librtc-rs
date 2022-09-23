@@ -1,7 +1,8 @@
 use super::events::*;
 use super::functions;
-use super::promisify::CreateSessionDescriptionPromisify;
+use super::promisify::*;
 use super::rtc_peerconnection_configure::*;
+use super::rtc_session_description::RTCSessionDescription;
 use anyhow::Result;
 use libc::*;
 use std::sync::Arc;
@@ -53,7 +54,7 @@ impl<'a> RTCPeerConnection<'a> {
     /// options supported by the browser, and any ICE candidates already gathered.
     /// The answer is delivered to the returned Future, and should then be sent
     /// to the source of the offer to continue the negotiation process.
-    pub fn create_answer(&self) -> CreateSessionDescriptionPromisify {
+    pub fn create_answer(&self) -> CreateDescriptionFuture {
         functions::safe_rtc_create_answer(self.raw)
     }
 
@@ -65,8 +66,22 @@ impl<'a> RTCPeerConnection<'a> {
     /// gathered by the ICE agent, for the purpose of being sent over the
     /// signaling channel to a potential peer to request a connection or to
     /// update the configuration of an existing connection.
-    pub fn create_offer(&self) -> CreateSessionDescriptionPromisify {
+    pub fn create_offer(&self) -> CreateDescriptionFuture {
         functions::safe_rtc_create_offer(self.raw)
+    }
+
+    pub fn set_local_description<'b>(
+        &'b self,
+        desc: &'b RTCSessionDescription,
+    ) -> SetDescriptionFuture<'b> {
+        functions::safe_rtc_set_local_description(self.raw, desc)
+    }
+
+    pub fn set_remote_description<'b>(
+        &'b self,
+        desc: &'b RTCSessionDescription,
+    ) -> SetDescriptionFuture<'b> {
+        functions::safe_rtc_set_remote_description(self.raw, desc)
     }
 }
 
