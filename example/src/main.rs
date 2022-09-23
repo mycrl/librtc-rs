@@ -1,4 +1,4 @@
-use webrtc_wrapper::*;
+use webrtc_bindgen::*;
 
 #[tokio::main]
 async fn main() {

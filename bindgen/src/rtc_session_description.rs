@@ -21,7 +21,7 @@ impl Default for RtcSessionDescriptionType {
 
 #[repr(C)]
 #[derive(Clone)]
-pub struct RawRTCSessionDescription {
+pub(crate) struct RawRTCSessionDescription {
     kind: RtcSessionDescriptionType,
     sdp: *const c_char,
 }

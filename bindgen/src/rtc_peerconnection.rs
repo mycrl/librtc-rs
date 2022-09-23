@@ -18,7 +18,7 @@ pub enum ConnectionState {
     Failed,
 }
 
-pub type RawRTCPeerConnection = c_void;
+pub(crate) type RawRTCPeerConnection = c_void;
 
 /// RTCPeerConnection
 ///

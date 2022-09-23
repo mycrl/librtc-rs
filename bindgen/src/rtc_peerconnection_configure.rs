@@ -29,7 +29,7 @@ pub enum RtcpMuxPolicy {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct RawRTCIceServer {
+pub(crate) struct RawRTCIceServer {
     credential: *const c_char,
     urls: *const *const c_char,
     urls_size: c_int,
@@ -57,7 +57,7 @@ impl Drop for RawRTCIceServer {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct RawRTCPeerConnectionConfigure {
+pub(crate) struct RawRTCPeerConnectionConfigure {
     bundle_policy: c_int,        // BundelPolicy
     ice_transport_policy: c_int, // IceTransportPolicy
     peer_identity: *const c_char,
