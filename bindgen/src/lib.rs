@@ -1,15 +1,29 @@
-#![feature(vec_into_raw_parts)]
-#![feature(box_into_inner)]
-
 mod base;
 mod events;
 mod sys;
 
-pub mod media_stream;
-pub mod media_stream_track;
-pub mod promisify;
-pub mod rtc_datachannel;
-pub mod rtc_icecandidate;
-pub mod rtc_peerconnection;
-pub mod rtc_peerconnection_configure;
-pub mod rtc_session_description;
+mod media_stream;
+mod media_stream_track;
+mod promisify;
+mod rtc_datachannel;
+mod rtc_icecandidate;
+mod rtc_peerconnection;
+mod rtc_peerconnection_configure;
+mod rtc_session_description;
+
+pub use rtc_peerconnection_configure::{
+    BundelPolicy, IceTransportPolicy, RTCConfiguration, RTCIceServer, RtcpMuxPolicy,
+};
+
+pub use events::{
+    SignalingState,
+    ConnectionState,
+    IceGatheringState,
+    IceConnectionState
+};
+
+pub use rtc_peerconnection::{
+    RTCPeerConnection,
+};
+
+pub use rtc_session_description::{RTCSessionDescription, RTCSessionDescriptionType};

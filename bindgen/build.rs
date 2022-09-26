@@ -20,7 +20,7 @@ fn main() {
     //  let vs_home = env::var("VS_HOME")
     //      .unwrap_or("C:/Program Files (x86)/Microsoft Visual Studio/2019/Community".into());
     //  Command::new(format!("{}/Common7/IDE/devenv.exe", vs_home))
-    //      .arg("./ffi/ffi.sln")
+    //      .arg("./webrtc_sys/webrtc_sys.sln")
     //      .arg("/Build")
     //      .arg(format!("{}|x64", profile))
     //      .output()

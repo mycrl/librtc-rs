@@ -2,23 +2,24 @@ use webrtc_bindgen::*;
 
 #[tokio::main]
 async fn main() {
-    let config = rtc_peerconnection_configure::RTCConfiguration::default();
-    let peer = rtc_peerconnection::RTCPeerConnection::new(&config).unwrap();
+    let config = RTCConfiguration::default();
+    let peer = RTCPeerConnection::new(&config).unwrap();
     let eventer = peer.eventer.clone();
 
     tokio::spawn(async move {
         let offer = peer.create_offer().await.unwrap();
         println!("================================= offer: {:?}", offer);
+        peer.set_local_description(&offer).await.unwrap();
     });
 
     tokio::spawn(async move {
-        while let Some(state) = eventer.connectionstatechange_rev.recv().await {
+        while let Some(state) = eventer.signalingchange_rev.recv().await {
             println!(
-                "======================================= connectionstatechange: {:?}",
+                "======================================= signalingchange_rev: {:?}",
                 state
             );
         }
     });
 
-    rtc_peerconnection::RTCPeerConnection::run()
+    RTCPeerConnection::run()
 }

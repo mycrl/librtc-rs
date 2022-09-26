@@ -3,7 +3,7 @@ use libc::*;
 use std::convert::Into;
 use std::ffi::CString;
 
-#[repr(u8)]
+#[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum BundelPolicy {
     Balanced = 1,
@@ -11,7 +11,7 @@ pub enum BundelPolicy {
     MaxBundle,
 }
 
-#[repr(u8)]
+#[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum IceTransportPolicy {
     None = 1,
@@ -20,7 +20,7 @@ pub enum IceTransportPolicy {
     All,
 }
 
-#[repr(u8)]
+#[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum RtcpMuxPolicy {
     Negotiate = 1,
@@ -111,10 +111,9 @@ impl Into<RawRTCIceServer> for &RTCIceServer {
                 v.iter()
                     .map(|s| CString::new(s.clone()).unwrap().into_raw() as *const c_char)
                     .collect::<Vec<*const c_char>>()
-                    .into_raw_parts()
+                    .ext_into_raw_parts()
             })
             .unwrap_or((std::ptr::null_mut(), 0, 0));
-
         RawRTCIceServer {
             credential: self
                 .credential
@@ -188,10 +187,9 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
                 i.iter()
                     .map(|s| s.into())
                     .collect::<Vec<RawRTCIceServer>>()
-                    .into_raw_parts()
+                    .ext_into_raw_parts()
             })
             .unwrap_or((std::ptr::null_mut(), 0, 0));
-
         RawRTCPeerConnectionConfigure {
             bundle_policy: self.bundle_policy.map(|i| i as c_int).unwrap_or(0),
             ice_transport_policy: self.ice_transport_policy.map(|i| i as c_int).unwrap_or(0),

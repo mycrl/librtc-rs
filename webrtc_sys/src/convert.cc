@@ -100,33 +100,33 @@ const webrtc::IceCandidateInterface* from_c(RTCIceCandidate* ice_candidate)
 	return webrtc::CreateIceCandidate(mid, index, candidate, nullptr);
 }
 
-const std::string sdp_type_to_string(RTC_SESSION_DESCRIPTION_TYPE type)
+webrtc::SdpType from_c(RTCSessionDescriptionType type)
 {
-	if (type == RTC_SESSION_DESCRIPTION_TYPE_ANSWER) 
+	if (type == RTCSessionDescriptionType::Answer)
 	{
-		return "answer";
+		return webrtc::SdpType::kAnswer;
 	} 
 	else
-	if (type == RTC_SESSION_DESCRIPTION_TYPE_OFFER)
+	if (type == RTCSessionDescriptionType::Offer)
 	{
-		return "offer";
+		return webrtc::SdpType::kOffer;
 	} 
 	else
-	if (type == RTC_SESSION_DESCRIPTION_TYPE_PRANSWER)
+	if (type == RTCSessionDescriptionType::PrAnswer)
 	{
-		return "pranswer";
+		return webrtc::SdpType::kPrAnswer;
 	}
 	else
 	{
-		return "rollback";
+		return webrtc::SdpType::kRollback;
 	}
 }
 
-webrtc::SessionDescriptionInterface* from_c(RTCSessionDescription* desc)
+std::unique_ptr<webrtc::SessionDescriptionInterface> from_c(RTCSessionDescription* desc)
 {
-	const std::string type = sdp_type_to_string(desc->type);
+	webrtc::SdpType type = from_c(desc->type);
 	const std::string sdp = from_c((char*)desc->sdp);
-	return webrtc::CreateSessionDescription(type, sdp, nullptr);
+	return webrtc::CreateSessionDescription(type, sdp);
 }
 
 RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
@@ -148,7 +148,7 @@ RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 	}
 
     strcpy((char*)c_desc->sdp, sdp.c_str());
-	c_desc->type = (RTC_SESSION_DESCRIPTION_TYPE)(desc->GetType());
+	c_desc->type = (RTCSessionDescriptionType)(desc->GetType());
 
 	return c_desc;
 }
@@ -159,35 +159,68 @@ void free_session_description(RTCSessionDescription* desc)
 	free(desc);
 }
 
-CONNECTION_STATE into_c(webrtc::PeerConnectionInterface::PeerConnectionState state)
+ConnectionState into_c(webrtc::PeerConnectionInterface::PeerConnectionState state)
 {
 	using PeerConnectionState = webrtc::PeerConnectionInterface::PeerConnectionState;
 	if (state == PeerConnectionState::kNew)
 	{
-		return CONNECTION_STATE::CONNECTION_STATE_NEW;
+		return ConnectionState::New;
 	} 
 	else
 	if (state == PeerConnectionState::kConnecting)
 	{
-		return CONNECTION_STATE::CONNECTION_STATE_CONNECTING;
+		return ConnectionState::Connecting;
 	} 
 	else
 	if (state == PeerConnectionState::kConnected)
 	{
-		return CONNECTION_STATE::CONNECTION_STATE_CONNECTED;
+		return ConnectionState::Connected;
 	} 
 	else
 	if (state == PeerConnectionState::kDisconnected)
 	{
-		return CONNECTION_STATE::CONNECTION_STATE_DISCONNECTED;
+		return ConnectionState::Disconnected;
 	}
 	else
 	if (state == PeerConnectionState::kClosed)
 	{
-		return CONNECTION_STATE::CONNECTION_STATE_CLOSED;
+		return ConnectionState::Close;
 	} 
 	else
 	{
-		return CONNECTION_STATE::CONNECTION_STATE_FAILED;
+		return ConnectionState::Failed;
+	}
+}
+
+SignalingState into_c(webrtc::PeerConnectionInterface::SignalingState state)
+{
+	using kSignalingState = webrtc::PeerConnectionInterface::SignalingState;
+	if (state == kSignalingState::kStable)
+	{
+		return SignalingState::Stable;
+	}
+	else
+	if (state == kSignalingState::kHaveLocalOffer)
+	{
+		return SignalingState::HaveLocalOffer;
+	}
+	else
+	if (state == kSignalingState::kHaveLocalPrAnswer)
+	{
+		return SignalingState::HaveLocalPrAnswer;
+	}
+	else
+	if (state == kSignalingState::kHaveRemoteOffer)
+	{
+		return SignalingState::HaveRemoteOffer;
+	}
+	else
+	if (state == kSignalingState::kHaveRemotePrAnswer)
+	{
+		return SignalingState::HaveRemotePrAnswer;
+	}
+	else
+	{
+		return SignalingState::Closed;
 	}
 }

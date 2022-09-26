@@ -4,16 +4,16 @@ use libc::*;
 use std::convert::{TryFrom, TryInto};
 use std::ffi::{CStr, CString};
 
-#[repr(u8)]
+#[repr(i32)]
 #[derive(Clone, Copy, Debug)]
-pub enum RtcSessionDescriptionType {
+pub enum RTCSessionDescriptionType {
     Offer,
     PrAnswer,
     Answer,
     Rollback,
 }
 
-impl Default for RtcSessionDescriptionType {
+impl Default for RTCSessionDescriptionType {
     fn default() -> Self {
         Self::Offer
     }
@@ -22,23 +22,13 @@ impl Default for RtcSessionDescriptionType {
 #[repr(C)]
 #[derive(Clone)]
 pub(crate) struct RawRTCSessionDescription {
-    kind: RtcSessionDescriptionType,
+    r#type: RTCSessionDescriptionType,
     sdp: *const c_char,
 }
 
 impl Drop for RawRTCSessionDescription {
     fn drop(&mut self) {
         free_cstring(self.sdp as *mut c_char);
-    }
-}
-
-impl RawRTCSessionDescription {
-    pub fn into_raw(self) -> *const Self {
-        Box::into_raw(Box::new(self))
-    }
-
-    pub fn from_raw(raw: *const Self) -> Box<Self> {
-        unsafe { Box::from_raw(raw as *mut Self) }
     }
 }
 
@@ -50,7 +40,7 @@ impl RawRTCSessionDescription {
 /// negotiation process it describes and of the SDP descriptor of the session.
 #[derive(Clone, Debug, Default)]
 pub struct RTCSessionDescription {
-    pub kind: RtcSessionDescriptionType,
+    pub kind: RTCSessionDescriptionType,
     pub sdp: String,
 }
 
@@ -58,7 +48,7 @@ impl TryInto<RawRTCSessionDescription> for &RTCSessionDescription {
     type Error = anyhow::Error;
     fn try_into(self) -> Result<RawRTCSessionDescription, Self::Error> {
         Ok(RawRTCSessionDescription {
-            kind: self.kind,
+            r#type: self.kind,
             sdp: CString::new(self.sdp.to_string())?.into_raw(),
         })
     }
@@ -68,7 +58,7 @@ impl TryFrom<&RawRTCSessionDescription> for RTCSessionDescription {
     type Error = anyhow::Error;
     fn try_from(value: &RawRTCSessionDescription) -> Result<Self, Self::Error> {
         Ok(RTCSessionDescription {
-            kind: value.kind,
+            kind: value.r#type,
             sdp: unsafe { CStr::from_ptr(value.sdp).to_str()?.to_string() },
         })
     }

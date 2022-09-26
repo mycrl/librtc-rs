@@ -7,6 +7,9 @@
         "vector": "cpp",
         "xstring": "cpp",
         "__split_buffer": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "iosfwd": "cpp",
+        "xlocbuf": "cpp",
+        "locale": "cpp"
     }
 }

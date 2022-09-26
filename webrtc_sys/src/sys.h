@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#define FFI_API __declspec(dllexport)
+#define EXPORT __declspec(dllexport)
 
 #include "api/peer_connection_interface.h"
 
@@ -22,42 +22,42 @@ typedef enum {
     not BUNDLE-aware, then each of these DTLS transports handles all the 
     communication for one type of data.
     */
-    BUNDLE_POLICY_BALANCED = 1,
+    Balanced = 1,
     /*
     The ICE agent initially creates one RTCDtlsTransport per media track and a 
     separate one for data channels. If the remote endpoint is not BUNDLE-aware, 
     everything is negotiated on these separate DTLS transports.
     */
-    BUNDLE_POLICY_MAX_COMPAT,
+    MaxCompat,
     /*
     The ICE agent initially creates only a single RTCDtlsTransport to carry all 
     of the RTCPeerConnection's data. If the remote endpoint is not BUNDLE-aware, 
     then only a single track will be negotiated and the rest ignored.
     */
-    BUNDLE_POLICY_MAX_BUNDLE,
-} BUNDLE_POLICY;
+    MaxBundle,
+} BundelPolicy;
 
 /*
 The current ICE transport policy; if the policy isn't specified, all is assumed 
 by default, allowing all candidates to be considered. Possible values are:
 */
 typedef enum {
-    ICE_TRANSPORT_POLICY_NONE = 1,
+    None = 1,
     /*
     Only ICE candidates whose IP addresses are being relayed, such as those 
     being passed through a STUN or TURN server, will be considered.
     */
-    ICE_TRANSPORT_POLICY_RELAY,
+    Relay,
     /*
     Only ICE candidates with public IP addresses will be considered.
     Removed from the specification's May 13, 2016 working draft.
     */
-    ICE_TRANSPORT_POLICY_PUBLIC,
+    Public,
     /*
     All ICE candidates will be considered.
     */
-    ICE_TRANSPORT_POLICY_ALL,
-} ICE_TRANSPORT_POLICY;
+    All,
+} IceTransportPolicy;
 
 /*
 The RTCP mux policy to use when gathering ICE candidates,
@@ -71,14 +71,14 @@ typedef enum {
     then RTCP candidates are multiplexed atop the corresponding RTP candidates.
     Otherwise, both the RTP and RTCP candidates are returned, separately.
     */
-    RTCP_MUX_POLICY_NEGOTIATE = 1,
+    Negotiate = 1,
     /*
     Tells the ICE agent to gather ICE candidates for only RTP,
     and to multiplex RTCP atop them. If the remote peer doesn't support RTCP 
     multiplexing, then session negotiation fails. This is the default value.
     */
-    RTCP_MUX_POLICY_REQUIRE,
-} RTCP_MUX_POLICY;
+    Require,
+} RtcpMuxPolicy;
 
 /*
 RTCIceServer
@@ -115,8 +115,8 @@ The RTCPeerConnection is a newly-created RTCPeerConnection,
 which represents a connection between the local device and a remote peer.
 */
 typedef struct {
-    BUNDLE_POLICY bundle_policy;
-    ICE_TRANSPORT_POLICY ice_transport_policy;
+    BundelPolicy bundle_policy;
+    IceTransportPolicy ice_transport_policy;
     /*
     TODO: 未实现
     A string which specifies the target peer identity for the RTCPeerConnection.
@@ -125,7 +125,7 @@ typedef struct {
     given name.
     */
     char* peer_identity;
-    RTCP_MUX_POLICY rtcp_mux_policy;
+    RtcpMuxPolicy rtcp_mux_policy;
     RTCIceServer* ice_servers;
     int ice_servers_size;
     int ice_servers_capacity;
@@ -214,7 +214,7 @@ deliver to the ICE agent in this way, allowing it to build up a list of
 potential connection methods. This is covered in more detail in the articles 
 WebRTC connectivity and Signaling and video calling.
 */
-extern "C" FFI_API void rtc_add_ice_candidate(RTCPeerConnection* peer, 
+extern "C" EXPORT void rtc_add_ice_candidate(RTCPeerConnection* peer,
     RTCIceCandidate* icecandidate);
 
 /*
@@ -285,17 +285,17 @@ typedef struct {
     int64_t len;
 } MediaStreamTrackFrame;
 
-extern "C" FFI_API void media_stream_track_write_frame(MediaStreamTrack* track,
+extern "C" EXPORT void media_stream_track_write_frame(MediaStreamTrack* track,
     MediaStreamTrackFrame frame);
 
-extern "C" FFI_API void media_stream_track_on_frame(MediaStreamTrack* track,
+extern "C" EXPORT void media_stream_track_on_frame(MediaStreamTrack* track,
     void (*callback)(MediaStreamTrackFrame frame));
 
 /*
 The RTCPeerConnection method addTrack() adds a new media track to the set of 
 tracks which will be transmitted to the other peer.
 */
-extern "C" FFI_API void rtc_add_track(RTCPeerConnection* peer, 
+extern "C" EXPORT void rtc_add_track(RTCPeerConnection* peer,
     MediaStreamTrack* track);
 
 /*
@@ -307,23 +307,23 @@ typedef enum {
     offer/answer exchange. The session negotiation process begins with an offer 
     being sent from the caller to the callee.
     */
-    RTC_SESSION_DESCRIPTION_TYPE_OFFER = 1,
+    Offer,
     /*
     Description must be treated as an SDP answer, but not a final answer.
     */
-    RTC_SESSION_DESCRIPTION_TYPE_PRANSWER,
+    PrAnswer,
     /*
     The SDP contained in the sdp property is the definitive choice in the 
     exchange. In other words, this session description describes the agreed-upon 
     configuration, and is being sent to finalize negotiation.
     */
-    RTC_SESSION_DESCRIPTION_TYPE_ANSWER,
+    Answer,
     /*
     This special type with an empty session description is used to
     roll back to the previous stable state.
     */
-    RTC_SESSION_DESCRIPTION_TYPE_ROLLBACK
-} RTC_SESSION_DESCRIPTION_TYPE;
+    Rollback,
+} RTCSessionDescriptionType;
 
 /*
 The RTCSessionDescription interface describes one end of a connection or 
@@ -332,7 +332,7 @@ consists of a description type indicating which part of the offer/answer
 negotiation process it describes and of the SDP descriptor of the session.
 */
 typedef struct {
-    RTC_SESSION_DESCRIPTION_TYPE type;
+    RTCSessionDescriptionType type;
     /*
     A string containing the SDP describing the session.
     */
@@ -353,7 +353,7 @@ browser, and any ICE candidates already gathered. The answer is delivered to the
 returned Promise, and should then be sent to the source of the offer to continue 
 the negotiation process.
 */
-extern "C" FFI_API void rtc_create_answer(RTCPeerConnection* peer, 
+extern "C" EXPORT void rtc_create_answer(RTCPeerConnection* peer,
     CreateDescCallback callback,
     void* ctx);
 
@@ -366,7 +366,7 @@ the browser, and any candidates already gathered by the ICE agent, for the
 purpose of being sent over the signaling channel to a potential peer to request 
 a connection or to update the configuration of an existing connection.
 */
-extern "C" FFI_API void rtc_create_offer(RTCPeerConnection* peer,
+extern "C" EXPORT void rtc_create_offer(RTCPeerConnection* peer,
     CreateDescCallback callback,
     void* ctx);
 
@@ -399,7 +399,7 @@ not immediately take effect. Instead, the current connection configuration
 remains in place until negotiation is complete. Only then does the agreed-upon 
 configuration take effect.
 */
-extern "C" FFI_API void rtc_set_local_description(RTCPeerConnection* peer,
+extern "C" EXPORT void rtc_set_local_description(RTCPeerConnection* peer,
     RTCSessionDescription* desc,
     SetDescCallback callback,
     void* ctx);
@@ -423,19 +423,28 @@ not immediately take effect. Instead, the current connection configuration
 remains in place until negotiation is complete. Only then does the agreed-upon 
 configuration take effect.
 */
-extern "C" FFI_API void rtc_set_remote_description(RTCPeerConnection* peer,
+extern "C" EXPORT void rtc_set_remote_description(RTCPeerConnection* peer,
     RTCSessionDescription* desc,
     SetDescCallback callback,
     void* ctx);
 
 typedef enum {
-    CONNECTION_STATE_NEW,
-    CONNECTION_STATE_CONNECTING,
-    CONNECTION_STATE_CONNECTED,
-    CONNECTION_STATE_DISCONNECTED,
-    CONNECTION_STATE_CLOSED,
-    CONNECTION_STATE_FAILED
-} CONNECTION_STATE;
+    New,
+    Connecting,
+    Connected,
+    Disconnected,
+    Close,
+    Failed,
+} ConnectionState;
+
+typedef enum {
+    Stable,
+    HaveLocalOffer,
+    HaveLocalPrAnswer,
+    HaveRemoteOffer,
+    HaveRemotePrAnswer,
+    Closed,
+} SignalingState;
 
 typedef struct
 {
@@ -448,20 +457,22 @@ typedef struct
     found in connectionState, and is one of the string values: new, connecting,
     connected, disconnected, failed, or closed.
     */
-    void (*on_connectionstatechange)(void* ctx, CONNECTION_STATE state);
+    void (*on_connectionstatechange)(void* ctx, ConnectionState state);
     /*
     A datachannel event is sent to an RTCPeerConnection instance when an
     RTCDataChannel has been added to the connection, as a result of the remote peer
     calling RTCPeerConnection.createDataChannel().
     */
-    void (*on_datachannel)(void* ctx, RTCDataChannel state);
+    void (*on_datachannel)(void* ctx, RTCDataChannel channel);
+
+    void (*on_signalingchange)(void* ctx, SignalingState state);
 } EventBus;
 
 /*
 Returns a newly-created RTCPeerConnection, which represents a
 connection between the local device and a remote peer.
 */
-extern "C" FFI_API RTCPeerConnection * create_rtc_peer_connection(
+extern "C" EXPORT RTCPeerConnection * create_rtc_peer_connection(
     RTCPeerConnectionConfigure * config,
     EventBus events);
 
@@ -474,6 +485,6 @@ in use by the ICE agent, including TURN permissions. All RTCRtpSender objects
 are considered to be stopped once this returns (they may still be in the process
 of stopping, but for all intents and purposes, they're stopped).
 */
-extern "C" FFI_API void rtc_close(RTCPeerConnection * peer);
+extern "C" EXPORT void rtc_close(RTCPeerConnection * peer);
 
-extern "C" FFI_API void rtc_run();
+extern "C" EXPORT void rtc_run();

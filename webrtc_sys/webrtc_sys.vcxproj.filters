@@ -15,24 +15,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ffi.cc">
+    <ClCompile Include="src/convert.cc">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="convert.cc">
+    <ClCompile Include="src/sys.cc">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="observer.cc">
+    <ClCompile Include="src/observer.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="example.cc">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="observer.h">
+    <ClInclude Include="src/convert.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="ffi.h">
+    <ClInclude Include="src/sys.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="convert.h">
+    <ClInclude Include="src/observer.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

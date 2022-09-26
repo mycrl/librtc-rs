@@ -5,7 +5,7 @@ use super::rtc_session_description::*;
 use anyhow::{anyhow, Result};
 use libc::*;
 
-#[link(name = "rtc_wrapper")]
+#[link(name = "webrtc_sys")]
 extern "C" {
     pub(crate) fn rtc_run();
     pub(crate) fn rtc_close(peer: *const RawRTCPeerConnection);

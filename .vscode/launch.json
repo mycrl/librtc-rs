@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'webrtc'",
+            "name": "Debug executable 'example'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=webrtc",
-                    "--package=webrtc"
+                    "--bin=example",
+                    "--package=example"
                 ],
                 "filter": {
-                    "name": "webrtc",
+                    "name": "example",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'webrtc'",
+            "name": "Debug unit tests in executable 'example'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=webrtc",
-                    "--package=webrtc"
+                    "--bin=example",
+                    "--package=example"
                 ],
                 "filter": {
-                    "name": "webrtc",
+                    "name": "example",
                     "kind": "bin"
                 }
             },

@@ -8,9 +8,9 @@ Observer::Observer(EventBus events)
 }
 
 void Observer::OnSignalingChange(
-    webrtc::PeerConnectionInterface::SignalingState new_state)
+    webrtc::PeerConnectionInterface::SignalingState state)
 {
-	
+    _events.on_signalingchange(_events.ctx, into_c(state));
 }
 
 void Observer::OnDataChannel(
@@ -25,7 +25,7 @@ void Observer::OnRenegotiationNeeded()
 }
 
 void Observer::OnIceGatheringChange(
-    webrtc::PeerConnectionInterface::IceGatheringState new_state)
+    webrtc::PeerConnectionInterface::IceGatheringState state)
 {
 
 }
@@ -42,9 +42,8 @@ void Observer::OnConnectionChange(
 }
 
 void Observer::OnIceConnectionChange(
-    webrtc::PeerConnectionInterface::IceConnectionState new_state)
+    webrtc::PeerConnectionInterface::IceConnectionState state)
 {
-    
 }
 
 void Observer::OnTrack(

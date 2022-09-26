@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "api/peer_connection_interface.h"
-#include "ffi.h"
+#include "sys.h"
 
 class Observer
     : public webrtc::PeerConnectionObserver
@@ -10,19 +10,19 @@ class Observer
 public:
     Observer(EventBus events);
     void OnSignalingChange(
-        webrtc::PeerConnectionInterface::SignalingState new_state);
+        webrtc::PeerConnectionInterface::SignalingState state);
     void OnDataChannel(
         rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
     void OnIceGatheringChange(
-        webrtc::PeerConnectionInterface::IceGatheringState new_state);
+        webrtc::PeerConnectionInterface::IceGatheringState state);
     void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
     void OnRenegotiationNeeded();
     void OnIceConnectionChange(
-        webrtc::PeerConnectionInterface::IceConnectionState new_state);
+        webrtc::PeerConnectionInterface::IceConnectionState state);
     void OnTrack(
         rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver);
     void OnConnectionChange(
-        webrtc::PeerConnectionInterface::PeerConnectionState new_state);
+        webrtc::PeerConnectionInterface::PeerConnectionState state);
 private:
     EventBus _events;
 };

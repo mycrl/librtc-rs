@@ -1,6 +1,6 @@
 ﻿#include <stdio.h>
 
-#include "ffi.h"
+#include "sys.h"
 #include "convert.h"
 #include "observer.h"
 
@@ -39,6 +39,8 @@ RTCPeerConnection* create_rtc_peer_connection(
 
     rtc::scoped_refptr<Observer> observer(
         new rtc::RefCountedObject<Observer>(events));
+    observer->AddRef();
+
     rtc->peer_connection = peer_factory->CreatePeerConnection(
         from_c(c_config),
         nullptr,
@@ -86,5 +88,15 @@ void rtc_set_local_description(RTCPeerConnection* rtc,
 {
     rtc->peer_connection->SetLocalDescription(
         DummySetDescObserver::Create(callback, ctx),
-        from_c(c_desc));
+        from_c(c_desc).release());
+}
+
+void rtc_set_remote_description(RTCPeerConnection* rtc,
+    RTCSessionDescription* c_desc,
+    SetDescCallback callback,
+    void* ctx)
+{
+    rtc->peer_connection->SetRemoteDescription(
+        DummySetDescObserver::Create(callback, ctx),
+        from_c(c_desc).release());
 }

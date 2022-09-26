@@ -1,22 +1,11 @@
 use super::events::*;
-use super::sys;
 use super::promisify::*;
 use super::rtc_peerconnection_configure::*;
 use super::rtc_session_description::RTCSessionDescription;
+use super::sys;
 use anyhow::Result;
 use libc::*;
 use std::sync::Arc;
-
-#[repr(u8)]
-#[derive(Clone, Copy, Debug)]
-pub enum ConnectionState {
-    New,
-    Connecting,
-    Connected,
-    Disconnected,
-    Close,
-    Failed,
-}
 
 pub(crate) type RawRTCPeerConnection = c_void;
 
