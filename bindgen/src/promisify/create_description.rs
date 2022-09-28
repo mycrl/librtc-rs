@@ -2,13 +2,26 @@ use super::{ObserverPromisify, ObserverPromisifyExt};
 use crate::base::*;
 use crate::rtc_peerconnection::*;
 use crate::rtc_session_description::*;
-use crate::sys;
 use anyhow::{anyhow, Result};
 use futures::task::AtomicWaker;
 use libc::*;
 use std::convert::TryFrom;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::Arc;
+
+#[link(name = "webrtc_sys")]
+extern "C" {
+    fn rtc_create_answer(
+        pc: *const RawRTCPeerConnection,
+        cb: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void),
+        ctx: *mut c_void,
+    );
+    fn rtc_create_offer(
+        pc: *const RawRTCPeerConnection,
+        cb: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void),
+        ctx: *mut c_void,
+    );
+}
 
 pub type CreateDescriptionFuture<'a> = ObserverPromisify<CreateDescriptionObserver<'a>>;
 impl<'a> CreateDescriptionFuture<'a> {
@@ -71,9 +84,9 @@ impl<'a> ObserverPromisifyExt for CreateDescriptionObserver<'a> {
         })) as *mut c_void;
 
         if self.kind == CreateDescriptionKind::Offer {
-            unsafe { sys::rtc_create_offer(self.pc, create_description_callback, ctx) };
+            unsafe { rtc_create_offer(self.pc, create_description_callback, ctx) };
         } else {
-            unsafe { sys::rtc_create_answer(self.pc, create_description_callback, ctx) };
+            unsafe { rtc_create_answer(self.pc, create_description_callback, ctx) };
         }
 
         Ok(())

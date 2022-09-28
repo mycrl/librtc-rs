@@ -98,11 +98,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <ExternalIncludePath>C:\Users\quasi\Desktop\webrtc_source\src\third_party\abseil-cpp\absl;C:\Users\quasi\Desktop\webrtc_source\src\api;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='test|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <ExternalIncludePath>C:\Users\quasi\Desktop\webrtc_source\src\third_party\abseil-cpp\absl;C:\Users\quasi\Desktop\webrtc_source\src\api;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -141,7 +141,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\quasi\Desktop\webrtc_source\src\out\Release\obj;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='test|Win32'">
@@ -154,7 +154,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\quasi\Desktop\webrtc_source\src\out\Release\obj;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -227,6 +227,7 @@
     <ClCompile Include="example.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src/media_stream_track.h" />
     <ClInclude Include="src/convert.h" />
     <ClInclude Include="src/sys.h" />
     <ClInclude Include="src/observer.h" />

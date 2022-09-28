@@ -32,7 +32,7 @@ pub enum SignalingState {
 pub enum IceGatheringState {
     IceGatheringNew,
     IceGatheringGathering,
-    IceGatheringComplete
+    IceGatheringComplete,
 }
 
 #[repr(i32)]
@@ -58,10 +58,7 @@ pub struct RawEvents {
 }
 
 extern "C" fn on_signalingchange(ctx: *mut EventerContext, state: SignalingState) {
-    unsafe { &*ctx }
-        .signalingchange_sdr
-        .send(state)
-        .unwrap();
+    unsafe { &*ctx }.signalingchange_sdr.send(state).unwrap();
 }
 
 extern "C" fn on_connectionstatechange(ctx: *mut EventerContext, state: ConnectionState) {
@@ -135,7 +132,7 @@ impl Eventer {
             ctx: EventerContext {
                 connectionstatechange_sdr,
                 datachannel_sdr,
-                signalingchange_sdr
+                signalingchange_sdr,
             },
         }
     }

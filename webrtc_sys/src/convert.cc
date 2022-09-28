@@ -122,7 +122,8 @@ webrtc::SdpType from_c(RTCSessionDescriptionType type)
 	}
 }
 
-std::unique_ptr<webrtc::SessionDescriptionInterface> from_c(RTCSessionDescription* desc)
+std::unique_ptr<webrtc::SessionDescriptionInterface> from_c(
+    RTCSessionDescription* desc)
 {
 	webrtc::SdpType type = from_c(desc->type);
 	const std::string sdp = from_c((char*)desc->sdp);

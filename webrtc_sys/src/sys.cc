@@ -100,3 +100,8 @@ void rtc_set_remote_description(RTCPeerConnection* rtc,
         DummySetDescObserver::Create(callback, ctx),
         from_c(c_desc).release());
 }
+
+void rtc_add_track(MediaStreamTrack* track)
+{
+
+}

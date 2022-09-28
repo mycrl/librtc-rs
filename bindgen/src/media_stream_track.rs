@@ -1,7 +1,7 @@
 use libc::*;
 
 #[repr(C)]
-pub struct MediaStreamTrack {
+pub struct RawMediaStreamTrack {
     pub enabled: bool,
     pub id: *const c_char,
     pub kind: *const c_char,
@@ -15,7 +15,7 @@ pub struct MediaStreamTrack {
 }
 
 #[repr(C)]
-pub struct MediaStreamTrackFrame {
+pub struct RawMediaStreamTrackFrame {
     pub buf: *const c_char,
     pub len: u64,
 }

@@ -2,13 +2,29 @@ use super::{ObserverPromisify, ObserverPromisifyExt};
 use crate::base::*;
 use crate::rtc_peerconnection::*;
 use crate::rtc_session_description::*;
-use crate::sys;
 use anyhow::{anyhow, Result};
 use futures::task::AtomicWaker;
 use libc::*;
 use std::convert::TryInto;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::Arc;
+
+#[link(name = "webrtc_sys")]
+extern "C" {
+    fn rtc_set_local_description(
+        peer: *const RawRTCPeerConnection,
+        desc: *const RawRTCSessionDescription,
+        callback: extern "C" fn(*const c_char, *mut c_void),
+        ctx: *mut c_void,
+    );
+
+    fn rtc_set_remote_description(
+        peer: *const RawRTCPeerConnection,
+        desc: *const RawRTCSessionDescription,
+        callback: extern "C" fn(*const c_char, *mut c_void),
+        ctx: *mut c_void,
+    );
+}
 
 pub type SetDescriptionFuture<'a> = ObserverPromisify<SetDescriptionObserver<'a>>;
 impl<'a> SetDescriptionFuture<'a> {
@@ -76,12 +92,9 @@ impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
         let desc = Box::into_raw(Box::new(desc));
 
         if self.kind == SetDescriptionKind::Local {
-            unsafe { sys::rtc_set_local_description(self.pc, desc, set_description_callback, ctx) };
-            
+            unsafe { rtc_set_local_description(self.pc, desc, set_description_callback, ctx) };
         } else {
-            unsafe {
-                sys::rtc_set_remote_description(self.pc, desc, set_description_callback, ctx)
-            };
+            unsafe { rtc_set_remote_description(self.pc, desc, set_description_callback, ctx) };
         }
 
         unsafe { Box::from_raw(desc) };

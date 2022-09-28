@@ -2,10 +2,19 @@ use super::events::*;
 use super::promisify::*;
 use super::rtc_peerconnection_configure::*;
 use super::rtc_session_description::RTCSessionDescription;
-use super::sys;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use libc::*;
 use std::sync::Arc;
+
+#[link(name = "webrtc_sys")]
+extern "C" {
+    fn rtc_run();
+    fn rtc_close(peer: *const RawRTCPeerConnection);
+    fn create_rtc_peer_connection(
+        config: *const RawRTCPeerConnectionConfigure,
+        eventer: RawEvents,
+    ) -> *const RawRTCPeerConnection;
+}
 
 pub(crate) type RawRTCPeerConnection = c_void;
 
@@ -24,7 +33,7 @@ impl<'a> RTCPeerConnection<'a> {
     /// By default, RTCPeerConnection::run() calls Thread::Current()->Run().
     /// To receive and dispatch messages, call ProcessMessages occasionally.
     pub fn run() {
-        sys::safe_rtc_run()
+        unsafe { rtc_run() }
     }
 
     /// The RTCPeerConnection constructor returns a newly-created
@@ -32,8 +41,17 @@ impl<'a> RTCPeerConnection<'a> {
     /// device and a remote peer.
     pub fn new(config: &RTCConfiguration) -> Result<Self> {
         let eventer = Arc::new(Eventer::new());
-        let raw = sys::safe_create_rtc_peerconnection(config, eventer.ctx.get_raw())?;
-        Ok(Self { raw, eventer })
+        let raw_config: RawRTCPeerConnectionConfigure = config.into();
+        let raw = unsafe { create_rtc_peer_connection(&raw_config, eventer.ctx.get_raw()) };
+
+        if raw.is_null() {
+            Err(anyhow!("create peerconnection failed!"))
+        } else {
+            Ok(Self {
+                raw: unsafe { &*raw },
+                eventer,
+            })
+        }
     }
 
     /// The create_offer() method of the RTCPeerConnection interface initiates
@@ -76,6 +94,6 @@ impl<'a> RTCPeerConnection<'a> {
 
 impl Drop for RTCPeerConnection<'_> {
     fn drop(&mut self) {
-        sys::safe_rtc_close(self.raw)
+        unsafe { rtc_close(self.raw) }
     }
 }
