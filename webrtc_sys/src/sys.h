@@ -150,7 +150,8 @@ maintain and monitor the connection, and close the connection once it's no
 longer needed.
 */
 typedef struct {
-    rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection;
+    rtc::scoped_refptr<webrtc::PeerConnectionInterface> pc;
+    rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory;
 } RTCPeerConnection;
 
 /*
