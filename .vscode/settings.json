@@ -10,6 +10,7 @@
         "string": "cpp",
         "iosfwd": "cpp",
         "xlocbuf": "cpp",
-        "locale": "cpp"
+        "locale": "cpp",
+        "optional": "cpp"
     }
 }
