@@ -57,7 +57,6 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(
 	using Peer = webrtc::PeerConnectionInterface;
 
 	Peer::RTCConfiguration config;
-	config.enable_dtls_srtp = true;
 	config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
 
 	if (!raw)

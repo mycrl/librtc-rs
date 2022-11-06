@@ -82,9 +82,9 @@ void DummyCreateDescObserver::OnSuccess(
     }
 }
 
-void DummyCreateDescObserver::OnFailure(const std::string& error)
+void DummyCreateDescObserver::OnFailure(webrtc::RTCError error)
 {
-    _callback(error.c_str(), NULL, _ctx);
+    _callback(error.message(), NULL, _ctx);
 }
 
 DummySetDescObserver::DummySetDescObserver(SetDescCallback callback, void* ctx)

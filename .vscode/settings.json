@@ -11,6 +11,25 @@
         "iosfwd": "cpp",
         "xlocbuf": "cpp",
         "locale": "cpp",
-        "optional": "cpp"
+        "optional": "cpp",
+        "array": "cpp",
+        "format": "cpp",
+        "future": "cpp",
+        "istream": "cpp",
+        "memory": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "variant": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp",
+        "xutility": "cpp",
+        "__functional_base": "cpp",
+        "propagate_const": "cpp",
+        "span": "cpp",
+        "thread": "cpp",
+        "*.inc": "cpp"
     }
 }

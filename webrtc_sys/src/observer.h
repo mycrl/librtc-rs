@@ -35,7 +35,7 @@ public:
     static DummyCreateDescObserver* Create(
         CreateDescCallback callback, void* ctx);
     void OnSuccess(webrtc::SessionDescriptionInterface* desc);
-    void OnFailure(const std::string& error);
+    void OnFailure(webrtc::RTCError error);
 private:
     CreateDescCallback _callback;
     void* _ctx;

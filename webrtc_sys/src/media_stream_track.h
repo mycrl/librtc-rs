@@ -23,7 +23,7 @@ class VideoSource
 {
 public:
     static VideoSource* Create();
-    void PushFrame(webrtc::VideoFrame& frame);
+    void PushFrame(webrtc::VideoFrameBuffer* buf);
 
     bool remote() const;
     bool is_screencast() const;
@@ -36,9 +36,9 @@ VideoSource* VideoSource::Create()
     new rtc::RefCountedObject<VideoSource>();
 }
 
-void VideoSource::PushFrame(webrtc::VideoFrame& frame)
+void VideoSource::PushFrame(webrtc::VideoFrameBuffer* buf)
 {
-    this->OnFrame(frame);
+    this->OnFrame(webrtc::VideoFrame(buf, 0, 0, webrtc::kVideoRotation_0));
 }
 
 bool VideoSource::remote() const 
@@ -76,8 +76,7 @@ IVideoSource* media_create_video_source()
 void media_video_source_add_frame(IVideoSource* vs, IVideoFrame* frame)
 {
     auto i420_buf = webrtc::I420Buffer::Copy(frame->width, frame->height, 
-        frame->buffer, frame->width);
-
-    vs->source.get()->PushFrame(webrtc::VideoFrame(i420_buf, 0, 0, 
-        webrtc::kVideoRotation_0));
+        frame->buffer, frame->width,
+        frame->buffer);
+    vs->source.get()->PushFrame(i420_buf);
 }
