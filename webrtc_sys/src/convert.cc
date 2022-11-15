@@ -2,10 +2,18 @@
 #include <string>
 #include <vector>
 
+/**
+ * string
+ */
+
 const std::string from_c(char* raw)
 {
 	return std::string(raw);
 }
+
+/**
+ * string array
+ */
 
 std::vector<std::string> from_c(char** raw, int size)
 {
@@ -17,6 +25,10 @@ std::vector<std::string> from_c(char** raw, int size)
 	
 	return strings;
 }
+
+/**
+ * rtc peerconnection config
+ */
 
 webrtc::PeerConnectionInterface::IceServer from_c(RTCIceServer raw)
 {
@@ -91,6 +103,10 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(
 	return config;
 }
 
+/**
+ * ice candidate
+ */
+
 const webrtc::IceCandidateInterface* from_c(RTCIceCandidate* ice_candidate)
 {
 	int index = ice_candidate->sdp_mline_index;
@@ -98,6 +114,23 @@ const webrtc::IceCandidateInterface* from_c(RTCIceCandidate* ice_candidate)
 	const std::string candidate = from_c(ice_candidate->candidate);
 	return webrtc::CreateIceCandidate(mid, index, candidate, nullptr);
 }
+
+RTCIceCandidate* into_c(webrtc::IceCandidateInterface* candidate)
+{
+    auto c_candidate = (RTCIceCandidate*)malloc(sizeof(RTCIceCandidate));
+    c_candidate->sdp_mline_index = icecandidate->sdp_mline_index();
+    c_candidate->sdp_mid = icecandidate->sdp_mid();
+    icecandidate->ToString(&_candidate->candidate);
+}
+
+void free_ice_candidate(RTCIceCandidate* candidate)
+{
+	free(candidate);
+}
+
+/**
+ * offer / answer
+ */
 
 webrtc::SdpType from_c(RTCSessionDescriptionType type)
 {
@@ -134,7 +167,6 @@ RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* desc)
 	auto c_desc = (RTCSessionDescription*)malloc(sizeof(RTCSessionDescription));
 	if (!c_desc)
 	{
-        free(c_desc);
 		return NULL;
 	}
 
@@ -158,6 +190,10 @@ void free_session_description(RTCSessionDescription* desc)
 	free((void*)desc->sdp);
 	free(desc);
 }
+
+/**
+ * connection state
+ */
 
 ConnectionState into_c(webrtc::PeerConnectionInterface::PeerConnectionState state)
 {
@@ -191,6 +227,10 @@ ConnectionState into_c(webrtc::PeerConnectionInterface::PeerConnectionState stat
 		return ConnectionState::Failed;
 	}
 }
+
+/**
+ * signaling state
+ */
 
 SignalingState into_c(webrtc::PeerConnectionInterface::SignalingState state)
 {

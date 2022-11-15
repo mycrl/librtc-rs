@@ -23,4 +23,8 @@ RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* raw);
 ConnectionState into_c(webrtc::PeerConnectionInterface::PeerConnectionState state);
 SignalingState into_c(webrtc::PeerConnectionInterface::SignalingState state);
 
+/**
+ * memory manager
+ */
 void free_session_description(RTCSessionDescription* raw);
+void free_ice_candidate(RTCIceCandidate* candidate)

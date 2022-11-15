@@ -30,6 +30,9 @@
         "propagate_const": "cpp",
         "span": "cpp",
         "thread": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "__mutex_base": "cpp",
+        "semaphore": "cpp",
+        "shared_mutex": "cpp"
     }
 }

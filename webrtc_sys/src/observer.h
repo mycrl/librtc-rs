@@ -9,6 +9,7 @@ class Observer
 {
 public:
     Observer(EventBus events);
+    static Observer* Create(EventBus events);
     void OnSignalingChange(
         webrtc::PeerConnectionInterface::SignalingState state);
     void OnDataChannel(
@@ -27,12 +28,12 @@ private:
     EventBus _events;
 };
 
-class DummyCreateDescObserver
+class CreateDescObserver
     : public webrtc::CreateSessionDescriptionObserver
 {
 public:
-    DummyCreateDescObserver(CreateDescCallback callback, void* ctx);
-    static DummyCreateDescObserver* Create(
+    CreateDescObserver(CreateDescCallback callback, void* ctx);
+    static CreateDescObserver* Create(
         CreateDescCallback callback, void* ctx);
     void OnSuccess(webrtc::SessionDescriptionInterface* desc);
     void OnFailure(webrtc::RTCError error);
@@ -41,12 +42,12 @@ private:
     void* _ctx;
 };
 
-class DummySetDescObserver
+class SetDescObserver
     : public webrtc::SetSessionDescriptionObserver 
 {
 public:
-    DummySetDescObserver(SetDescCallback callback, void* ctx);
-    static DummySetDescObserver* Create(SetDescCallback callback, void* ctx);
+    SetDescObserver(SetDescCallback callback, void* ctx);
+    static SetDescObserver* Create(SetDescCallback callback, void* ctx);
     virtual void OnSuccess();
     virtual void OnFailure(webrtc::RTCError error);
 private:

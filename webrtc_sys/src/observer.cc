@@ -7,6 +7,13 @@ Observer::Observer(EventBus events)
     _events = events;
 }
 
+Observer* Create(EventBus events)
+{
+    auto self = new rtc::RefCountedObject<Observer>(events);
+    self->AddRef();
+    return self;
+}
+
 void Observer::OnSignalingChange(
     webrtc::PeerConnectionInterface::SignalingState state)
 {
@@ -52,22 +59,22 @@ void Observer::OnTrack(
 
 }
 
-DummyCreateDescObserver::DummyCreateDescObserver(CreateDescCallback callback, 
+CreateDescObserver::CreateDescObserver(CreateDescCallback callback, 
     void* ctx)
 {
     _callback = callback;
     _ctx = ctx;
 }
 
-DummyCreateDescObserver* DummyCreateDescObserver::Create(
+CreateDescObserver* CreateDescObserver::Create(
     CreateDescCallback callback, 
     void* ctx)
 {
-    return new rtc::RefCountedObject<DummyCreateDescObserver>(
+    return new rtc::RefCountedObject<CreateDescObserver>(
         callback, ctx);
 }
 
-void DummyCreateDescObserver::OnSuccess(
+void CreateDescObserver::OnSuccess(
     webrtc::SessionDescriptionInterface* desc)
 {
     auto res = into_c(desc);
@@ -82,30 +89,30 @@ void DummyCreateDescObserver::OnSuccess(
     }
 }
 
-void DummyCreateDescObserver::OnFailure(webrtc::RTCError error)
+void CreateDescObserver::OnFailure(webrtc::RTCError error)
 {
     _callback(error.message(), NULL, _ctx);
 }
 
-DummySetDescObserver::DummySetDescObserver(SetDescCallback callback, void* ctx)
+SetDescObserver::SetDescObserver(SetDescCallback callback, void* ctx)
 {
     _callback = callback;
     _ctx = ctx;
 }
 
-DummySetDescObserver* DummySetDescObserver::Create(SetDescCallback callback, 
+SetDescObserver* SetDescObserver::Create(SetDescCallback callback, 
     void* ctx)
 {
-    return new rtc::RefCountedObject<DummySetDescObserver>(
+    return new rtc::RefCountedObject<SetDescObserver>(
         callback, ctx);
 }
 
-void DummySetDescObserver::OnSuccess()
+void SetDescObserver::OnSuccess()
 {
     _callback(NULL, _ctx);
 }
 
-void DummySetDescObserver::OnFailure(webrtc::RTCError error)
+void SetDescObserver::OnFailure(webrtc::RTCError error)
 {
     _callback(error.message(), _ctx);
 }

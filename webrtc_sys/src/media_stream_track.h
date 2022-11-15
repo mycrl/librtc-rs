@@ -5,78 +5,90 @@
 #include "media/base/adapted_video_track_source.h"
 #include "api/video/i420_buffer.h"
 
-typedef struct
-{
-    rtc::scoped_refptr<VideoSource> source;
-} IVideoSource;
-
-typedef struct
-{
-    uint32_t width;
-    uint32_t height;
-    uint8_t* buffer;
-} IVideoFrame;
-
-class VideoSource 
-    : public rtc::AdaptedVideoTrackSource
-    , public rtc::RefCountInterface
+class IVideoSource
 {
 public:
-    static VideoSource* Create();
-    void PushFrame(webrtc::VideoFrameBuffer* buf);
-
-    bool remote() const;
-    bool is_screencast() const;
-    webrtc::MediaSourceInterface::SourceState state() const;
-    absl::optional<bool> needs_denoising() const;
-};
-
-VideoSource* VideoSource::Create()
-{
-    new rtc::RefCountedObject<VideoSource>();
-}
-
-void VideoSource::PushFrame(webrtc::VideoFrameBuffer* buf)
-{
-    this->OnFrame(webrtc::VideoFrame(buf, 0, 0, webrtc::kVideoRotation_0));
-}
-
-bool VideoSource::remote() const 
-{
-    return false;
-}
-
-bool VideoSource::is_screencast() const
-{
-    return false;
-}
-
-absl::optional<bool> VideoSource::needs_denoising() const
-{
-    return false;
-}
-
-webrtc::MediaSourceInterface::SourceState VideoSource::state() const
-{
-    return SourceState::kInitializing;
-}
-
-IVideoSource* media_create_video_source()
-{
-    IVideoSource* vs = (IVideoSource*)malloc(sizeof(IVideoSource));
-    if (vs == NULL)
+    IVideoSource(std::string id_)
     {
-        return NULL;
+        id = id_;
     }
 
-    vs->source = VideoSource::Create();
-    return vs;
-}
+    static rtc::scoped_refptr<IVideoSource> Create(std::string id)
+    {
+        return new rtc::RefCountedObject<IVideoSource>(id);
+    }
 
-void media_video_source_add_frame(IVideoSource* vs, IVideoFrame* frame)
+    void AddTrack(IVideoSourceTrack track)
+    {
+        _tracks.push_back(track);
+    }
+
+    std::vector<IVideoSourceTrack> GetTracks()
+    {
+        return _tracks;
+    }
+
+    std::string id;
+private:
+    std::vector<IVideoSourceTrack> _tracks;
+};
+
+typedef struct
 {
-    auto i420_buf = webrtc::I420Buffer::Copy(frame->width, frame->height, 
-        frame->buffer, frame->width,
-        frame->buffer);
-    vs->source.get()->PushFrame(i420_buf);
-}
+    int width;
+    int height;
+
+    uint8_t* data_y;
+    int stride_y;
+    uint8_t* data_u;
+    int stride_u;
+    uint8_t* data_v;
+    int stride_v;
+} I420Frame;
+
+class IVideoSourceTrack
+    : public rtc::AdaptedVideoTrackSource
+{
+public:
+    IVideoSourceTrack(std::string id_)
+    {
+        id = id_;
+    }
+
+    static rtc::scoped_refptr<IVideoSourceTrack> Create(std::string id)
+    {
+        return new rtc::RefCountedObject<IVideoSourceTrack>(id);
+    }
+
+    void AddFrame(I420Frame frame)
+    {
+        auto i420_buf = webrtc::I420Buffer::Copy(
+            frame.width, frame.height, 
+            frame.data_y, frame.stride_y, 
+            frame.data_u, frame.stride_u,
+            frame.data_v, frame.stride_v);
+        OnFrame(webrtc::VideoFrame(i420_buf, 0, 0, webrtc::kVideoRotation_0));
+    }
+
+    bool remote() const
+    {
+        return false;
+    }
+
+    bool is_screencast() const
+    {
+        return false;
+    }
+
+    webrtc::MediaSourceInterface::SourceState state() const
+    {
+        return webrtc::MediaSourceInterface::kLive;
+    }
+
+    absl::optional<bool> needs_denoising() const
+    {
+        return true;
+    }
+
+    std::string id;
+};

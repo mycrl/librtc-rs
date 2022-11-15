@@ -37,15 +37,11 @@ RTCPeerConnection* create_rtc_peer_connection(
         return NULL;
     }
 
-    rtc::scoped_refptr<Observer> observer(
-        new rtc::RefCountedObject<Observer>(events));
-    observer->AddRef();
-
     rtc->pc = rtc->pc_factory->CreatePeerConnection(
         from_c(c_config),
         nullptr,
         nullptr,
-        observer);
+        Observer::Create(events));
     if (!rtc->pc)
     {
         return NULL;
@@ -65,20 +61,16 @@ void rtc_add_ice_candidate(RTCPeerConnection* rtc,
     rtc->pc->AddIceCandidate(from_c(icecandidate));
 }
 
-void rtc_create_answer(RTCPeerConnection* rtc, CreateDescCallback callback, 
-    void* ctx)
+void rtc_create_answer(RTCPeerConnection* rtc, CreateDescCallback callback, void* ctx)
 {
-    rtc->pc->CreateAnswer(
-        DummyCreateDescObserver::Create(callback, ctx),
-        webrtc::PeerConnectionInterface::RTCOfferAnswerOptions());
+    auto opt = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
+    rtc->pc->CreateAnswer(CreateDescObserver::Create(callback, ctx), opt);
 }
 
-void rtc_create_offer(RTCPeerConnection* rtc, CreateDescCallback callback, 
-    void* ctx)
+void rtc_create_offer(RTCPeerConnection* rtc, CreateDescCallback callback, void* ctx)
 {
-    rtc->pc->CreateOffer(
-        DummyCreateDescObserver::Create(callback, ctx),
-        webrtc::PeerConnectionInterface::RTCOfferAnswerOptions());
+    auto opt = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
+    rtc->pc->CreateOffer(CreateDescObserver::Create(callback, ctx), opt);
 }
 
 void rtc_set_local_description(RTCPeerConnection* rtc, 
@@ -86,9 +78,7 @@ void rtc_set_local_description(RTCPeerConnection* rtc,
     SetDescCallback callback, 
     void* ctx)
 {
-    rtc->pc->SetLocalDescription(
-        DummySetDescObserver::Create(callback, ctx),
-        from_c(c_desc).release());
+    rtc->pc->SetLocalDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).get());
 }
 
 void rtc_set_remote_description(RTCPeerConnection* rtc,
@@ -96,13 +86,5 @@ void rtc_set_remote_description(RTCPeerConnection* rtc,
     SetDescCallback callback,
     void* ctx)
 {
-    rtc->pc->SetRemoteDescription(
-        DummySetDescObserver::Create(callback, ctx),
-        from_c(c_desc).release());
-}
-
-void rtc_add_track(RTCPeerConnection* rtc,
-    MediaStreamTrack* track)
-{
-    // rtc->pc_factory->CreateVideoTrack();
+    rtc->pc->SetRemoteDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).get());
 }
