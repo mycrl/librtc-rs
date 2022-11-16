@@ -6,7 +6,6 @@
 /*
 * c type to c++ type
 */
-const std::string from_c(char* raw);
 std::vector<std::string> from_c(char** raw, int size);
 webrtc::PeerConnectionInterface::IceServer from_c(RTCIceServer raw);
 webrtc::PeerConnectionInterface::IceServers from_c(RTCIceServer* raw, int size);

@@ -1,15 +1,4 @@
 ﻿#include "convert.h"
-#include <string>
-#include <vector>
-
-/**
- * string
- */
-
-const std::string from_c(char* raw)
-{
-	return std::string(raw);
-}
 
 /**
  * string array
@@ -20,7 +9,7 @@ std::vector<std::string> from_c(char** raw, int size)
 	std::vector<std::string> strings;
 	for (int i = 0; i < size; i++)
 	{
-		strings.push_back(from_c(raw[i]));
+		strings.push_back(std::string(raw[i]));
 	}
 	
 	return strings;
@@ -36,12 +25,12 @@ webrtc::PeerConnectionInterface::IceServer from_c(RTCIceServer raw)
 
 	if (raw.credential)
 	{
-		server.password = from_c(raw.credential);
+		server.password = std::string(raw.credential);
 	}
 
 	if (raw.username)
 	{
-		server.username = from_c(raw.username);
+		server.username = std::string(raw.username);
 	}
 
 	if (raw.urls)
@@ -110,21 +99,31 @@ webrtc::PeerConnectionInterface::RTCConfiguration from_c(
 const webrtc::IceCandidateInterface* from_c(RTCIceCandidate* ice_candidate)
 {
 	int index = ice_candidate->sdp_mline_index;
-	const std::string mid = from_c(ice_candidate->sdp_mid);
-	const std::string candidate = from_c(ice_candidate->candidate);
+	const std::string mid = std::string(ice_candidate->sdp_mid);
+	const std::string candidate = std::string(ice_candidate->candidate);
 	return webrtc::CreateIceCandidate(mid, index, candidate, nullptr);
 }
 
 RTCIceCandidate* into_c(webrtc::IceCandidateInterface* candidate)
 {
     auto c_candidate = (RTCIceCandidate*)malloc(sizeof(RTCIceCandidate));
-    c_candidate->sdp_mline_index = icecandidate->sdp_mline_index();
-    c_candidate->sdp_mid = icecandidate->sdp_mid();
-    icecandidate->ToString(&_candidate->candidate);
+	c_candidate->sdp_mline_index = candidate->sdp_mline_index();
+
+	c_candidate->sdp_mid = (char*)malloc(sizeof(char) * (candidate->sdp_mid().size() + 1));
+	strcpy(c_candidate->sdp_mid, candidate->sdp_mid().c_str());
+
+	std::string _candidate;
+	candidate->ToString(&_candidate);
+	c_candidate->candidate = (char*)malloc(sizeof(char) * (_candidate.size() + 1));
+	strcpy(c_candidate->candidate, _candidate.c_str());
+
+	return c_candidate;
 }
 
 void free_ice_candidate(RTCIceCandidate* candidate)
 {
+	free(candidate->candidate);
+	free(candidate->sdp_mid);
 	free(candidate);
 }
 
@@ -158,7 +157,7 @@ std::unique_ptr<webrtc::SessionDescriptionInterface> from_c(
     RTCSessionDescription* desc)
 {
 	webrtc::SdpType type = from_c(desc->type);
-	const std::string sdp = from_c((char*)desc->sdp);
+	const std::string sdp = std::string((char*)desc->sdp);
 	return webrtc::CreateSessionDescription(type, sdp);
 }
 
