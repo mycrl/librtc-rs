@@ -5,17 +5,25 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True) 
 
 add_library(webrtc_sys SHARED
-    src/convert.cc
-    src/convert.h
+    src/platform.h
+    src/media_stream.h
+    src/media_stream.cpp
     src/media_stream_track.h
-    src/observer.cc
+    src/media_stream_track.cpp
+    src/observer.cpp
     src/observer.h
-    src/sys.cc
-    src/sys.h)
+    src/peer_connection.cpp
+    src/peer_connection.h
+    src/peer_connection_config.h
+    src/peer_connection_config.cpp
+    src/session_description.h
+    src/session_description.cpp
+    src/ice_candidate.h
+    src/ice_candidate.cpp)
     
 include_directories(
     third_party/webrtc/src/third_party/libyuv/include

@@ -1,10 +1,6 @@
 ﻿#include <stdio.h>
 
-#include "sys.h"
-#include "convert.h"
-#include "observer.h"
-
-#include "api/peer_connection_interface.h"
+#include "peer_connection.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
@@ -16,9 +12,7 @@ void rtc_run()
     rtc::Thread::Current()->Run();
 }
 
-RTCPeerConnection* create_rtc_peer_connection(
-    RTCPeerConnectionConfigure* c_config,
-    EventBus events)
+RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_config,EventBus events)
 {
     RTCPeerConnection* rtc = new RTCPeerConnection();
     rtc->pc_factory = webrtc::CreatePeerConnectionFactory(
@@ -55,8 +49,7 @@ void rtc_close(RTCPeerConnection* peer)
     delete peer;
 }
 
-void rtc_add_ice_candidate(RTCPeerConnection* rtc, 
-    RTCIceCandidate* icecandidate)
+void rtc_add_ice_candidate(RTCPeerConnection* rtc, RTCIceCandidate* icecandidate)
 {
     rtc->pc->AddIceCandidate(from_c(icecandidate));
 }
