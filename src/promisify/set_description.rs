@@ -9,7 +9,7 @@ use std::convert::TryInto;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::Arc;
 
-#[link(name = "webrtc_sys")]
+#[link(name = "batrachiatc")]
 extern "C" {
     fn rtc_set_local_description(
         peer: *const RawRTCPeerConnection,

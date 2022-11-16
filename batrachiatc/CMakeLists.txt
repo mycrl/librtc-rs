@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(webrtc_sys)
+project(batrachiatc)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
@@ -8,7 +8,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True) 
 
-add_library(webrtc_sys SHARED
+add_library(batrachiatc SHARED
     src/platform.h
     src/media_stream.h
     src/media_stream.cpp
@@ -30,7 +30,7 @@ include_directories(
     third_party/webrtc/src/third_party/abseil-cpp
     third_party/webrtc/src)
 
-target_link_directories(webrtc_sys
+target_link_directories(batrachiatc
     PRIVATE "third_party/webrtc/src/out/${CMAKE_BUILD_TYPE}/obj")
     
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -78,14 +78,14 @@ if(MSVC)
         WEBRTC_VIDEO_CAPTURE_WINRT)
         
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set_property(TARGET webrtc_sys PROPERTY
+        set_property(TARGET batrachiatc PROPERTY
             MSVC_RUNTIME_LIBRARY MultiThreaded)
     else()
-        set_property(TARGET webrtc_sys PROPERTY
+        set_property(TARGET batrachiatc PROPERTY
             MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
     endif()
         
-    target_link_libraries(webrtc_sys
+    target_link_libraries(batrachiatc
         webrtc
         winmm
         secur32

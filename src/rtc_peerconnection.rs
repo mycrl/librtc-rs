@@ -6,7 +6,7 @@ use anyhow::{anyhow, Result};
 use libc::*;
 use std::sync::Arc;
 
-#[link(name = "webrtc_sys")]
+#[link(name = "batrachiatc")]
 extern "C" {
     fn rtc_run();
     fn rtc_close(peer: *const RawRTCPeerConnection);

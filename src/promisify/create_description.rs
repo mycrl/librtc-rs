@@ -9,7 +9,7 @@ use std::convert::TryFrom;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::Arc;
 
-#[link(name = "webrtc_sys")]
+#[link(name = "batrachiatc")]
 extern "C" {
     fn rtc_create_answer(
         pc: *const RawRTCPeerConnection,
