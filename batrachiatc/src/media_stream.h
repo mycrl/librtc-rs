@@ -30,7 +30,7 @@ typedef struct
 
 typedef struct
 {
-    MediaStreamTrack* tracks;
+    MediaStreamTrack** tracks;
     int len;
 } MediaStreamTracks;
 

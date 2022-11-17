@@ -81,3 +81,12 @@ void rtc_set_remote_description(RTCPeerConnection* rtc,
 {
     rtc->pc->SetRemoteDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).get());
 }
+
+void rtc_add_track(RTCPeerConnection* rtc,
+    MediaStreamTrack* track,
+    char* stream_id)
+{
+    // TODO: only video track for current;
+    auto video_track = rtc->pc_factory->CreateVideoTrack(track->id, track->video_track->track);
+    rtc->pc->AddTrack(video_track, { stream_id });
+}

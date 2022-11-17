@@ -23,9 +23,9 @@ extern "C" {
     );
 }
 
-pub type CreateDescriptionFuture<'a> = ObserverPromisify<CreateDescriptionObserver<'a>>;
-impl<'a> CreateDescriptionFuture<'a> {
-    pub(crate) fn new(pc: &'a RawRTCPeerConnection, kind: CreateDescriptionKind) -> Self {
+pub type CreateDescriptionFuture = ObserverPromisify<CreateDescriptionObserver>;
+impl CreateDescriptionFuture {
+    pub(crate) fn new(pc: *const RawRTCPeerConnection, kind: CreateDescriptionKind) -> Self {
         Self {
             begin: false,
             waker: Arc::new(AtomicWaker::new()),
@@ -65,13 +65,16 @@ extern "C" fn create_description_callback(
     );
 }
 
-pub struct CreateDescriptionObserver<'a> {
+pub struct CreateDescriptionObserver {
     kind: CreateDescriptionKind,
-    pc: &'a RawRTCPeerConnection,
+    pc: *const RawRTCPeerConnection,
     ret: Arc<AtomicPtr<Result<RTCSessionDescription>>>,
 }
 
-impl<'a> ObserverPromisifyExt for CreateDescriptionObserver<'a> {
+unsafe impl Send for CreateDescriptionObserver {}
+unsafe impl Sync for CreateDescriptionObserver {}
+
+impl ObserverPromisifyExt for CreateDescriptionObserver {
     type Output = RTCSessionDescription;
 
     fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()> {

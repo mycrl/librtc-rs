@@ -22,6 +22,27 @@ typedef struct {
 } RTCPeerConnection;
 
 /*
+Returns a newly-created RTCPeerConnection, which represents a
+connection between the local device and a remote peer.
+*/
+extern "C" EXPORT RTCPeerConnection* create_rtc_peer_connection(
+    RTCPeerConnectionConfigure* config,
+    EventBus events);
+
+/*
+The RTCPeerConnection.close() method closes the current peer connection.
+
+Calling this method terminates the RTCPeerConnection's ICE agent, ending any
+ongoing ICE processing and any active streams. This also releases any resources
+in use by the ICE agent, including TURN permissions. All RTCRtpSender objects
+are considered to be stopped once this returns (they may still be in the process
+of stopping, but for all intents and purposes, they're stopped).
+*/
+extern "C" EXPORT void rtc_close(RTCPeerConnection* peer);
+
+extern "C" EXPORT void rtc_run();
+
+/*
 When a web site or app using RTCPeerConnection receives a new ICE candidate from 
 the remote peer over its signaling channel, it delivers the newly-received 
 candidate to the browser's ICE agent by calling RTCPeerConnection.addIceCandidate(). 
@@ -79,20 +100,6 @@ extern "C" EXPORT void rtc_create_offer(RTCPeerConnection* peer,
     void* ctx);
 
 /*
-RTCDataChannel
-
-The RTCDataChannel interface represents a network channel which can be used for 
-bidirectional peer-to-peer transfers of arbitrary data. Every data channel is 
-associated with an RTCPeerConnection, and each peer connection can have up to a 
-theoretical maximum of 65,534 data 
-channels (the actual limit may vary from browser to browser).
-*/
-typedef struct {
-    char* id;
-    char* label;
-} RTCDataChannel;
-
-/*
 The RTCPeerConnection method setLocalDescription() changes the local description 
 associated with the connection. This description specifies the properties of the 
 local end of the connection, including the media format. The method takes a 
@@ -137,22 +144,21 @@ extern "C" EXPORT void rtc_set_remote_description(RTCPeerConnection* peer,
     void* ctx);
 
 /*
-Returns a newly-created RTCPeerConnection, which represents a
-connection between the local device and a remote peer.
+The RTCPeerConnection method addTrack() adds a new media track to the set of tracks 
+which will be transmitted to the other peer.
+
+track:
+A MediaStreamTrack object representing the media track to add to the peer connection.
+
+stream:
+One local MediaStream objects to which the track should be added.
+
+The specified track doesn't necessarily have to already be part of any of the specified 
+streams. Instead, the streams are a way to group tracks together on the receiving end 
+of the connection, making sure they are synchronized. Any tracks that are added to 
+the same stream on the local end of the connection will be on the same stream on the 
+remote end.
 */
-extern "C" EXPORT RTCPeerConnection * create_rtc_peer_connection(
-    RTCPeerConnectionConfigure * config,
-    EventBus events);
-
-/*
-The RTCPeerConnection.close() method closes the current peer connection.
-
-Calling this method terminates the RTCPeerConnection's ICE agent, ending any
-ongoing ICE processing and any active streams. This also releases any resources
-in use by the ICE agent, including TURN permissions. All RTCRtpSender objects
-are considered to be stopped once this returns (they may still be in the process
-of stopping, but for all intents and purposes, they're stopped).
-*/
-extern "C" EXPORT void rtc_close(RTCPeerConnection * peer);
-
-extern "C" EXPORT void rtc_run();
+extern "C" EXPORT void rtc_add_track(RTCPeerConnection* rtc,
+    MediaStreamTrack* track,
+    char* stream_id);

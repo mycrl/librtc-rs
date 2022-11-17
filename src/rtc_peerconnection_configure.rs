@@ -29,7 +29,7 @@ pub enum RtcpMuxPolicy {
 
 #[repr(C)]
 #[derive(Debug)]
-pub(crate) struct RawRTCIceServer {
+pub struct RawRTCIceServer {
     credential: *const c_char,
     urls: *const *const c_char,
     urls_size: c_int,
@@ -57,7 +57,7 @@ impl Drop for RawRTCIceServer {
 
 #[repr(C)]
 #[derive(Debug)]
-pub(crate) struct RawRTCPeerConnectionConfigure {
+pub struct RawRTCPeerConnectionConfigure {
     bundle_policy: c_int,        // BundelPolicy
     ice_transport_policy: c_int, // IceTransportPolicy
     peer_identity: *const c_char,
@@ -176,6 +176,9 @@ pub struct RTCConfiguration {
     /// before you start trying to connect, so that they're already available
     /// for inspection when RTCPeerConnection.setLocalDescription() is called.
     pub ice_candidate_pool_size: Option<u8>,
+
+    // box mannager
+    raw_ptr: Option<*const RawRTCPeerConnectionConfigure>,
 }
 
 impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
@@ -203,6 +206,32 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
             ice_servers_capacity: ice_servers_capacity as c_int,
             ice_servers_size: ice_servers_size as c_int,
             ice_servers,
+        }
+    }
+}
+
+unsafe impl Send for RTCConfiguration {}
+unsafe impl Sync for RTCConfiguration {}
+
+impl RTCConfiguration {
+    pub fn get_raw(&self) -> *const RawRTCPeerConnectionConfigure {
+        if let Some(ptr) = self.raw_ptr {
+            return ptr;
+        }
+
+        let raw = Box::into_raw(Box::new((self as &Self).into()));
+        unsafe {
+            (*(self as *const Self as *mut Self)).raw_ptr = Some(raw);
+        }
+
+        raw
+    }
+}
+
+impl Drop for RTCConfiguration {
+    fn drop(&mut self) {
+        if let Some(ptr) = self.raw_ptr {
+            drop(ptr);
         }
     }
 }

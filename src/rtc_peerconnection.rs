@@ -1,5 +1,8 @@
 use super::events::*;
+use super::media_stream::*;
+use super::media_stream_track::*;
 use super::promisify::*;
+use super::rtc_icecandidate::*;
 use super::rtc_peerconnection_configure::*;
 use super::rtc_session_description::RTCSessionDescription;
 use anyhow::{anyhow, Result};
@@ -14,6 +17,16 @@ extern "C" {
         config: *const RawRTCPeerConnectionConfigure,
         eventer: RawEvents,
     ) -> *const RawRTCPeerConnection;
+    fn rtc_add_ice_candidate(
+        peer: *const RawRTCPeerConnection,
+        icecandidate: *const RawRTCIceCandidate,
+    );
+
+    fn rtc_add_track(
+        peer: *const RawRTCPeerConnection,
+        track: *const RawMediaStreamTrack,
+        id: *const c_char,
+    );
 }
 
 pub(crate) type RawRTCPeerConnection = c_void;
@@ -24,12 +37,15 @@ pub(crate) type RawRTCPeerConnection = c_void;
 /// local computer and a remote peer. It provides methods to connect to a remote
 /// peer, maintain and monitor the connection, and close the connection once
 /// it's no longer needed.
-pub struct RTCPeerConnection<'a> {
-    pub(crate) raw: &'a RawRTCPeerConnection,
+pub struct RTCPeerConnection {
+    pub(crate) raw: *const RawRTCPeerConnection,
     pub eventer: Arc<Eventer>,
 }
 
-impl<'a> RTCPeerConnection<'a> {
+unsafe impl Send for RTCPeerConnection {}
+unsafe impl Sync for RTCPeerConnection {}
+
+impl RTCPeerConnection {
     /// By default, RTCPeerConnection::run() calls Thread::Current()->Run().
     /// To receive and dispatch messages, call ProcessMessages occasionally.
     pub fn run() {
@@ -41,8 +57,8 @@ impl<'a> RTCPeerConnection<'a> {
     /// device and a remote peer.
     pub fn new(config: &RTCConfiguration) -> Result<Self> {
         let eventer = Arc::new(Eventer::new());
-        let raw_config: RawRTCPeerConnectionConfigure = config.into();
-        let raw = unsafe { create_rtc_peer_connection(&raw_config, eventer.ctx.get_raw()) };
+        let raw_config = config.get_raw();
+        let raw = unsafe { create_rtc_peer_connection(raw_config, eventer.ctx.get_raw()) };
 
         if raw.is_null() {
             Err(anyhow!("create peerconnection failed!"))
@@ -90,9 +106,19 @@ impl<'a> RTCPeerConnection<'a> {
     ) -> SetDescriptionFuture<'b> {
         SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Remote)
     }
+
+    pub fn add_icecandidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<()> {
+        let raw: RawRTCIceCandidate = candidate.try_into()?;
+        unsafe { rtc_add_ice_candidate(self.raw, &raw) };
+        Ok(())
+    }
+
+    pub fn add_track(&self, track: &MediaStreamTrack, stream: &MediaStream) {
+        unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
+    }
 }
 
-impl Drop for RTCPeerConnection<'_> {
+impl Drop for RTCPeerConnection {
     fn drop(&mut self) {
         unsafe { rtc_close(self.raw) }
     }

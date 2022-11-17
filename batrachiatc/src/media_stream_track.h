@@ -5,15 +5,15 @@
 
 typedef struct
 {
-    int width;
-    int height;
+    uint32_t width;
+    uint32_t height;
 
     uint8_t* data_y;
-    int stride_y;
+    uint32_t stride_y;
     uint8_t* data_u;
-    int stride_u;
+    uint32_t stride_u;
     uint8_t* data_v;
-    int stride_v;
+    uint32_t stride_v;
 } I420Frame;
 
 class IVideoSourceTrack

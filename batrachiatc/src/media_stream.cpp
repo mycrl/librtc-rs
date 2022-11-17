@@ -49,7 +49,7 @@ MediaStreamTracks media_stream_get_tracks(MediaStream* media_stram)
 {
     MediaStreamTracks tracks;
     auto vtracks = media_stram->source->GetTracks();
-    tracks.tracks = *vtracks.data();
+    tracks.tracks = vtracks.data();
     tracks.len = vtracks.size();
     return tracks;
 }

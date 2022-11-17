@@ -1,4 +1,4 @@
-use webrtc_bindgen::*;
+use batrachia::*;
 
 #[tokio::main]
 async fn main() {

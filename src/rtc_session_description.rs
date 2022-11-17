@@ -38,11 +38,14 @@ impl Drop for RawRTCSessionDescription {
 /// potential connection and how it's configured. Each RTCSessionDescription
 /// consists of a description type indicating which part of the offer/answer
 /// negotiation process it describes and of the SDP descriptor of the session.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct RTCSessionDescription {
     pub kind: RTCSessionDescriptionType,
     pub sdp: String,
 }
+
+unsafe impl Send for RTCSessionDescription {}
+unsafe impl Sync for RTCSessionDescription {}
 
 impl TryInto<RawRTCSessionDescription> for &RTCSessionDescription {
     type Error = anyhow::Error;

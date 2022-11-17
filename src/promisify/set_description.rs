@@ -29,7 +29,7 @@ extern "C" {
 pub type SetDescriptionFuture<'a> = ObserverPromisify<SetDescriptionObserver<'a>>;
 impl<'a> SetDescriptionFuture<'a> {
     pub(crate) fn new(
-        pc: &'a RawRTCPeerConnection,
+        pc: *const RawRTCPeerConnection,
         desc: &'a RTCSessionDescription,
         kind: SetDescriptionKind,
     ) -> Self {
@@ -72,9 +72,12 @@ extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
 pub struct SetDescriptionObserver<'a> {
     kind: SetDescriptionKind,
     desc: &'a RTCSessionDescription,
-    pc: &'a RawRTCPeerConnection,
+    pc: *const RawRTCPeerConnection,
     ret: Arc<AtomicPtr<Result<()>>>,
 }
+
+unsafe impl Send for SetDescriptionObserver<'_> {}
+unsafe impl Sync for SetDescriptionObserver<'_> {}
 
 impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
     type Output = ();
@@ -89,15 +92,12 @@ impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
         })) as *mut c_void;
 
         let desc: RawRTCSessionDescription = self.desc.try_into()?;
-        let desc = Box::into_raw(Box::new(desc));
-
         if self.kind == SetDescriptionKind::Local {
-            unsafe { rtc_set_local_description(self.pc, desc, set_description_callback, ctx) };
+            unsafe { rtc_set_local_description(self.pc, &desc, set_description_callback, ctx) };
         } else {
-            unsafe { rtc_set_remote_description(self.pc, desc, set_description_callback, ctx) };
+            unsafe { rtc_set_remote_description(self.pc, &desc, set_description_callback, ctx) };
         }
 
-        unsafe { Box::from_raw(desc) };
         Ok(())
     }
 
