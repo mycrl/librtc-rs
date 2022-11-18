@@ -6,13 +6,15 @@ async fn main() {
     let config = RTCConfiguration::default();
     let peer = RTCPeerConnection::new(&config, &observer).unwrap();
 
-    let video_opt = MediaStreamTrackDescription {
-        id: "video_track".to_string(),
-        label: "video_track".to_string(),
-        width: 1920,
-        height: 1040,
-        frame_rate: 25
-    };
+    let video_opt = MediaStreamTrackDescription::Video(
+        MediaStreamVideoTrackDescription {
+            id: "video_track".to_string(),
+            label: "video_track".to_string(),
+            width: 1920,
+            height: 1040,
+            frame_rate: 25
+        }
+    );
 
     let stream = MediaStream::new("stream_id".to_string()).unwrap();
     let track = MediaStreamTrack::new(&video_opt).unwrap();

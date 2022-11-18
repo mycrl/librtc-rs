@@ -7,10 +7,10 @@ connection state
 
 PeerConnectionState into_c(RTC::PeerConnectionState state)
 {
-	if (state == RTC::PeerConnectionState::kNew)
-	{
-		return PeerConnectionStateNew;
-	}
+    if (state == RTC::PeerConnectionState::kNew)
+    {
+        return PeerConnectionStateNew;
+    }
 	else
     if (state == RTC::PeerConnectionState::kConnecting)
     {
@@ -43,10 +43,10 @@ signaling state
 
 SignalingState into_c(RTC::SignalingState state)
 {
-	if (state == RTC::SignalingState::kStable)
-	{
-		return SignalingStateStable;
-	}
+    if (state == RTC::SignalingState::kStable)
+    {
+        return SignalingStateStable;
+    }
 	else
     if (state == RTC::SignalingState::kHaveLocalOffer)
     {

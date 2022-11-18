@@ -115,12 +115,16 @@ extern "C" {
     ) -> *const RawMediaStreamTrack;
 }
 
-pub struct MediaStreamTrackDescription {
+pub struct MediaStreamVideoTrackDescription {
     pub id: String,
     pub label: String,
     pub width: u32,
     pub height: u32,
     pub frame_rate: u16,
+}
+
+pub enum MediaStreamTrackDescription {
+    Video(MediaStreamVideoTrackDescription)
 }
 
 /*
@@ -147,14 +151,16 @@ impl From<&RawMediaStreamTrack> for MediaStreamTrack {
 
 impl MediaStreamTrack {
     pub fn new(desc: &MediaStreamTrackDescription) -> Result<Self> {
-        let raw = unsafe {
-            create_media_stream_video_track(
-                to_c_str(&desc.id)?,
-                to_c_str(&desc.label)?,
-                desc.width,
-                desc.height,
-                desc.frame_rate,
-            )
+        let raw = match desc {
+            MediaStreamTrackDescription::Video(desc) => unsafe {
+                create_media_stream_video_track(
+                    to_c_str(&desc.id)?,
+                    to_c_str(&desc.label)?,
+                    desc.width,
+                    desc.height,
+                    desc.frame_rate,
+                )
+            }
         };
 
         if raw.is_null() {
