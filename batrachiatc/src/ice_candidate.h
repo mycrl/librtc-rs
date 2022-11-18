@@ -43,4 +43,5 @@ typedef struct {
 } RTCIceCandidate;
 
 const webrtc::IceCandidateInterface* from_c(RTCIceCandidate* candidate);
+RTCIceCandidate* into_c(webrtc::IceCandidateInterface* candidate);
 void free_ice_candidate(RTCIceCandidate* candidate);

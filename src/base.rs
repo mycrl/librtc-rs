@@ -3,9 +3,17 @@ use libc::*;
 use std::ffi::{CStr, CString};
 use std::mem::ManuallyDrop;
 
-pub fn free_cstring(c_str: *mut c_char) {
+pub fn to_c_str(str: &str) -> Result<*const c_char> {
+    Ok(CString::new(str)?.into_raw())
+}
+
+pub fn from_c_str(str: *const c_char) -> Result<String> {
+    Ok(unsafe { CStr::from_ptr(str).to_str()?.to_string() })
+}
+
+pub fn free_cstring(c_str: *const c_char) {
     if !c_str.is_null() {
-        drop(unsafe { CString::from_raw(c_str) })
+        drop(unsafe { CString::from_raw(c_str as *mut c_char) })
     }
 }
 

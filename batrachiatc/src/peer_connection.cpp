@@ -12,7 +12,7 @@ void rtc_run()
     rtc::Thread::Current()->Run();
 }
 
-RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_config,EventBus events)
+RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_config, IObserver* events)
 {
     RTCPeerConnection* rtc = new RTCPeerConnection();
     rtc->pc_factory = webrtc::CreatePeerConnectionFactory(
@@ -49,9 +49,9 @@ void rtc_close(RTCPeerConnection* peer)
     delete peer;
 }
 
-void rtc_add_ice_candidate(RTCPeerConnection* rtc, RTCIceCandidate* icecandidate)
+bool rtc_add_ice_candidate(RTCPeerConnection* rtc, RTCIceCandidate* icecandidate)
 {
-    rtc->pc->AddIceCandidate(from_c(icecandidate));
+    return rtc->pc->AddIceCandidate(from_c(icecandidate));
 }
 
 void rtc_create_answer(RTCPeerConnection* rtc, CreateDescCallback callback, void* ctx)
@@ -71,7 +71,7 @@ void rtc_set_local_description(RTCPeerConnection* rtc,
     SetDescCallback callback, 
     void* ctx)
 {
-    rtc->pc->SetLocalDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).get());
+    rtc->pc->SetLocalDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).release());
 }
 
 void rtc_set_remote_description(RTCPeerConnection* rtc,
@@ -79,7 +79,7 @@ void rtc_set_remote_description(RTCPeerConnection* rtc,
     SetDescCallback callback,
     void* ctx)
 {
-    rtc->pc->SetRemoteDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).get());
+    rtc->pc->SetRemoteDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).release());
 }
 
 void rtc_add_track(RTCPeerConnection* rtc,
@@ -87,6 +87,6 @@ void rtc_add_track(RTCPeerConnection* rtc,
     char* stream_id)
 {
     // TODO: only video track for current;
-    auto video_track = rtc->pc_factory->CreateVideoTrack(track->id, track->video_track->track);
+    auto video_track = rtc->pc_factory->CreateVideoTrack(track->id, track->video_track);
     rtc->pc->AddTrack(video_track, { stream_id });
 }

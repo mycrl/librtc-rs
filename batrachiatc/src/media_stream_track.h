@@ -31,10 +31,10 @@ public:
     std::string id;
 };
 
-typedef struct
-{
-    IVideoSourceTrack* track;
-} MediaStreamVideoTrack;
+typedef enum {
+    MediaStreamTrackKindVideo,
+    MediaStreamTrackKindAudio,
+} MediaStreamTrackKind;
 
 /*
 MediaStreamTrack
@@ -62,7 +62,7 @@ typedef struct {
     "video", if it is a video track. It doesn't change if the track is
     disassociated from its source.
     */
-    char* kind;
+    MediaStreamTrackKind kind;
     /*
     Returns a string containing a user agent-assigned label that identifies the
     track source, as in "internal microphone". The string may be left empty and
@@ -93,12 +93,11 @@ typedef struct {
     */
     bool remote;
 
-    /* --------------- not standard --------------- */
+    /* --------------- video --------------- */
     uint32_t width;
     uint32_t height;
     uint16_t frame_rate;
-    
-    MediaStreamVideoTrack* video_track;
+    IVideoSourceTrack* video_track;
 } MediaStreamTrack;
 
 extern "C" EXPORT void media_stream_video_track_add_frame(MediaStreamTrack* track, 

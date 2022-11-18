@@ -1,26 +1,25 @@
-use super::events::*;
 use super::media_stream::*;
 use super::media_stream_track::*;
-use super::promisify::*;
+use super::observer::*;
 use super::rtc_icecandidate::*;
 use super::rtc_peerconnection_configure::*;
-use super::rtc_session_description::RTCSessionDescription;
+use super::rtc_session_description::*;
 use anyhow::{anyhow, Result};
 use libc::*;
-use std::sync::Arc;
 
 #[link(name = "batrachiatc")]
 extern "C" {
     fn rtc_run();
     fn rtc_close(peer: *const RawRTCPeerConnection);
+    #[allow(improper_ctypes)]
     fn create_rtc_peer_connection(
         config: *const RawRTCPeerConnectionConfigure,
-        eventer: RawEvents,
+        eventer: *const IObserver,
     ) -> *const RawRTCPeerConnection;
     fn rtc_add_ice_candidate(
         peer: *const RawRTCPeerConnection,
         icecandidate: *const RawRTCIceCandidate,
-    );
+    ) -> bool;
 
     fn rtc_add_track(
         peer: *const RawRTCPeerConnection,
@@ -38,8 +37,7 @@ pub(crate) type RawRTCPeerConnection = c_void;
 /// peer, maintain and monitor the connection, and close the connection once
 /// it's no longer needed.
 pub struct RTCPeerConnection {
-    pub(crate) raw: *const RawRTCPeerConnection,
-    pub eventer: Arc<Eventer>,
+    raw: *const RawRTCPeerConnection,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -55,17 +53,13 @@ impl RTCPeerConnection {
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
-    pub fn new(config: &RTCConfiguration) -> Result<Self> {
-        let eventer = Arc::new(Eventer::new());
-        let raw_config = config.get_raw();
-        let raw = unsafe { create_rtc_peer_connection(raw_config, eventer.ctx.get_raw()) };
-
+    pub fn new(config: &RTCConfiguration, observer: &Observer) -> Result<Self> {
+        let raw = unsafe { create_rtc_peer_connection(config.get_raw(), observer.get_raw()) };
         if raw.is_null() {
             Err(anyhow!("create peerconnection failed!"))
         } else {
             Ok(Self {
                 raw: unsafe { &*raw },
-                eventer,
             })
         }
     }
@@ -107,12 +101,37 @@ impl RTCPeerConnection {
         SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Remote)
     }
 
-    pub fn add_icecandidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<()> {
+    /// When a web site or app using RTCPeerConnection receives a new ICE candidate from
+    /// the remote peer over its signaling channel, it delivers the newly-received
+    /// candidate to the browser's ICE agent by calling RTCPeerConnection.addIceCandidate().
+    /// This adds this new remote candidate to the RTCPeerConnection's remote
+    /// description, which describes the state of the remote end of the connection.
+    ///
+    /// If the candidate parameter is missing or a value of null is given when calling
+    /// addIceCandidate(), the added ICE candidate is an "end-of-candidates" indicator.
+    /// The same is the case if the value of the specified object's candidate is either
+    /// missing or an empty string (""), it signals that all remote candidates have been
+    /// delivered.
+    ///
+    /// The end-of-candidates notification is transmitted to the remote peer using a
+    /// candidate with an a-line value of end-of-candidates.
+    ///
+    /// During negotiation, your app will likely receive many candidates which you'll
+    /// deliver to the ICE agent in this way, allowing it to build up a list of
+    /// potential connection methods. This is covered in more detail in the articles
+    /// WebRTC connectivity and Signaling and video calling.
+    pub fn add_ice_candidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<()> {
         let raw: RawRTCIceCandidate = candidate.try_into()?;
-        unsafe { rtc_add_ice_candidate(self.raw, &raw) };
+        let ret = unsafe { rtc_add_ice_candidate(self.raw, &raw) };
+        if !ret {
+            return Err(anyhow!("add ice candidate failed!"));
+        }
+
         Ok(())
     }
 
+    /// The RTCPeerConnection method addTrack() adds a new media track to the set of
+    /// tracks which will be transmitted to the other peer.
     pub fn add_track(&self, track: &MediaStreamTrack, stream: &MediaStream) {
         unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
     }

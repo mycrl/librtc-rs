@@ -20,19 +20,19 @@ typedef enum {
     not BUNDLE-aware, then each of these DTLS transports handles all the 
     communication for one type of data.
     */
-    Balanced = 1,
+    BundelPolicyBalanced = 1,
     /*
     The ICE agent initially creates one RTCDtlsTransport per media track and a 
     separate one for data channels. If the remote endpoint is not BUNDLE-aware, 
     everything is negotiated on these separate DTLS transports.
     */
-    MaxCompat,
+    BundelPolicyMaxCompat,
     /*
     The ICE agent initially creates only a single RTCDtlsTransport to carry all 
     of the RTCPeerConnection's data. If the remote endpoint is not BUNDLE-aware, 
     then only a single track will be negotiated and the rest ignored.
     */
-    MaxBundle,
+    BundelPolicyMaxBundle,
 } BundelPolicy;
 
 /*
@@ -40,21 +40,21 @@ The current ICE transport policy; if the policy isn't specified, all is assumed
 by default, allowing all candidates to be considered. Possible values are:
 */
 typedef enum {
-    None = 1,
+    IceTransportPolicyNone = 1,
     /*
     Only ICE candidates whose IP addresses are being relayed, such as those 
     being passed through a STUN or TURN server, will be considered.
     */
-    Relay,
+    IceTransportPolicyRelay,
     /*
     Only ICE candidates with public IP addresses will be considered.
     Removed from the specification's May 13, 2016 working draft.
     */
-    Public,
+    IceTransportPolicyPublic,
     /*
     All ICE candidates will be considered.
     */
-    All,
+    IceTransportPolicyAll,
 } IceTransportPolicy;
 
 /*
@@ -69,13 +69,13 @@ typedef enum {
     then RTCP candidates are multiplexed atop the corresponding RTP candidates.
     Otherwise, both the RTP and RTCP candidates are returned, separately.
     */
-    Negotiate = 1,
+    RtcpMuxPolicyNegotiate = 1,
     /*
     Tells the ICE agent to gather ICE candidates for only RTP,
     and to multiplex RTCP atop them. If the remote peer doesn't support RTCP 
     multiplexing, then session negotiation fails. This is the default value.
     */
-    Require,
+    RtcpMuxPolicyRequire,
 } RtcpMuxPolicy;
 
 /*

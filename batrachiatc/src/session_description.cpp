@@ -6,17 +6,17 @@
 
 webrtc::SdpType from_c(RTCSessionDescriptionType type)
 {
-	if (type == RTCSessionDescriptionType::Answer)
+	if (type == RTCSessionDescriptionTypeAnswer)
 	{
 		return webrtc::SdpType::kAnswer;
 	}
 	else
-    if (type == RTCSessionDescriptionType::Offer)
+    if (type == RTCSessionDescriptionTypeOffer)
     {
         return webrtc::SdpType::kOffer;
     }
     else
-    if (type == RTCSessionDescriptionType::PrAnswer)
+    if (type == RTCSessionDescriptionTypePrAnswer)
     {
         return webrtc::SdpType::kPrAnswer;
     }

@@ -1,7 +1,6 @@
 use super::base::*;
 use libc::*;
-use std::convert::Into;
-use std::ffi::CString;
+use std::convert::*;
 
 #[repr(i32)]
 #[derive(Clone, Copy, Debug)]
@@ -109,7 +108,7 @@ impl Into<RawRTCIceServer> for &RTCIceServer {
             .as_ref()
             .map(|v| {
                 v.iter()
-                    .map(|s| CString::new(s.clone()).unwrap().into_raw() as *const c_char)
+                    .map(|s| to_c_str(s).unwrap())
                     .collect::<Vec<*const c_char>>()
                     .ext_into_raw_parts()
             })
@@ -118,12 +117,12 @@ impl Into<RawRTCIceServer> for &RTCIceServer {
             credential: self
                 .credential
                 .as_ref()
-                .map(|s| CString::new(s.to_string()).unwrap().into_raw())
+                .map(|s| to_c_str(s).unwrap())
                 .unwrap_or(std::ptr::null_mut()),
             username: self
                 .username
                 .as_ref()
-                .map(|s| CString::new(s.to_string()).unwrap().into_raw())
+                .map(|s| to_c_str(s).unwrap())
                 .unwrap_or(std::ptr::null_mut()),
             urls_capacity: urls_capacity as c_int,
             urls_size: urls_size as c_int,
@@ -199,7 +198,7 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
             peer_identity: self
                 .peer_identity
                 .as_ref()
-                .map(|s| CString::new(s.to_string()).unwrap().into_raw())
+                .map(|s| to_c_str(s).unwrap())
                 .unwrap_or(std::ptr::null_mut()),
             rtcp_mux_policy: self.rtcp_mux_policy.map(|i| i as c_int).unwrap_or(0),
             ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0) as c_int,

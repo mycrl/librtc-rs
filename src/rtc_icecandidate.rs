@@ -1,7 +1,6 @@
 use super::base::*;
 use libc::*;
 use std::convert::*;
-use std::ffi::{CStr, CString};
 
 #[repr(C)]
 pub struct RawRTCIceCandidate {
@@ -17,9 +16,36 @@ impl Drop for RawRTCIceCandidate {
     }
 }
 
+/// RTCIceCandidate
+///
+/// The RTCIceCandidate interface¡ªpart of the WebRTC API¡ªrepresents a candidate
+/// Interactive Connectivity Establishment (ICE) configuration which may be used to
+/// establish an RTCPeerConnection.
+///
+/// An ICE candidate describes the protocols and routing needed for WebRTC to be
+/// able to communicate with a remote device. When starting a WebRTC peer connection,
+/// typically a number of candidates are proposed by each end of the connection,
+/// until they mutually agree upon one which describes the connection they decide
+/// will be best. WebRTC then uses that candidate's details to initiate the
+/// connection.
+///
+/// For details on how the ICE process works, see Lifetime of a WebRTC session.
+/// The article WebRTC connectivity provides additional useful details.
+#[derive(Clone, Debug)]
 pub struct RTCIceCandidate {
+    /// A string describing the properties of the candidate, taken directly from the
+    /// SDP attribute "candidate". The candidate string specifies the network
+    /// connectivity information for the candidate. If the candidate is an empty
+    /// string (""), the end of the candidate list has been reached; this candidate
+    /// is known as the "end-of-candidates" marker.
     pub candidate: String,
+    /// A string containing the identification tag of the media stream with which
+    /// the candidate is associated, or null if there is no associated media stream.
+    /// The default is null.
     pub sdp_mid: String,
+    /// TA number property containing the zero-based index of the m-line with which
+    /// Tthe candidate is associated, within the SDP of the media description, or
+    /// Tnull if no such associated exists. The default is null.
     pub sdp_mline_index: u8,
 }
 
@@ -28,8 +54,8 @@ impl TryInto<RawRTCIceCandidate> for &RTCIceCandidate {
     fn try_into(self) -> Result<RawRTCIceCandidate, Self::Error> {
         Ok(RawRTCIceCandidate {
             sdp_mline_index: self.sdp_mline_index as c_int,
-            sdp_mid: CString::new(self.sdp_mid.to_string())?.into_raw(),
-            candidate: CString::new(self.candidate.to_string())?.into_raw(),
+            sdp_mid: to_c_str(&self.sdp_mid)?,
+            candidate: to_c_str(&self.candidate)?,
         })
     }
 }
@@ -39,8 +65,8 @@ impl TryFrom<&RawRTCIceCandidate> for RTCIceCandidate {
     fn try_from(value: &RawRTCIceCandidate) -> Result<Self, Self::Error> {
         Ok(RTCIceCandidate {
             sdp_mline_index: value.sdp_mline_index as u8,
-            sdp_mid: unsafe { CStr::from_ptr(value.sdp_mid).to_str()?.to_string() },
-            candidate: unsafe { CStr::from_ptr(value.candidate).to_str()?.to_string() },
+            sdp_mid: from_c_str(value.sdp_mid)?,
+            candidate: from_c_str(value.candidate)?,
         })
     }
 }

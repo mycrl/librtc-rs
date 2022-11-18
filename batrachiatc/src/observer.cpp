@@ -1,86 +1,149 @@
 ﻿#include "api/peer_connection_interface.h"
 #include "observer.h"
 
-/**
- * connection state
+/*
+connection state
  */
 
-ConnectionState into_c(RTC::PeerConnectionState state)
+PeerConnectionState into_c(RTC::PeerConnectionState state)
 {
-	using PeerConnectionState = RTC::PeerConnectionState;
-	if (state == PeerConnectionState::kNew)
+	if (state == RTC::PeerConnectionState::kNew)
 	{
-		return ConnectionState::New;
+		return PeerConnectionStateNew;
 	}
 	else
-    if (state == PeerConnectionState::kConnecting)
+    if (state == RTC::PeerConnectionState::kConnecting)
     {
-        return ConnectionState::Connecting;
+        return PeerConnectionStateConnecting;
     }
     else
-    if (state == PeerConnectionState::kConnected)
+    if (state == RTC::PeerConnectionState::kConnected)
     {
-        return ConnectionState::Connected;
+        return PeerConnectionStateConnected;
     }
     else
-    if (state == PeerConnectionState::kDisconnected)
+    if (state == RTC::PeerConnectionState::kDisconnected)
     {
-        return ConnectionState::Disconnected;
+        return PeerConnectionStateDisconnected;
     }
     else
-    if (state == PeerConnectionState::kClosed)
+    if (state == RTC::PeerConnectionState::kClosed)
     {
-        return ConnectionState::Close;
+        return PeerConnectionStateClose;
     }
     else
     {
-        return ConnectionState::Failed;
+        return PeerConnectionStateFailed;
     }
 }
 
-/**
- * signaling state
+/*
+signaling state
  */
 
 SignalingState into_c(RTC::SignalingState state)
 {
-	using kSignalingState = RTC::SignalingState;
-	if (state == kSignalingState::kStable)
+	if (state == RTC::SignalingState::kStable)
 	{
-		return SignalingState::Stable;
+		return SignalingStateStable;
 	}
 	else
-    if (state == kSignalingState::kHaveLocalOffer)
+    if (state == RTC::SignalingState::kHaveLocalOffer)
     {
-        return SignalingState::HaveLocalOffer;
+        return SignalingStateHaveLocalOffer;
     }
     else
-    if (state == kSignalingState::kHaveLocalPrAnswer)
+    if (state == RTC::SignalingState::kHaveLocalPrAnswer)
     {
-        return SignalingState::HaveLocalPrAnswer;
+        return SignalingStateHaveLocalPrAnswer;
     }
     else
-    if (state == kSignalingState::kHaveRemoteOffer)
+    if (state == RTC::SignalingState::kHaveRemoteOffer)
     {
-        return SignalingState::HaveRemoteOffer;
+        return SignalingStateHaveRemoteOffer;
     }
     else
-    if (state == kSignalingState::kHaveRemotePrAnswer)
+    if (state == RTC::SignalingState::kHaveRemotePrAnswer)
     {
-        return SignalingState::HaveRemotePrAnswer;
+        return SignalingStateHaveRemotePrAnswer;
     }
     else
     {
-        return SignalingState::Closed;
+        return SignalingStateClosed;
     }
 }
 
-Observer::Observer(EventBus events)
+/*
+ice gathering state
+*/
+IceGatheringState into_c(RTC::IceGatheringState state)
+{
+    if (state == RTC::IceGatheringState::kIceGatheringNew)
+    {
+        return IceGatheringStateNew;
+    }
+    else
+    if (state == RTC::IceGatheringState::kIceGatheringGathering)
+    {
+        return IceGatheringStateGathering;
+    }
+    else
+    {
+        return IceGatheringStateComplete;
+    }
+}
+
+/*
+ice connection state
+*/
+IceConnectionState into_c(RTC::IceConnectionState state)
+{
+    if (state == RTC::IceConnectionState::kIceConnectionNew)
+    {
+        return IceConnectionStateNew;
+    }
+    else
+    if (state == RTC::IceConnectionState::kIceConnectionChecking)
+    {
+        return IceConnectionStateChecking;
+    }
+    else
+    if (state == RTC::IceConnectionState::kIceConnectionConnected)
+    {
+        return IceConnectionStateConnected;
+    }
+    else
+    if (state == RTC::IceConnectionState::kIceConnectionCompleted)
+    {
+        return IceConnectionStateCompleted;
+    }
+    else
+    if (state == RTC::IceConnectionState::kIceConnectionFailed)
+    {
+        return IceConnectionStateFailed;
+    }
+    else
+    if (state == RTC::IceConnectionState::kIceConnectionDisconnected)
+    {
+        return IceConnectionStateDisconnected;
+    }
+    else
+    if (state == RTC::IceConnectionState::kIceConnectionClosed)
+    {
+        return IceConnectionStateClosed;
+    }
+    else
+    {
+        return IceConnectionStateMax;
+    }
+}
+
+Observer::Observer(IObserver* events)
 {
     _events = events;
 }
 
-Observer* Observer::Create(EventBus events)
+Observer* Observer::Create(IObserver* events)
 {
     auto self = new rtc::RefCountedObject<Observer>(events);
     self->AddRef();
@@ -89,7 +152,7 @@ Observer* Observer::Create(EventBus events)
 
 void Observer::OnSignalingChange(RTC::SignalingState state)
 {
-    _events.on_signalingchange(_events.ctx, into_c(state));
+    _events->on_signaling_change(_events->ctx, into_c(state));
 }
 
 void Observer::OnDataChannel(DataChannel data_channel)
@@ -99,27 +162,34 @@ void Observer::OnDataChannel(DataChannel data_channel)
 
 void Observer::OnRenegotiationNeeded()
 {
-	printf("OnRenegotiationNeeded\n");
+    _events->on_renegotiation_needed(_events->ctx);
 }
 
 void Observer::OnIceGatheringChange(RTC::IceGatheringState state)
 {
-
+    _events->on_ice_gathering_change(_events->ctx, into_c(state));
 }
 
 void Observer::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
 {
-	
+    auto ice_candidate = into_c((webrtc::IceCandidateInterface*)candidate);
+    if (!ice_candidate)
+    {
+        return;
+    }
+
+    _events->on_ice_candidate(_events->ctx, ice_candidate);
+    free_ice_candidate(ice_candidate);
 }
 
 void Observer::OnConnectionChange(RTC::PeerConnectionState state)
 {
-    _events.on_connectionstatechange(_events.ctx, into_c(state));
+    _events->on_connection_change(_events->ctx, into_c(state));
 }
 
-void Observer::OnIceConnectionChange(
-    RTC::IceConnectionState state)
+void Observer::OnIceConnectionChange(RTC::IceConnectionState state)
 {
+    _events->on_ice_connection_change(_events->ctx, into_c(state));
 }
 
 void Observer::OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver)
@@ -135,8 +205,7 @@ CreateDescObserver::CreateDescObserver(CreateDescCallback callback, void* ctx)
 
 CreateDescObserver* CreateDescObserver::Create(CreateDescCallback callback, void* ctx)
 {
-    return new rtc::RefCountedObject<CreateDescObserver>(
-        callback, ctx);
+    return new rtc::RefCountedObject<CreateDescObserver>(callback, ctx);
 }
 
 void CreateDescObserver::OnSuccess(webrtc::SessionDescriptionInterface* desc)
@@ -166,8 +235,7 @@ SetDescObserver::SetDescObserver(SetDescCallback callback, void* ctx)
 
 SetDescObserver* SetDescObserver::Create(SetDescCallback callback, void* ctx)
 {
-    return new rtc::RefCountedObject<SetDescObserver>(
-        callback, ctx);
+    return new rtc::RefCountedObject<SetDescObserver>(callback, ctx);
 }
 
 void SetDescObserver::OnSuccess()

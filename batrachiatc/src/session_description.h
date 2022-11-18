@@ -11,22 +11,22 @@ typedef enum {
     offer/answer exchange. The session negotiation process begins with an offer 
     being sent from the caller to the callee.
     */
-    Offer,
+    RTCSessionDescriptionTypeOffer,
     /*
     Description must be treated as an SDP answer, but not a final answer.
     */
-    PrAnswer,
+    RTCSessionDescriptionTypePrAnswer,
     /*
     The SDP contained in the sdp property is the definitive choice in the 
     exchange. In other words, this session description describes the agreed-upon 
     configuration, and is being sent to finalize negotiation.
     */
-    Answer,
+    RTCSessionDescriptionTypeAnswer,
     /*
     This special type with an empty session description is used to
     roll back to the previous stable state.
     */
-    Rollback,
+    RTCSessionDescriptionTypeRollback,
 } RTCSessionDescriptionType;
 
 /*

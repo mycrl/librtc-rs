@@ -47,7 +47,7 @@ absl::optional<bool> IVideoSourceTrack::needs_denoising() const
 
 void media_stream_video_track_add_frame(MediaStreamTrack* track, I420Frame* frame)
 {
-    track->video_track->track->AddFrame(frame);
+    track->video_track->AddFrame(frame);
 }
 
 MediaStreamTrack* create_media_stream_video_track(
@@ -63,17 +63,16 @@ MediaStreamTrack* create_media_stream_video_track(
         return NULL;
     }
 
-    MediaStreamVideoTrack* video_track = (MediaStreamVideoTrack*)malloc(sizeof(MediaStreamVideoTrack));
-    if (!video_track)
+    track->video_track = IVideoSourceTrack::Create(std::string(id));
+    if (!track->video_track)
     {
         return NULL;
     }
 
-    video_track->track = IVideoSourceTrack::Create(std::string(id));
+    track->kind = MediaStreamTrackKindVideo;
     track->frame_rate = frame_rate;
     track->height = height;
     track->remote = false;
-    track->kind = "video";
     track->width = width;
     track->label = label;
     track->id = id;

@@ -27,7 +27,7 @@ connection between the local device and a remote peer.
 */
 extern "C" EXPORT RTCPeerConnection* create_rtc_peer_connection(
     RTCPeerConnectionConfigure* config,
-    EventBus events);
+    IObserver* events);
 
 /*
 The RTCPeerConnection.close() method closes the current peer connection.
@@ -63,15 +63,16 @@ deliver to the ICE agent in this way, allowing it to build up a list of
 potential connection methods. This is covered in more detail in the articles 
 WebRTC connectivity and Signaling and video calling.
 */
-extern "C" EXPORT void rtc_add_ice_candidate(RTCPeerConnection* peer,
+extern "C" EXPORT bool rtc_add_ice_candidate(RTCPeerConnection* peer,
     RTCIceCandidate* icecandidate);
 
 /*
 The RTCPeerConnection method addTrack() adds a new media track to the set of 
 tracks which will be transmitted to the other peer.
 */
-extern "C" EXPORT void rtc_add_track(RTCPeerConnection* peer,
-    MediaStreamTrack* track);
+extern "C" EXPORT void rtc_add_track(RTCPeerConnection * rtc,
+    MediaStreamTrack * track,
+    char* stream_id);
 
 /*
 The createAnswer() method on the RTCPeerConnection interface creates an SDP 
@@ -142,23 +143,3 @@ extern "C" EXPORT void rtc_set_remote_description(RTCPeerConnection* peer,
     RTCSessionDescription* desc,
     SetDescCallback callback,
     void* ctx);
-
-/*
-The RTCPeerConnection method addTrack() adds a new media track to the set of tracks 
-which will be transmitted to the other peer.
-
-track:
-A MediaStreamTrack object representing the media track to add to the peer connection.
-
-stream:
-One local MediaStream objects to which the track should be added.
-
-The specified track doesn't necessarily have to already be part of any of the specified 
-streams. Instead, the streams are a way to group tracks together on the receiving end 
-of the connection, making sure they are synchronized. Any tracks that are added to 
-the same stream on the local end of the connection will be on the same stream on the 
-remote end.
-*/
-extern "C" EXPORT void rtc_add_track(RTCPeerConnection* rtc,
-    MediaStreamTrack* track,
-    char* stream_id);
