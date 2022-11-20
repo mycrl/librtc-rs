@@ -31,7 +31,7 @@ async fn main() -> Result<(), Error> {
     let config = RTCConfiguration::default();
     let mut peer = RTCPeerConnection::new(&config, &observer)?;
 
-    let stream = MediaStream::new("stream_id".to_string())?;
+    let stream = MediaStream::new("stream_id")?;
     let track = MediaStreamTrack::new("video_track", "video_track", MediaStreamTrackKind::Video)?;
     peer.add_track(track.clone(), stream.clone());
 
@@ -58,7 +58,6 @@ async fn main() -> Result<(), Error> {
         while let Some(Ok(msg)) = read.next().await {
             if let Message::Text(msg) = msg {
                 let payload: Payload = serde_json::from_str(&msg).unwrap();
-                println!("================================================  websocket payload: {:?}", payload);
                 if payload.r#type == "offer" {
                     peer.set_remote_description(&RTCSessionDescription {
                         kind: RTCSessionDescriptionType::Offer,
@@ -90,7 +89,7 @@ async fn main() -> Result<(), Error> {
 
     tokio::spawn(async move {
         while let Some(state) = observer.signaling_change.recv().await {
-            println!("================================================  signaling_change: {:?}", state);
+            println!("signaling_change: {:?}", state);
         }
     });
 
@@ -110,10 +109,10 @@ async fn main() -> Result<(), Error> {
     let mut start = false;
     tokio::spawn(async move {
         while let Some(track) = observer.track.recv().await {
-            let mut sink = track.on_frame();
+            let mut sink = track.get_sink();
             while let Ok(_frame) = sink.receiver.recv().await {
                 if !start {
-                    println!("================================================  video frame");
+                    println!("on video frame");
                     start = true;
                 }
             }

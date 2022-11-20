@@ -41,8 +41,8 @@ extern "C" {
     );
 }
 
-#[derive(PartialEq, PartialOrd)]
-pub enum CreateDescriptionKind {
+#[derive(PartialEq, Eq, PartialOrd)]
+pub(crate) enum CreateDescriptionKind {
     Offer,
     Answer,
 }

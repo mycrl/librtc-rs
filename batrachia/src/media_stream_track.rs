@@ -1,9 +1,11 @@
-use std::sync::Arc;
-
-use super::base::*;
-use anyhow::{anyhow, Result};
-use libc::*;
 use tokio::sync::broadcast::*;
+use super::base::*;
+use std::sync::Arc;
+use libc::*;
+use anyhow::{
+    anyhow, 
+    Result
+};
 
 #[link(name = "batrachiatc")]
 extern "C" {
@@ -89,7 +91,7 @@ pub enum MediaStreamTrackKind {
 }
 
 #[repr(C)]
-pub struct RawMediaStreamTrack {
+pub(crate) struct RawMediaStreamTrack {
     /// Returns a string set to "audio" if the track is an audio track and to
     /// "video", if it is a video track. It doesn't change if the track is
     /// disassociated from its source.
@@ -108,10 +110,10 @@ pub struct RawMediaStreamTrack {
     video_sink: *const c_void,
 }
 
-/// MediaStreamTrack
+/// The MediaStreamTrack interface represents a single media track within 
+/// a stream typically.
 ///
-/// The MediaStreamTrack interface represents a single media track within a stream
-/// typically, these are audio or video tracks, but other track types may exist as
+/// these are audio or video tracks, but other track types may exist as
 /// well.
 #[derive(Debug)]
 pub struct MediaStreamTrack {
@@ -121,12 +123,8 @@ pub struct MediaStreamTrack {
 unsafe impl Send for MediaStreamTrack {}
 unsafe impl Sync for MediaStreamTrack {}
 
-extern "C" fn on_frame_callback(ctx: *const Sender<&I420Frame>, frame: *const I420Frame) {
-    unsafe { &*ctx }.send(unsafe { &*frame }).unwrap();
-}
-
 impl MediaStreamTrack {
-    pub fn from_raw(raw: *const RawMediaStreamTrack) -> Result<Arc<Self>> {
+    pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Result<Arc<Self>> {
         if raw.is_null() {
             Err(anyhow!("create media stream track failed!"))
         } else {
@@ -154,7 +152,7 @@ impl MediaStreamTrack {
         }
     }
 
-    pub fn on_frame<'a>(&'a self) -> MediaStreamTrackSink<'a> {
+    pub fn get_sink(&self) -> MediaStreamTrackSink {
         let (tx, receiver) = channel(1);
         let sender = Box::into_raw(Box::new(tx));
         unsafe { media_stream_video_track_on_frame(self.raw, sender, on_frame_callback) }
@@ -165,7 +163,7 @@ impl MediaStreamTrack {
         }
     }
 
-    pub fn get_raw(&self) -> *const RawMediaStreamTrack {
+    pub(crate) fn get_raw(&self) -> *const RawMediaStreamTrack {
         self.raw
     }
 }
@@ -195,4 +193,8 @@ impl Drop for MediaStreamTrackSink<'_> {
             let _ = Box::from_raw(self.sender);
         }
     }
+}
+
+extern "C" fn on_frame_callback(ctx: *const Sender<&I420Frame>, frame: *const I420Frame) {
+    unsafe { &*ctx }.send(unsafe { &*frame }).unwrap();
 }

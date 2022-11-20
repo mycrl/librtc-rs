@@ -1,23 +1,26 @@
+use std::mem::ManuallyDrop;
 use anyhow::Result;
 use libc::*;
-use std::ffi::{CStr, CString};
-use std::mem::ManuallyDrop;
+use std::ffi::{
+    CStr, 
+    CString
+};
 
-pub fn to_c_str(str: &str) -> Result<*const c_char> {
+pub(crate) fn to_c_str(str: &str) -> Result<*const c_char> {
     Ok(CString::new(str)?.into_raw())
 }
 
-pub fn from_c_str(str: *const c_char) -> Result<String> {
+pub(crate) fn from_c_str(str: *const c_char) -> Result<String> {
     Ok(unsafe { CStr::from_ptr(str).to_str()?.to_string() })
 }
 
-pub fn free_cstring(c_str: *const c_char) {
+pub(crate) fn free_cstring(c_str: *const c_char) {
     if !c_str.is_null() {
         drop(unsafe { CString::from_raw(c_str as *mut c_char) })
     }
 }
 
-pub fn from_raw_ptr<T>(ptr: *const T) -> Option<*const T> {
+pub(crate) fn from_raw_ptr<T>(ptr: *const T) -> Option<*const T> {
     if ptr.is_null() {
         None
     } else {
@@ -25,7 +28,7 @@ pub fn from_raw_ptr<T>(ptr: *const T) -> Option<*const T> {
     }
 }
 
-pub fn from_raw_mut_ptr<T>(ptr: *mut T) -> Option<*mut T> {
+pub(crate) fn from_raw_mut_ptr<T>(ptr: *mut T) -> Option<*mut T> {
     if ptr.is_null() {
         None
     } else {
@@ -33,10 +36,11 @@ pub fn from_raw_mut_ptr<T>(ptr: *mut T) -> Option<*mut T> {
     }
 }
 
-pub fn cstr_to_string(cstr: *const c_char) -> Result<String> {
+pub(crate) fn cstr_to_string(cstr: *const c_char) -> Result<String> {
     Ok(unsafe { CStr::from_ptr(cstr as *mut c_char).to_str()?.to_string() })
 }
-pub trait VecExt<T> {
+
+pub(crate) trait VecExt<T> {
     fn ext_into_raw_parts(self) -> (*mut T, usize, usize);
 }
 

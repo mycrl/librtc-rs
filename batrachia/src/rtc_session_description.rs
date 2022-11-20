@@ -1,7 +1,10 @@
-use super::base::*;
 use anyhow::Result;
+use super::base::*;
 use libc::*;
-use std::convert::{TryFrom, TryInto};
+use std::convert::{
+    TryFrom, 
+    TryInto
+};
 
 /// An enum describing the session description's type.
 #[repr(i32)]
@@ -41,12 +44,12 @@ impl Drop for RawRTCSessionDescription {
     }
 }
 
-/// RTCSessionDescription
-///
 /// The RTCSessionDescription interface describes one end of a connection or
-/// potential connection and how it's configured. Each RTCSessionDescription
-/// consists of a description type indicating which part of the offer/answer
-/// negotiation process it describes and of the SDP descriptor of the session.
+/// potential connection and how it's configured. 
+///
+/// Each RTCSessionDescription consists of a description type indicating which 
+/// part of the offer/answer negotiation process it describes and of the SDP 
+/// descriptor of the session.
 #[derive(Clone, Debug)]
 pub struct RTCSessionDescription {
     pub kind: RTCSessionDescriptionType,

@@ -1,13 +1,30 @@
-use super::{ObserverPromisify, ObserverPromisifyExt};
-use crate::base::*;
-use crate::rtc_peerconnection::*;
-use crate::rtc_session_description::*;
-use anyhow::{anyhow, Result};
 use futures::task::AtomicWaker;
 use libc::*;
-use std::convert::TryInto;
-use std::sync::atomic::{AtomicPtr, Ordering};
-use std::sync::Arc;
+use anyhow::{
+    anyhow, 
+    Result
+};
+
+use super::{
+    ObserverPromisify, 
+    ObserverPromisifyExt,
+};
+
+use crate::{
+    base::*,
+    rtc_peerconnection::*,
+    rtc_session_description::*,
+};
+
+use std::{
+    convert::TryInto,
+    sync::Arc,
+};
+
+use std::sync::atomic::{
+    AtomicPtr, 
+    Ordering
+};
 
 #[link(name = "batrachiatc")]
 extern "C" {
@@ -26,28 +43,8 @@ extern "C" {
     );
 }
 
-pub type SetDescriptionFuture<'a> = ObserverPromisify<SetDescriptionObserver<'a>>;
-impl<'a> SetDescriptionFuture<'a> {
-    pub(crate) fn new(
-        pc: *const RawRTCPeerConnection,
-        desc: &'a RTCSessionDescription,
-        kind: SetDescriptionKind,
-    ) -> Self {
-        Self {
-            begin: false,
-            waker: Arc::new(AtomicWaker::new()),
-            ext: SetDescriptionObserver {
-                ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
-                desc,
-                kind,
-                pc,
-            },
-        }
-    }
-}
-
-#[derive(PartialEq, PartialOrd)]
-pub enum SetDescriptionKind {
+#[derive(PartialEq, Eq, PartialOrd)]
+pub(crate) enum SetDescriptionKind {
     Local,
     Remote,
 }
@@ -104,5 +101,25 @@ impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
     fn wake(&self) -> Option<Result<Self::Output>> {
         from_raw_mut_ptr(self.ret.swap(std::ptr::null_mut(), Ordering::Relaxed))
             .map(|ptr| unsafe { *Box::from_raw(ptr) })
+    }
+}
+
+pub type SetDescriptionFuture<'a> = ObserverPromisify<SetDescriptionObserver<'a>>;
+impl<'a> SetDescriptionFuture<'a> {
+    pub(crate) fn new(
+        pc: *const RawRTCPeerConnection,
+        desc: &'a RTCSessionDescription,
+        kind: SetDescriptionKind,
+    ) -> Self {
+        Self {
+            begin: false,
+            waker: Arc::new(AtomicWaker::new()),
+            ext: SetDescriptionObserver {
+                ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
+                desc,
+                kind,
+                pc,
+            },
+        }
     }
 }

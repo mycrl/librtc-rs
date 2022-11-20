@@ -1,13 +1,18 @@
 use std::sync::Arc;
-
-use super::media_stream::*;
-use super::media_stream_track::*;
-use super::observer::*;
-use super::rtc_icecandidate::*;
-use super::rtc_peerconnection_configure::*;
-use super::rtc_session_description::*;
-use anyhow::{anyhow, Result};
 use libc::*;
+use anyhow::{
+    anyhow, 
+    Result
+};
+
+use super::{
+    observer::*,
+    media_stream::*,
+    media_stream_track::*,
+    rtc_icecandidate::*,
+    rtc_peerconnection_configure::*,
+    rtc_session_description::*
+};
 
 #[link(name = "batrachiatc")]
 extern "C" {
@@ -32,12 +37,11 @@ extern "C" {
 
 pub(crate) type RawRTCPeerConnection = c_void;
 
-/// RTCPeerConnection
+/// The RTCPeerConnection interface represents a WebRTC connection between 
+/// the local computer and a remote peer.
 ///
-/// The RTCPeerConnection interface represents a WebRTC connection between the
-/// local computer and a remote peer. It provides methods to connect to a remote
-/// peer, maintain and monitor the connection, and close the connection once
-/// it's no longer needed.
+/// It provides methods to connect to a remote peer, maintain and monitor 
+/// the connection, and close the connection once it's no longer needed.
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
     tracks: Vec<(Arc<MediaStreamTrack>, Arc<MediaStream>)>,

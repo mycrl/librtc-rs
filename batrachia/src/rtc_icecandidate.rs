@@ -1,9 +1,9 @@
 use super::base::*;
-use libc::*;
 use std::convert::*;
+use libc::*;
 
 #[repr(C)]
-pub struct RawRTCIceCandidate {
+pub(crate) struct RawRTCIceCandidate {
     pub candidate: *const c_char,
     pub sdp_mid: *const c_char,
     pub sdp_mline_index: c_int,
@@ -16,7 +16,8 @@ impl Drop for RawRTCIceCandidate {
     }
 }
 
-/// RTCIceCandidate
+/// Indicates a candidate Interactive Connection Establishment 
+/// (ICE) configuration.
 ///
 /// The RTCIceCandidate interface¡ªpart of the WebRTC API¡ªrepresents a candidate
 /// Interactive Connectivity Establishment (ICE) configuration which may be used to

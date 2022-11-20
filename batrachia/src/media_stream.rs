@@ -1,10 +1,12 @@
-use super::base::*;
-use super::media_stream_track::*;
 use std::sync::Arc;
 use anyhow::Result;
 use libc::*;
+use super::{
+    base::*,
+    media_stream_track::*,
+};
 
-/// The MediaStream interface represents a stream of media content
+/// The MediaStream interface represents a stream of media content.
 /// 
 /// A stream consists of several tracks, such as video or audio tracks. Each 
 /// track is specified as an instance of MediaStreamTrack.
@@ -22,11 +24,11 @@ impl MediaStream {
     /// Creates and returns a new MediaStream object. You can create an empty 
     /// stream, a stream which is based upon an existing stream, or a stream 
     /// that contains a specified list of tracks.
-    pub fn new(id: String) -> Result<Arc<Self>> {
+    pub fn new(id: &str) -> Result<Arc<Self>> {
         Ok(Arc::new(Self {
             raw_id: to_c_str(&id)?,
             tracks: Vec::with_capacity(10),
-            id,
+            id: id.to_string(),
         }))
     }
 
