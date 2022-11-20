@@ -22,7 +22,9 @@ add_library(batrachiatc SHARED
     src/session_description.h
     src/session_description.cpp
     src/ice_candidate.h
-    src/ice_candidate.cpp)
+    src/ice_candidate.cpp
+    src/data_channel.h
+    src/data_channel.cpp)
     
 include_directories(
     third_party/webrtc/src/third_party/libyuv/include

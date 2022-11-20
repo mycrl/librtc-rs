@@ -39,7 +39,7 @@ async fn main() -> Result<(), Error> {
         let need_size = (1920 as f64 * 1080 as f64 * 1.5) as usize;
         let mut buf = vec![0u8; need_size];
 
-        let mut fs = fs::File::open("E:/batrachia/example/test.yuv").await.unwrap();
+        let mut fs = fs::File::open("E:/batrachia/target/test.yuv").await.unwrap();
 
         loop {
             if let Ok(size) = fs.read_exact(&mut buf).await {
@@ -89,7 +89,7 @@ async fn main() -> Result<(), Error> {
 
     tokio::spawn(async move {
         while let Some(state) = observer.signaling_change.recv().await {
-            println!("signaling_change: {:?}", state);
+            println!("+++++++++++++++++++++++++++++++++++++++++++++++++++ signaling_change: {:?}", state);
         }
     });
 
@@ -112,9 +112,18 @@ async fn main() -> Result<(), Error> {
             let mut sink = track.get_sink();
             while let Ok(_frame) = sink.receiver.recv().await {
                 if !start {
-                    println!("on video frame");
+                    println!("+++++++++++++++++++++++++++++++++++++++++++++++++++ on video frame");
                     start = true;
                 }
+            }
+        }
+    });
+
+    tokio::spawn(async move {
+        while let Some(track) = observer.data_channel.recv().await {
+            let mut sink = track.get_sink();
+            while let Ok(data) = sink.receiver.recv().await {
+                println!("+++++++++++++++++++++++++++++++++++++++++++++++++++ channel data: {:?}", data.as_slice());
             }
         }
     });

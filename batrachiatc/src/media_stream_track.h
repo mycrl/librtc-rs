@@ -94,8 +94,8 @@ extern "C" EXPORT void media_stream_video_track_add_frame(
 
 extern "C" EXPORT void media_stream_video_track_on_frame(
     MediaStreamTrack * track,
-    void* ctx,
-    void(handler)(void* ctx, I420Frame * frame));
+    void(handler)(void* ctx, I420Frame * frame),
+    void* ctx);
 
 extern "C" EXPORT MediaStreamTrack* create_media_stream_video_track(
     char* id,

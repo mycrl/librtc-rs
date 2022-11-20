@@ -4,6 +4,7 @@
 #include "session_description.h"
 #include "media_stream_track.h"
 #include "ice_candidate.h"
+#include "data_channel.h"
 
 typedef webrtc::PeerConnectionInterface RTC;
 typedef rtc::scoped_refptr<webrtc::DataChannelInterface> DataChannel;
@@ -53,7 +54,7 @@ typedef struct
     RTCDataChannel has been added to the connection, as a result of the remote peer
     calling RTCPeerConnection.createDataChannel().
     */
-    void (*on_datachannel)(void* ctx, void* channel);
+    void (*on_datachannel)(void* ctx, RTCDataChannel* channel);
 
     void (*on_ice_gathering_change)(void* ctx, IceGatheringState state);
 

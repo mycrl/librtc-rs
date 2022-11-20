@@ -5,6 +5,7 @@
 #include "session_description.h"
 #include "media_stream_track.h"
 #include "ice_candidate.h"
+#include "data_channel.h"
 #include "observer.h"
 #include "platform.h"
 
@@ -65,14 +66,6 @@ WebRTC connectivity and Signaling and video calling.
 */
 extern "C" EXPORT bool rtc_add_ice_candidate(RTCPeerConnection* peer,
     RTCIceCandidate* icecandidate);
-
-/*
-The RTCPeerConnection method addTrack() adds a new media track to the set of 
-tracks which will be transmitted to the other peer.
-*/
-extern "C" EXPORT void rtc_add_track(RTCPeerConnection * rtc,
-    MediaStreamTrack * track,
-    char* stream_id);
 
 /*
 The createAnswer() method on the RTCPeerConnection interface creates an SDP 
@@ -143,3 +136,15 @@ extern "C" EXPORT void rtc_set_remote_description(RTCPeerConnection* peer,
     RTCSessionDescription* desc,
     SetDescCallback callback,
     void* ctx);
+
+/*
+The RTCPeerConnection method addTrack() adds a new media track to the set of
+tracks which will be transmitted to the other peer.
+*/
+extern "C" EXPORT void rtc_add_track(RTCPeerConnection * rtc,
+    MediaStreamTrack * track,
+    char* stream_id);
+
+extern "C" EXPORT RTCDataChannel* rtc_create_data_channel(RTCPeerConnection * rtc,
+    char* label,
+    DataChannelOptions * options);

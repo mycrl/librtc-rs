@@ -18,6 +18,13 @@ pub use media_stream_track::{
     I420Frame,
 };
 
+pub use rtc_datachannel::{
+    RTCDataChannel,
+    DataChannelOptions,
+    DataChannelState,
+    DataChannelPriority,
+};
+
 pub use rtc_peerconnection_configure::{
     BundlePolicy, 
     IceTransportPolicy, 

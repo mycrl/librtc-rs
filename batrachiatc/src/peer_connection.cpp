@@ -90,3 +90,12 @@ void rtc_add_track(RTCPeerConnection* rtc,
     auto video_track = rtc->pc_factory->CreateVideoTrack(track->label, track->video_source);
     rtc->pc->AddTrack(video_track, { stream_id });
 }
+
+RTCDataChannel* rtc_create_data_channel(RTCPeerConnection* rtc,
+    char* label,
+    DataChannelOptions* options)
+{
+    auto init = from_c(options);
+    auto data_channel = rtc->pc->CreateDataChannel(std::string(label), init);
+    return create_data_channel(data_channel);
+}

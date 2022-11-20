@@ -32,7 +32,7 @@ impl Default for RTCSessionDescriptionType {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Debug)]
 pub(crate) struct RawRTCSessionDescription {
     r#type: RTCSessionDescriptionType,
     sdp: *const c_char,

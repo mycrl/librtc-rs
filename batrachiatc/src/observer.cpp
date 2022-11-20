@@ -157,7 +157,8 @@ void Observer::OnSignalingChange(RTC::SignalingState state)
 
 void Observer::OnDataChannel(DataChannel data_channel)
 {
-	
+    auto channel = create_data_channel(data_channel);
+    _events->on_datachannel(_events->ctx, channel);
 }
 
 void Observer::OnRenegotiationNeeded()

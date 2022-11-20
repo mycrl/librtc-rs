@@ -134,6 +134,7 @@ IVideoSinkTrack
 
 IVideoSinkTrack::IVideoSinkTrack(webrtc::VideoTrackInterface* track)
 {
+    _ctx = NULL;
     _track = track;
     _track->AddOrUpdateSink(this, _wants);
     _track->AddRef();
@@ -180,8 +181,8 @@ void media_stream_video_track_add_frame(MediaStreamTrack* track, I420Frame* fram
 
 void media_stream_video_track_on_frame(
     MediaStreamTrack* track,
-    void* ctx,
-    void(handler)(void* ctx, I420Frame* frame))
+    void(handler)(void* ctx, I420Frame* frame),
+    void* ctx)
 {
     if (!track->video_sink) {
         return;

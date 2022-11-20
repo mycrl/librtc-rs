@@ -17,8 +17,8 @@ extern "C" {
     #[allow(improper_ctypes)]
     fn media_stream_video_track_on_frame(
         track: *const RawMediaStreamTrack,
-        ctx: *const Sender<&I420Frame>,
         handler: extern "C" fn(*const Sender<&I420Frame>, *const I420Frame),
+        ctx: *const Sender<&I420Frame>,
     );
 
     fn create_media_stream_video_track(
@@ -31,7 +31,7 @@ extern "C" {
 }
 
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct I420Frame {
     width: u32,
     height: u32,
@@ -155,7 +155,7 @@ impl MediaStreamTrack {
     pub fn get_sink(&self) -> MediaStreamTrackSink {
         let (tx, receiver) = channel(1);
         let sender = Box::into_raw(Box::new(tx));
-        unsafe { media_stream_video_track_on_frame(self.raw, sender, on_frame_callback) }
+        unsafe { media_stream_video_track_on_frame(self.raw, on_frame_callback, sender) }
 
         MediaStreamTrackSink { 
             receiver, 

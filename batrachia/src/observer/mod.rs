@@ -17,12 +17,27 @@ use std::{
 use super::{
     media_stream_track::*,
     rtc_icecandidate::*,
+    rtc_datachannel::*,
 };
 
 use tokio::sync::{
     broadcast::*,
     Mutex,
 };
+
+#[repr(C)]
+pub(crate) struct IObserver {
+    ctx: *mut ObserverContext,
+
+    on_signaling_change: extern "C" fn(*mut ObserverContext, SignalingState),
+    on_datachannel: extern "C" fn(*mut ObserverContext, *const RawRTCDataChannel),
+    on_ice_gathering_change: extern "C" fn(*mut ObserverContext, IceGatheringState),
+    on_ice_candidate: extern "C" fn(*mut ObserverContext, *const RawRTCIceCandidate),
+    on_renegotiation_needed: extern "C" fn(*mut ObserverContext),
+    on_ice_connection_change: extern "C" fn(*mut ObserverContext, IceConnectionState),
+    on_track: extern "C" fn(*mut ObserverContext, *const RawMediaStreamTrack),
+    on_connection_change: extern "C" fn(*mut ObserverContext, PeerConnectionState),
+}
 
 pub trait ObserverPromisifyExt {
     type Output;
@@ -194,20 +209,7 @@ pub struct ObserverContext {
     renegotiation_needed_sdr: Sender<()>,
     ice_connection_change_sdr: Sender<IceConnectionState>,
     track_sdr: Sender<Arc<MediaStreamTrack>>,
-}
-
-#[repr(C)]
-pub(crate) struct IObserver {
-    ctx: *mut ObserverContext,
-
-    on_signaling_change: extern "C" fn(*mut ObserverContext, SignalingState),
-    on_datachannel: extern "C" fn(*mut ObserverContext),
-    on_ice_gathering_change: extern "C" fn(*mut ObserverContext, IceGatheringState),
-    on_ice_candidate: extern "C" fn(*mut ObserverContext, *const RawRTCIceCandidate),
-    on_renegotiation_needed: extern "C" fn(*mut ObserverContext),
-    on_ice_connection_change: extern "C" fn(*mut ObserverContext, IceConnectionState),
-    on_track: extern "C" fn(*mut ObserverContext, *const RawMediaStreamTrack),
-    on_connection_change: extern "C" fn(*mut ObserverContext, PeerConnectionState),
+    data_channel_sdr: Sender<Arc<RTCDataChannel>>,
 }
 
 #[derive(Clone)]
@@ -242,6 +244,7 @@ pub struct Observer {
     pub renegotiation_needed: ChennelRecv<()>,
     pub ice_connection_change: ChennelRecv<IceConnectionState>,
     pub track: ChennelRecv<Arc<MediaStreamTrack>>,
+    pub data_channel: ChennelRecv<Arc<RTCDataChannel>>,
 
     ctx: ObserverContext,
 
@@ -261,6 +264,7 @@ impl Observer {
         let (renegotiation_needed_sdr, renegotiation_needed) = ChennelRecv::new(1);
         let (ice_connection_change_sdr, ice_connection_change) = ChennelRecv::new(1);
         let (track_sdr, track) = ChennelRecv::new(1);
+        let (data_channel_sdr, data_channel) = ChennelRecv::new(1);
 
         let ctx = ObserverContext {
             connection_change_sdr,
@@ -269,6 +273,7 @@ impl Observer {
             ice_candidate_sdr,
             renegotiation_needed_sdr,
             ice_connection_change_sdr,
+            data_channel_sdr,
             track_sdr,
         };
 
@@ -279,6 +284,7 @@ impl Observer {
             ice_candidate,
             renegotiation_needed,
             ice_connection_change,
+            data_channel,
             track,
 
             raw_ptr: UnsafeCell::new(None),
@@ -350,7 +356,11 @@ extern "C" fn on_ice_connection_change(ctx: *mut ObserverContext, state: IceConn
         .unwrap();
 }
 
-extern "C" fn on_datachannel(_ctx: *mut ObserverContext) {}
+extern "C" fn on_datachannel(ctx: *mut ObserverContext, channel: *const RawRTCDataChannel) {
+    if let Ok(c) = RTCDataChannel::from_raw(channel) {
+        unsafe { &*ctx }.data_channel_sdr.send(c).unwrap();
+    }
+}
 
 extern "C" fn on_track(ctx: *mut ObserverContext, track: *const RawMediaStreamTrack) {
     if let Ok(t) = MediaStreamTrack::from_raw(track) {

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use super::base::*;
 use libc::*;
 use anyhow::{
     anyhow, 
@@ -11,7 +12,8 @@ use super::{
     media_stream_track::*,
     rtc_icecandidate::*,
     rtc_peerconnection_configure::*,
-    rtc_session_description::*
+    rtc_session_description::*,
+    rtc_datachannel::*,
 };
 
 #[link(name = "batrachiatc")]
@@ -33,6 +35,12 @@ extern "C" {
         track: *const RawMediaStreamTrack,
         id: *const c_char,
     );
+
+    fn rtc_create_data_channel(
+        peer: *const RawRTCPeerConnection,
+        label: *const c_char,
+        options: *const RawDataChannelOptions,
+    ) -> *const RawRTCDataChannel;
 }
 
 pub(crate) type RawRTCPeerConnection = c_void;
@@ -151,6 +159,18 @@ impl RTCPeerConnection {
     pub fn add_track(&mut self, track: Arc<MediaStreamTrack>, stream: Arc<MediaStream>) {
         unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
         self.tracks.push((track, stream));
+    }
+
+    pub fn create_data_channel(
+        &self, 
+        label: &str, 
+        opt: &DataChannelOptions
+    ) -> Result<Arc<RTCDataChannel>> {
+        let c_label = to_c_str(label).unwrap();
+        let opt: RawDataChannelOptions = opt.into();
+        let raw = unsafe { rtc_create_data_channel(self.raw, c_label, &opt) };
+        free_cstring(c_label);
+        RTCDataChannel::from_raw(raw)
     }
 }
 
