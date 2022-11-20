@@ -3,6 +3,7 @@ use anyhow::Result;
 use libc::*;
 use std::convert::{TryFrom, TryInto};
 
+/// An enum describing the session description's type.
 #[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum RTCSessionDescriptionType {

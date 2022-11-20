@@ -108,13 +108,11 @@ pub struct RawMediaStreamTrack {
     video_sink: *const c_void,
 }
 
-/*
-MediaStreamTrack
-
-The MediaStreamTrack interface represents a single media track within a stream;
-typically, these are audio or video tracks, but other track types may exist as
-well.
-*/
+/// MediaStreamTrack
+///
+/// The MediaStreamTrack interface represents a single media track within a stream
+/// typically, these are audio or video tracks, but other track types may exist as
+/// well.
 #[derive(Debug)]
 pub struct MediaStreamTrack {
     raw: *const RawMediaStreamTrack,
@@ -175,11 +173,11 @@ impl MediaStreamTrack {
 impl Drop for MediaStreamTrack {
     fn drop(&mut self) {
         let raw = unsafe { &*self.raw };
-        // if !raw.remote {
-        //     free_cstring(raw.label);
-        // }
+        if !raw.remote {
+            free_cstring(raw.label);
+        }
 
-        // unsafe { free_media_track(self.raw) }
+        unsafe { free_media_track(self.raw) }
     }
 }
 

@@ -2,27 +2,62 @@ use super::base::*;
 use libc::*;
 use std::convert::*;
 
+/// Specifies how to handle negotiation of candidates when the remote peer is not 
+/// compatible with the SDP BUNDLE standard. If the remote endpoint is BUNDLE-aware,
+/// all media tracks and data channels are bundled onto a single transport at the 
+/// completion of negotiation, regardless of policy used, and any superfluous 
+/// transports that were created initially are closed at that point.
+///
+/// In technical terms, a BUNDLE lets all media flow between two peers flow across 
+/// a single 5-tuple; that is, from a single IP and port on one peer to a single IP 
+/// and port on the other peer, using the same transport protocol.
 #[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum BundelPolicy {
+    /// The ICE agent initially creates one RTCDtlsTransport for each type of 
+    /// content added: audio, video, and data channels. If the remote endpoint is 
+    /// not BUNDLE-aware, then each of these DTLS transports handles all the 
+    /// communication for one type of data.
     Balanced = 1,
+    /// The ICE agent initially creates one RTCDtlsTransport per media track and a 
+    /// separate one for data channels. If the remote endpoint is not BUNDLE-aware, 
+    /// everything is negotiated on these separate DTLS transports.
     MaxCompat,
+    /// The ICE agent initially creates only a single RTCDtlsTransport to carry all 
+    /// of the RTCPeerConnection's data. If the remote endpoint is not BUNDLE-aware, 
+    /// then only a single track will be negotiated and the rest ignored.
     MaxBundle,
 }
 
+/// The current ICE transport policy; if the policy isn't specified, all is assumed 
+/// by default, allowing all candidates to be considered.
 #[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum IceTransportPolicy {
     None = 1,
+    /// Only ICE candidates whose IP addresses are being relayed, such as those 
+    /// being passed through a STUN or TURN server, will be considered.
     Relay,
+    /// Only ICE candidates with public IP addresses will be considered.
+    /// Removed from the specification's May 13, 2016 working draft.
     Public,
+    /// All ICE candidates will be considered.
     All,
 }
 
+/// The RTCP mux policy to use when gathering ICE candidates,
+/// in order to support non-multiplexed RTCP.
 #[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum RtcpMuxPolicy {
+    /// Instructs the ICE agent to gather both RTP and RTCP candidates.
+    /// If the remote peer can multiplex RTCP,
+    /// then RTCP candidates are multiplexed atop the corresponding RTP candidates.
+    /// Otherwise, both the RTP and RTCP candidates are returned, separately.
     Negotiate = 1,
+    /// Tells the ICE agent to gather ICE candidates for only RTP,
+    /// and to multiplex RTCP atop them. If the remote peer doesn't support RTCP 
+    /// multiplexing, then session negotiation fails.
     Require,
 }
 
@@ -131,7 +166,7 @@ impl Into<RawRTCIceServer> for &RTCIceServer {
     }
 }
 
-/// RTCPeerConnection
+/// RTCPeerConnection Configuration
 ///
 /// The RTCPeerConnection is a newly-created RTCPeerConnection,
 /// which represents a connection between the local device and a remote peer.

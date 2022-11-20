@@ -91,6 +91,10 @@ impl RTCPeerConnection {
         CreateDescriptionFuture::new(self.raw, CreateDescriptionKind::Answer)
     }
 
+    /// The RTCPeerConnection method setLocalDescription() changes the local 
+    /// description associated with the connection. This description specifies 
+    /// the properties of the local end of the connection, including the media 
+    /// format. 
     pub fn set_local_description<'b>(
         &'b self,
         desc: &'b RTCSessionDescription,
@@ -98,6 +102,10 @@ impl RTCPeerConnection {
         SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Local)
     }
 
+    /// The RTCPeerConnection method setRemoteDescription() sets the specified 
+    /// session description as the remote peer's current offer or answer. The 
+    /// description specifies the properties of the remote end of the connection, 
+    /// including the media format.
     pub fn set_remote_description<'b>(
         &'b self,
         desc: &'b RTCSessionDescription,

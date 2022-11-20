@@ -20,7 +20,7 @@ use super::{
 
 use tokio::sync::{
     broadcast::*,
-    sync::Mutex,
+    Mutex,
 };
 
 pub trait ObserverPromisifyExt {
