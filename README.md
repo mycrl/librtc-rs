@@ -94,6 +94,7 @@ async main() -> Result<(), anyhow::Error> {
 * [x] MediaStreamTrack::add_frame
 * [x] MediaStreamTrack::get_sink
 * [x] MediaStreamTrackSink
+* [x] I420Frame
 
 ##### Observer
 * [x] Observer
