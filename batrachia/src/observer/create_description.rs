@@ -1,13 +1,30 @@
-use super::{ObserverPromisify, ObserverPromisifyExt};
-use crate::base::*;
-use crate::rtc_peerconnection::*;
-use crate::rtc_session_description::*;
-use anyhow::{anyhow, Result};
 use futures::task::AtomicWaker;
 use libc::*;
-use std::convert::TryFrom;
-use std::sync::atomic::{AtomicPtr, Ordering};
-use std::sync::Arc;
+use anyhow::{
+    anyhow, 
+    Result
+};
+
+use super::{
+    ObserverPromisify, 
+    ObserverPromisifyExt,
+};
+
+use crate::{
+    base::*,
+    rtc_peerconnection::*,
+    rtc_session_description::*,
+};
+
+use std::{
+    convert::TryFrom,
+    sync::Arc,
+};
+
+use std::sync::atomic::{
+    AtomicPtr, 
+    Ordering
+};
 
 #[link(name = "batrachiatc")]
 extern "C" {
@@ -16,26 +33,12 @@ extern "C" {
         cb: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void),
         ctx: *mut c_void,
     );
+    
     fn rtc_create_offer(
         pc: *const RawRTCPeerConnection,
         cb: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void),
         ctx: *mut c_void,
     );
-}
-
-pub type CreateDescriptionFuture = ObserverPromisify<CreateDescriptionObserver>;
-impl CreateDescriptionFuture {
-    pub(crate) fn new(pc: *const RawRTCPeerConnection, kind: CreateDescriptionKind) -> Self {
-        Self {
-            begin: false,
-            waker: Arc::new(AtomicWaker::new()),
-            ext: CreateDescriptionObserver {
-                ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
-                kind,
-                pc,
-            },
-        }
-    }
 }
 
 #[derive(PartialEq, PartialOrd)]
@@ -98,5 +101,21 @@ impl ObserverPromisifyExt for CreateDescriptionObserver {
     fn wake(&self) -> Option<Result<Self::Output>> {
         from_raw_mut_ptr(self.ret.swap(std::ptr::null_mut(), Ordering::Relaxed))
             .map(|ptr| unsafe { *Box::from_raw(ptr) })
+    }
+}
+
+
+pub type CreateDescriptionFuture = ObserverPromisify<CreateDescriptionObserver>;
+impl CreateDescriptionFuture {
+    pub(crate) fn new(pc: *const RawRTCPeerConnection, kind: CreateDescriptionKind) -> Self {
+        Self {
+            begin: false,
+            waker: Arc::new(AtomicWaker::new()),
+            ext: CreateDescriptionObserver {
+                ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
+                kind,
+                pc,
+            },
+        }
     }
 }

@@ -9,7 +9,10 @@ mod rtc_peerconnection_configure;
 mod rtc_session_description;
 
 pub use media_stream::MediaStream;
-pub use media_stream_track::{MediaStreamTrack, MediaStreamTrackDescription, MediaStreamVideoTrackDescription};
+pub use media_stream_track::{
+    MediaStreamTrack, MediaStreamTrackKind,
+    MediaStreamTrackSink, I420Frame,
+};
 pub use rtc_icecandidate::RTCIceCandidate;
 pub use rtc_peerconnection::RTCPeerConnection;
 pub use rtc_peerconnection_configure::{

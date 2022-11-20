@@ -1,42 +1,125 @@
 use batrachia::*;
+use anyhow::Error;
+use tokio::fs;
+use tokio::time::{sleep, Duration};
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use futures_util::{StreamExt, SinkExt};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use serde::*;
+use std::io::SeekFrom;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
+struct Payload {
+    id: String,
+    r#type: String,
+    sdp: Option<String>,
+    sdpMLineIndex: Option<u8>,
+    candidate: Option<String>,
+    sdpMid: Option<String>,
+}
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Error> {
+    let (ws_stream, _) = connect_async("ws://localhost/server").await?;
+    let (write, mut read) = ws_stream.split();
+    let write = Arc::new(Mutex::new(write));
+
     let observer = Observer::new();
     let config = RTCConfiguration::default();
-    let peer = RTCPeerConnection::new(&config, &observer).unwrap();
+    let mut peer = RTCPeerConnection::new(&config, &observer)?;
 
-    let video_opt = MediaStreamTrackDescription::Video(
-        MediaStreamVideoTrackDescription {
-            id: "video_track".to_string(),
-            label: "video_track".to_string(),
-            width: 1920,
-            height: 1040,
-            frame_rate: 25
-        }
-    );
-
-    let stream = MediaStream::new("stream_id".to_string()).unwrap();
-    let track = MediaStreamTrack::new(&video_opt).unwrap();
-    peer.add_track(&track, &stream);
+    let stream = MediaStream::new("stream_id".to_string())?;
+    let track = MediaStreamTrack::new("video_track", "video_track", MediaStreamTrackKind::Video)?;
+    peer.add_track(track.clone(), stream.clone());
 
     tokio::spawn(async move {
-        let offer = peer.create_offer().await.unwrap();
-        println!("offer: {:?}", offer);
-        peer.set_local_description(&offer).await.unwrap();
+        let need_size = (1920 as f64 * 1080 as f64 * 1.5) as usize;
+        let mut buf = vec![0u8; need_size];
+
+        let mut fs = fs::File::open("E:/batrachia/example/test.yuv").await.unwrap();
+
+        loop {
+            if let Ok(size) = fs.read_exact(&mut buf).await {
+                let frame = I420Frame::new(1920, 1080, &buf[..size]);
+                track.add_frame(&frame);
+            } else {
+                fs.seek(SeekFrom::Start(0)).await.unwrap();
+            }
+
+            sleep(Duration::from_millis(1000 / 24)).await;
+        }
+    });
+
+    let write_1 = write.clone();
+    tokio::spawn(async move {
+        while let Some(Ok(msg)) = read.next().await {
+            if let Message::Text(msg) = msg {
+                let payload: Payload = serde_json::from_str(&msg).unwrap();
+                println!("================================================  websocket payload: {:?}", payload);
+                if payload.r#type == "offer" {
+                    peer.set_remote_description(&RTCSessionDescription {
+                        kind: RTCSessionDescriptionType::Offer,
+                        sdp: payload.sdp.unwrap().clone(),
+                    }).await.unwrap();
+
+                    let answer = peer.create_answer().await.unwrap();
+                    peer.set_local_description(&answer).await.unwrap();
+
+                    write_1.lock().await.send(Message::Text(serde_json::to_string(&Payload {
+                        id: "client".to_string(),
+                        r#type: "answer".to_string(),
+                        sdp: Some(answer.sdp.clone()),
+                        sdpMLineIndex: None,
+                        candidate: None,
+                        sdpMid: None,
+                    }).unwrap())).await.unwrap();
+                } else
+                if payload.r#type == "candidate" {
+                    peer.add_ice_candidate(&RTCIceCandidate {
+                        candidate: payload.candidate.unwrap().clone(),
+                        sdp_mid: payload.sdpMid.unwrap().clone(),
+                        sdp_mline_index: payload.sdpMLineIndex.unwrap(),
+                    }).unwrap();
+                }
+            }
+        }
     });
 
     tokio::spawn(async move {
         while let Some(state) = observer.signaling_change.recv().await {
-            println!("signaling_change: {:?}",state);
+            println!("================================================  signaling_change: {:?}", state);
         }
     });
 
     tokio::spawn(async move {
         while let Some(candidate) = observer.ice_candidate.recv().await {
-            println!("ice_candidate: {:?}", candidate);
+            write.lock().await.send(Message::Text(serde_json::to_string(&Payload {
+                id: "client".to_string(),
+                r#type: "candidate".to_string(),
+                sdp: None,
+                sdpMLineIndex: Some(candidate.sdp_mline_index),
+                candidate: Some(candidate.candidate),
+                sdpMid: Some(candidate.sdp_mid),
+            }).unwrap())).await.unwrap();
         }
     });
 
-    RTCPeerConnection::run()
+    let mut start = false;
+    tokio::spawn(async move {
+        while let Some(track) = observer.track.recv().await {
+            let mut sink = track.on_frame();
+            while let Ok(_frame) = sink.receiver.recv().await {
+                if !start {
+                    println!("================================================  video frame");
+                    start = true;
+                }
+            }
+        }
+    });
+
+    RTCPeerConnection::run();
+    Ok(())
 }

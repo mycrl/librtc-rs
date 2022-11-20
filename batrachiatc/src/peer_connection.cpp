@@ -87,6 +87,6 @@ void rtc_add_track(RTCPeerConnection* rtc,
     char* stream_id)
 {
     // TODO: only video track for current;
-    auto video_track = rtc->pc_factory->CreateVideoTrack(track->id, track->video_track);
+    auto video_track = rtc->pc_factory->CreateVideoTrack(track->label, track->video_source);
     rtc->pc->AddTrack(video_track, { stream_id });
 }

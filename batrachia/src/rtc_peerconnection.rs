@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::media_stream::*;
 use super::media_stream_track::*;
 use super::observer::*;
@@ -38,6 +40,7 @@ pub(crate) type RawRTCPeerConnection = c_void;
 /// it's no longer needed.
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
+    tracks: Vec<(Arc<MediaStreamTrack>, Arc<MediaStream>)>,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -60,6 +63,7 @@ impl RTCPeerConnection {
         } else {
             Ok(Self {
                 raw: unsafe { &*raw },
+                tracks: Vec::with_capacity(10),
             })
         }
     }
@@ -132,8 +136,9 @@ impl RTCPeerConnection {
 
     /// The RTCPeerConnection method addTrack() adds a new media track to the set of
     /// tracks which will be transmitted to the other peer.
-    pub fn add_track(&self, track: &MediaStreamTrack, stream: &MediaStream) {
+    pub fn add_track(&mut self, track: Arc<MediaStreamTrack>, stream: Arc<MediaStream>) {
         unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
+        self.tracks.push((track, stream));
     }
 }
 

@@ -10,8 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_library(batrachiatc SHARED
     src/platform.h
-    src/media_stream.h
-    src/media_stream.cpp
+    src/platform.cpp
     src/media_stream_track.h
     src/media_stream_track.cpp
     src/observer.cpp
