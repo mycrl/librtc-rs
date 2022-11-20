@@ -1,5 +1,5 @@
 <h1 align="center">
-    <h1>Batrachia</h1>
+    Batrachia
 </h1>
 <div align="center">
     <strong>Rust ❤️ WebRTC - Facilitating high-level interactions between Rust and WebRTC.</strong>
