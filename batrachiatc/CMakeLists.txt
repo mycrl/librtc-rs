@@ -8,7 +8,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True) 
 
-add_library(batrachiatc SHARED
+add_library(batrachiatc STATIC
     src/platform.h
     src/platform.cpp
     src/media_stream_track.h
@@ -40,7 +40,7 @@ else()
     add_compile_definitions(DEBUG)
 endif()
 
-if(MSVC)
+if(WIN32)
     add_compile_definitions(
         _CONSOLE
         USE_AURA=1
@@ -93,4 +93,22 @@ if(MSVC)
         msdmo
         dmoguids
         wmcodecdspuuid)
+endif()
+
+if(APPLE)
+    add_compile_definitions(
+        APPLE
+        WEBRTC_MAC
+        WEBRTC_IOS
+        WEBRTC_POSIX)
+
+    target_link_libraries(batrachiatc
+        webrtc
+        "-framework Foundation"
+        "-framework AudioToolbox"
+        "-framework AudioUnit"
+        "-framework CoreServices"
+        "-framework CoreFoundation"
+        "-framework CoreAudio"
+        "-framework CoreGraphics")
 endif()

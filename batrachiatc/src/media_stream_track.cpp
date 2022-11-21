@@ -34,7 +34,7 @@ I420Frame* into_c(webrtc::VideoFrame* frame)
     auto i420_buf = video_frame_buf->GetI420();
     if (!i420_buf)
     {
-        i420_buf = video_frame_buf->ToI420();
+        i420_buf = video_frame_buf->ToI420().get();
     }
 
     i420_frame->remote = true;

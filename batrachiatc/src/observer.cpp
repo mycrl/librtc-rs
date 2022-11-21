@@ -195,7 +195,7 @@ void Observer::OnIceConnectionChange(RTC::IceConnectionState state)
 
 void Observer::OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver)
 {
-    webrtc::MediaStreamTrackInterface* track = transceiver->receiver()->track();
+    webrtc::MediaStreamTrackInterface* track = transceiver->receiver()->track().get();
     if (track->kind() == webrtc::MediaStreamTrackInterface::kVideoKind)
     {
         auto sink = media_stream_video_track_from(static_cast<webrtc::VideoTrackInterface*>(track));
