@@ -32,7 +32,7 @@ extern "C" {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct I420Frame {
+pub(crate) struct RawI420Frame {
     width: u32,
     height: u32,
 
@@ -46,10 +46,10 @@ pub struct I420Frame {
     remote: bool,
 }
 
-unsafe impl Send for I420Frame {}
-unsafe impl Sync for I420Frame {}
+unsafe impl Send for RawI420Frame {}
+unsafe impl Sync for RawI420Frame {}
 
-impl I420Frame {
+impl RawI420Frame {
     pub fn new(width: usize, height: usize, buf: &[u8]) -> Self {
         let need_size = ((width * height) as f32 * 1.5) as usize;
         assert!(buf.len() >= need_size);
@@ -75,12 +75,18 @@ impl I420Frame {
     }
 }
 
-impl Drop for I420Frame {
+impl Drop for RawI420Frame {
     fn drop(&mut self) {
         if self.remote {
             unsafe { free_i420_frame(self) }
         }
     }
+}
+
+pub struct I420Frame {
+    width: u32,
+    height: u32,
+    raw_ptr: *const RawI420Frame,
 }
 
 #[repr(i32)]

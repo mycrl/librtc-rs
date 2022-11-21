@@ -27,6 +27,7 @@ extern "C" {
 }
 
 #[repr(i32)]
+#[derive(Debug, Clone, Copy)]
 pub enum DataChannelState {
     Connecting,
     Open,
@@ -35,6 +36,7 @@ pub enum DataChannelState {
 }
 
 #[repr(i32)]
+#[derive(Debug, Clone, Copy)]
 pub enum DataChannelPriority {
     VeryLow = 1,
     Low,
