@@ -82,6 +82,7 @@ async main() -> Result<(), anyhow::Error> {
 * [x] RTCPeerConnection::set_remote_description
 * [x] RTCPeerConnection::add_ice_candidate
 * [x] RTCPeerConnection::add_track
+* [x] RTCPeerConnection::create_data_channel
 
 ##### Description
 * [x] RTCSessionDescription
@@ -95,6 +96,11 @@ async main() -> Result<(), anyhow::Error> {
 * [x] MediaStreamTrack::get_sink
 * [x] MediaStreamTrackSink
 * [x] I420Frame
+
+##### DataChannel
+* [x] DataChannel
+* [x] DataChannel::send
+* [x] DataChannel::get_sink
 
 ##### Observer
 * [x] Observer
