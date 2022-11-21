@@ -2,8 +2,11 @@
     <img src="./logo.png">
 </h1>
 <div align="center">
-    <strong>Rust ❤️ WebRTC - Facilitating high-level interactions between Rust and WebRTC.</strong>
+    <strong>Rust ❤️ WebRTC</strong>
+    </br>
+    <span>Facilitating high-level interactions between Rust and WebRTC</span>
 </div>
+</br>
 <div align="center">
     <img src="https://img.shields.io/github/workflow/status/mycrl/batrachia/tests"/>
     <img src="https://img.shields.io/github/languages/top/mycrl/batrachia"/>
