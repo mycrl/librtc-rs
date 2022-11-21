@@ -32,7 +32,7 @@ async fn main() -> Result<(), Error> {
     let mut peer = RTCPeerConnection::new(&config, &observer)?;
 
     let stream = MediaStream::new("stream_id")?;
-    let track = MediaStreamTrack::new("video_track", "video_track", MediaStreamTrackKind::Video)?;
+    let track = MediaStreamTrack::new("video_track", MediaStreamTrackKind::Video)?;
     peer.add_track(track.clone(), stream.clone());
 
     tokio::spawn(async move {

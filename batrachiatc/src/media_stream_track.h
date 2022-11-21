@@ -1,6 +1,12 @@
 ﻿#pragma once
 
 #include "media/base/adapted_video_track_source.h"
+#include "rtc_base/synchronization/mutex.h"
+#include "media/base/video_broadcaster.h"
+#include "api/video/video_frame_buffer.h"
+#include "media/base/video_adapter.h"
+#include "pc/video_track_source.h"
+#include "api/video/i420_buffer.h"
 
 typedef struct
 {
@@ -17,19 +23,43 @@ typedef struct
     bool remote;
 } I420Frame;
 
-class IVideoSourceTrack
-    : public rtc::AdaptedVideoTrackSource
+typedef struct
+{
+    int cropped_width = 0;
+    int cropped_height = 0;
+    int width = 0;
+    int height = 0;
+    bool drop;
+    bool resize;
+} AdaptFrameResult;
+
+class FramePreprocessor
 {
 public:
-    IVideoSourceTrack(std::string id);
-    static IVideoSourceTrack* Create(std::string id);
-    void AddFrame(I420Frame* frame);
-    bool remote() const;
-    bool is_screencast() const;
-    webrtc::MediaSourceInterface::SourceState state() const;
-    absl::optional<bool> needs_denoising() const;
-    
-    std::string id;
+    virtual ~FramePreprocessor() = default;
+    virtual webrtc::VideoFrame Preprocess(const webrtc::VideoFrame& frame) = 0;
+};
+
+class IVideoSourceTrack
+    : public rtc::VideoSourceInterface<webrtc::VideoFrame>
+    , public webrtc::VideoTrackSource
+{
+public:
+    IVideoSourceTrack(): VideoTrackSource(false) {}
+    static IVideoSourceTrack* Create();
+    void AddOrUpdateSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink, const rtc::VideoSinkWants& wants);
+    void RemoveSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink);
+    void AddFrame(const webrtc::VideoFrame& original_frame);
+    rtc::VideoSourceInterface<webrtc::VideoFrame>* source();
+private:
+    webrtc::VideoFrame _MaybePreprocess(const webrtc::VideoFrame& frame);
+    AdaptFrameResult _AdaptFrameResolution(const webrtc::VideoFrame& frame);
+    webrtc::VideoFrame _ScaleFrame(const webrtc::VideoFrame& original_frame, AdaptFrameResult& ret);
+
+    webrtc::Mutex _lock;
+    rtc::VideoBroadcaster _broadcaster;
+    cricket::VideoAdapter _video_adapter;
+    std::unique_ptr<FramePreprocessor> _preprocessor RTC_GUARDED_BY(_lock);
 };
 
 class IVideoSinkTrack
@@ -87,24 +117,15 @@ typedef struct {
     /* --------------- audio --------------- */
 } MediaStreamTrack;
 
-extern "C" void media_stream_video_track_add_frame(
-    MediaStreamTrack* track, 
-    I420Frame* frame);
-
 extern "C" void media_stream_video_track_on_frame(
     MediaStreamTrack * track,
     void(handler)(void* ctx, I420Frame * frame),
     void* ctx);
-
-extern "C" MediaStreamTrack* create_media_stream_video_track(
-    char* id,
-    char* label);
-
-extern "C" void free_i420_frame(I420Frame * frame);
+extern "C" void media_stream_video_track_add_frame(MediaStreamTrack * track, I420Frame * frame);
+extern "C" MediaStreamTrack* create_media_stream_video_track(char* label);
 extern "C" void free_media_track(MediaStreamTrack * track);
+extern "C" void free_i420_frame(I420Frame * frame);
 
-MediaStreamTrack* media_stream_video_track_from(
-    webrtc::VideoTrackInterface* track);
-
+MediaStreamTrack* media_stream_video_track_from(webrtc::VideoTrackInterface* track);
 I420Frame* into_c(webrtc::VideoFrame* frame);
 webrtc::VideoFrame from_c(I420Frame* frame);

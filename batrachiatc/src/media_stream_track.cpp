@@ -91,42 +91,109 @@ webrtc::VideoFrame from_c(I420Frame* frame)
 /*
 IVideoSourceTrack
 */
-
-IVideoSourceTrack::IVideoSourceTrack(std::string id_)
+IVideoSourceTrack* IVideoSourceTrack::Create()
 {
-    id = id_;
-}
-
-IVideoSourceTrack* IVideoSourceTrack::Create(std::string id)
-{
-    auto self = new rtc::RefCountedObject<IVideoSourceTrack>(id);
+    auto self = new rtc::RefCountedObject<IVideoSourceTrack>();
     self->AddRef();
     return self;
 }
 
-void IVideoSourceTrack::AddFrame(I420Frame* frame)
+void IVideoSourceTrack::AddOrUpdateSink(
+    rtc::VideoSinkInterface<webrtc::VideoFrame>* sink, 
+    const rtc::VideoSinkWants& wants)
 {
-    OnFrame(from_c(frame));
+    _broadcaster.AddOrUpdateSink(sink, wants);
 }
 
-bool IVideoSourceTrack::remote() const
+void IVideoSourceTrack::RemoveSink(
+    rtc::VideoSinkInterface<webrtc::VideoFrame>* sink)
 {
-    return false;
+    _broadcaster.RemoveSink(sink);
 }
 
-bool IVideoSourceTrack::is_screencast() const
+void IVideoSourceTrack::AddFrame(const webrtc::VideoFrame& original_frame)
 {
-    return false;
+    auto frame = _MaybePreprocess(original_frame);
+    auto ret = _AdaptFrameResolution(frame);
+    if (!ret.drop)
+    {
+        return;
+    }
+
+    if (ret.resize)
+    {
+        _broadcaster.OnFrame(_ScaleFrame(frame, ret));
+    }
+    else
+    {
+        _broadcaster.OnFrame(frame);
+    }
 }
 
-webrtc::MediaSourceInterface::SourceState IVideoSourceTrack::state() const
+rtc::VideoSourceInterface<webrtc::VideoFrame>* IVideoSourceTrack::source()
 {
-    return webrtc::MediaSourceInterface::kLive;
+    return this;
 }
 
-absl::optional<bool> IVideoSourceTrack::needs_denoising() const
+webrtc::VideoFrame IVideoSourceTrack::_MaybePreprocess(
+    const webrtc::VideoFrame& frame)
 {
-    return true;
+    webrtc::MutexLock lock(&_lock);
+    if (_preprocessor != nullptr)
+    {
+        return _preprocessor->Preprocess(frame);
+    }
+    else
+    {
+        return frame;
+    }
+}
+
+
+webrtc::VideoFrame IVideoSourceTrack::_ScaleFrame(
+    const webrtc::VideoFrame& original_frame, 
+    AdaptFrameResult& ret)
+{
+    auto scaled_buffer = webrtc::I420Buffer::Create(ret.width, ret.height);
+    scaled_buffer->ScaleFrom(*original_frame.video_frame_buffer()->ToI420());
+    auto new_frame_builder = webrtc::VideoFrame::Builder()
+        .set_video_frame_buffer(scaled_buffer)
+        .set_rotation(webrtc::VideoRotation::kVideoRotation_0)
+        .set_timestamp_us(original_frame.timestamp_us())
+        .set_id(original_frame.id());
+    
+    if (!original_frame.has_update_rect())
+    {
+        return new_frame_builder.build();
+    }
+
+    auto rect = original_frame.update_rect().ScaleWithFrame(
+        original_frame.width(),
+        original_frame.height(),
+        0,
+        0,
+        original_frame.width(),
+        original_frame.height(),
+        ret.width,
+        ret.height);
+    new_frame_builder.set_update_rect(rect);
+    return new_frame_builder.build();
+}
+
+AdaptFrameResult IVideoSourceTrack::_AdaptFrameResolution(
+    const webrtc::VideoFrame& frame)
+{
+    AdaptFrameResult ret;
+    ret.drop = _video_adapter.AdaptFrameResolution(
+        frame.width(),
+        frame.height(),
+        frame.timestamp_us() * 1000,
+        &ret.cropped_width,
+        &ret.cropped_height,
+        &ret.width,
+        &ret.height);
+    ret.resize = ret.height != frame.height() || ret.width != frame.width();
+    return ret;
 }
 
 /*
@@ -177,7 +244,7 @@ void media_stream_video_track_add_frame(MediaStreamTrack* track, I420Frame* fram
         return;
     }
 
-    track->video_source->AddFrame(frame);
+    track->video_source->AddFrame(from_c(frame));
 }
 
 void media_stream_video_track_on_frame(
@@ -192,7 +259,7 @@ void media_stream_video_track_on_frame(
     track->video_sink->SetOnFrame(ctx, handler);
 }
 
-MediaStreamTrack* create_media_stream_video_track(char* id, char* label)
+MediaStreamTrack* create_media_stream_video_track(char* label)
 {
     MediaStreamTrack* track = (MediaStreamTrack*)malloc(sizeof(MediaStreamTrack));
     if (!track)
@@ -200,7 +267,7 @@ MediaStreamTrack* create_media_stream_video_track(char* id, char* label)
         return NULL;
     }
 
-    track->video_source = IVideoSourceTrack::Create(std::string(id));
+    track->video_source = IVideoSourceTrack::Create();
     if (!track->video_source)
     {
         return NULL;

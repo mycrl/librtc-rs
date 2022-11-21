@@ -22,11 +22,7 @@ extern "C" {
         ctx: *const Sender<Arc<I420Frame>>,
     );
 
-    fn create_media_stream_video_track(
-        id: *const c_char,
-        label: *const c_char,
-    ) -> *const RawMediaStreamTrack;
-
+    fn create_media_stream_video_track(label: *const c_char) -> *const RawMediaStreamTrack;
     fn free_media_track(track: *const RawMediaStreamTrack);
 }
 
@@ -76,10 +72,10 @@ impl MediaStreamTrack {
         Arc::new(Self { raw })
     }
 
-    pub fn new(id: &str, label: &str, kind: MediaStreamTrackKind) -> Result<Arc<Self>> {
+    pub fn new(label: &str, kind: MediaStreamTrackKind) -> Result<Arc<Self>> {
         let raw = match kind {
             MediaStreamTrackKind::Video => unsafe {
-                create_media_stream_video_track(to_c_str(id)?, to_c_str(label)?)
+                create_media_stream_video_track(to_c_str(label)?)
             },
         };
 

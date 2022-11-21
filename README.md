@@ -1,4 +1,5 @@
 <h1 align="center">
+    <img src="./logo.png">
     Batrachia
 </h1>
 <div align="center">
@@ -19,12 +20,6 @@
 
 ```rust
 use batrachia::*;
-
-const Width: f64 = 1920.0;
-const Height: f64 = 1080.0;
-
-const StreamId: &'static str = "stream_id";
-const TrackId: &'static str = "video_track";
 
 #[tokio::main]
 async main() -> Result<(), anyhow::Error> {
@@ -58,15 +53,15 @@ async main() -> Result<(), anyhow::Error> {
     });
     
     // create local video media track
-    let stream = MediaStream::new(StreamId.to_string())?;
-    let track = MediaStreamTrack::new(TrackId, TrackId, MediaStreamTrackKind::Video)?;
+    let stream = MediaStream::new("stream_id")?;
+    let track = MediaStreamTrack::new("video_track", MediaStreamTrackKind::Video)?;
 
     // push video track in peer
     peer.add_track(track.clone(), stream);
     
     // push empty frame to local video track
-    let buf = vec![0u8; (Width * Height * 1.5) as usize];
-    let frame = I420Frame::new(Width as usize, Height as usize, &buf[..]);
+    let buf = vec![0u8; (1920.0 * 1080.0 * 1.5) as usize];
+    let frame = I420Frame::new(1920, 1080, &buf[..]);
     track.add_frame(&frame);
     
     // create local offer description
