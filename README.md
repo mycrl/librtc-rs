@@ -48,6 +48,15 @@ async main() -> Result<(), anyhow::Error> {
         }
     });
     
+    tokio::spawn(async move {
+        while let Some(track) = observer.data_channel.recv().await {
+            let mut sink = track.get_sink();
+            while let Ok(data) = sink.receiver.recv().await {
+                // rtc channel data
+            }
+        }
+    });
+    
     // create local video media track
     let stream = MediaStream::new(StreamId.to_string())?;
     let track = MediaStreamTrack::new(TrackId, TrackId, MediaStreamTrackKind::Video)?;
