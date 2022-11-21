@@ -1,6 +1,5 @@
 <h1 align="center">
     <img src="./logo.png">
-    Batrachia
 </h1>
 <div align="center">
     <strong>Rust ❤️ WebRTC - Facilitating high-level interactions between Rust and WebRTC.</strong>
