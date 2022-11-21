@@ -2,12 +2,8 @@ use std::sync::Arc;
 use libc::*;
 use super::base::*;
 use tokio::sync::broadcast::*;
-use anyhow::{
-    anyhow,
-    Result,
-};
 
-#[link(name = "batrachiatc")]
+#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn data_channel_send(
         channel: *const RawRTCDataChannel, 
@@ -142,12 +138,9 @@ unsafe impl Send for RTCDataChannel {}
 unsafe impl Sync for RTCDataChannel {}
 
 impl RTCDataChannel {
-    pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Result<Arc<Self>> {
-        if raw.is_null() {
-            Err(anyhow!("create media stream track failed!"))
-        } else {
-            Ok(Arc::new(Self { raw }))
-        }
+    pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Arc<Self> {
+        assert!(!raw.is_null());
+        Arc::new(Self { raw })
     }
 
     pub fn send(&self, buf: &[u8]) {

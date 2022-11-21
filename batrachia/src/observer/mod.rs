@@ -357,13 +357,13 @@ extern "C" fn on_ice_connection_change(ctx: *mut ObserverContext, state: IceConn
 }
 
 extern "C" fn on_datachannel(ctx: *mut ObserverContext, channel: *const RawRTCDataChannel) {
-    if let Ok(c) = RTCDataChannel::from_raw(channel) {
-        unsafe { &*ctx }.data_channel_sdr.send(c).unwrap();
+    if !channel.is_null() {
+        unsafe { &*ctx }.data_channel_sdr.send(RTCDataChannel::from_raw(channel)).unwrap();
     }
 }
 
 extern "C" fn on_track(ctx: *mut ObserverContext, track: *const RawMediaStreamTrack) {
-    if let Ok(t) = MediaStreamTrack::from_raw(track) {
-        unsafe { &*ctx }.track_sdr.send(t).unwrap();
+    if !track.is_null() {
+        unsafe { &*ctx }.track_sdr.send(MediaStreamTrack::from_raw(track)).unwrap();
     }
 }

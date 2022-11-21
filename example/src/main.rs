@@ -43,8 +43,8 @@ async fn main() -> Result<(), Error> {
 
         loop {
             if let Ok(size) = fs.read_exact(&mut buf).await {
-                let frame = I420Frame::new(1920, 1080, &buf[..size]);
-                track.add_frame(&frame);
+                let frame = I420Frame::from_slice(1920, 1080, &buf[..size]);
+                track.add_frame(frame.as_ref());
             } else {
                 fs.seek(SeekFrom::Start(0)).await.unwrap();
             }

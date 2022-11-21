@@ -26,7 +26,7 @@ use std::sync::atomic::{
     Ordering
 };
 
-#[link(name = "batrachiatc")]
+#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn rtc_set_local_description(
         peer: *const RawRTCPeerConnection,

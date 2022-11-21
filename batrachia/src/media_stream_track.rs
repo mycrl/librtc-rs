@@ -1,4 +1,5 @@
 use tokio::sync::broadcast::*;
+use super::video_frame::*;
 use super::base::*;
 use std::sync::Arc;
 use libc::*;
@@ -7,18 +8,18 @@ use anyhow::{
     Result
 };
 
-#[link(name = "batrachiatc")]
+#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn media_stream_video_track_add_frame(
         track: *const RawMediaStreamTrack,
-        frame: *const I420Frame,
+        frame: *const RawI420Frame,
     );
 
     #[allow(improper_ctypes)]
     fn media_stream_video_track_on_frame(
         track: *const RawMediaStreamTrack,
-        handler: extern "C" fn(*const Sender<&I420Frame>, *const I420Frame),
-        ctx: *const Sender<&I420Frame>,
+        handler: extern "C" fn(*const Sender<Arc<I420Frame>>, *const RawI420Frame),
+        ctx: *const Sender<Arc<I420Frame>>,
     );
 
     fn create_media_stream_video_track(
@@ -26,67 +27,7 @@ extern "C" {
         label: *const c_char,
     ) -> *const RawMediaStreamTrack;
 
-    fn free_i420_frame(frame: *const I420Frame);
     fn free_media_track(track: *const RawMediaStreamTrack);
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub(crate) struct RawI420Frame {
-    width: u32,
-    height: u32,
-
-    data_y: *const u8,
-    stride_y: u32,
-    data_u: *const u8,
-    stride_u: u32,
-    data_v: *const u8,
-    stride_v: u32,
-
-    remote: bool,
-}
-
-unsafe impl Send for RawI420Frame {}
-unsafe impl Sync for RawI420Frame {}
-
-impl RawI420Frame {
-    pub fn new(width: usize, height: usize, buf: &[u8]) -> Self {
-        let need_size = ((width * height) as f32 * 1.5) as usize;
-        assert!(buf.len() >= need_size);
-
-        let y_size = width * height;
-        let u_size = width * height / 4;
-
-        let data_y = buf[..y_size].as_ptr();
-        let data_u = buf[y_size..y_size + u_size].as_ptr();
-        let data_v = buf[y_size + u_size..].as_ptr();
-
-        Self {
-            width: width as u32,
-            height: height as u32,
-            data_y,
-            stride_y: width as u32,
-            data_u,
-            stride_u: (width / 2) as u32,
-            data_v,
-            stride_v: (width / 2) as u32,
-            remote: false,
-        }
-    }
-}
-
-impl Drop for RawI420Frame {
-    fn drop(&mut self) {
-        if self.remote {
-            unsafe { free_i420_frame(self) }
-        }
-    }
-}
-
-pub struct I420Frame {
-    width: u32,
-    height: u32,
-    raw_ptr: *const RawI420Frame,
 }
 
 #[repr(i32)]
@@ -130,12 +71,9 @@ unsafe impl Send for MediaStreamTrack {}
 unsafe impl Sync for MediaStreamTrack {}
 
 impl MediaStreamTrack {
-    pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Result<Arc<Self>> {
-        if raw.is_null() {
-            Err(anyhow!("create media stream track failed!"))
-        } else {
-            Ok(Arc::new(Self { raw }))
-        }
+    pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
+        assert!(!raw.is_null());
+        Arc::new(Self { raw })
     }
 
     pub fn new(id: &str, label: &str, kind: MediaStreamTrackKind) -> Result<Arc<Self>> {
@@ -154,7 +92,7 @@ impl MediaStreamTrack {
 
     pub fn add_frame(&self, frame: &I420Frame) {
         unsafe {
-            media_stream_video_track_add_frame(self.raw, frame);
+            media_stream_video_track_add_frame(self.raw, frame.get_raw());
         }
     }
 
@@ -185,15 +123,15 @@ impl Drop for MediaStreamTrack {
     }
 }
 
-pub struct MediaStreamTrackSink<'a> {
-    pub receiver: Receiver<&'a I420Frame>,
-    sender: *mut Sender<&'a I420Frame>,
+pub struct MediaStreamTrackSink {
+    pub receiver: Receiver<Arc<I420Frame>>,
+    sender: *mut Sender<Arc<I420Frame>>,
 }
 
-unsafe impl Send for MediaStreamTrackSink<'_> {}
-unsafe impl Sync for MediaStreamTrackSink<'_> {}
+unsafe impl Send for MediaStreamTrackSink {}
+unsafe impl Sync for MediaStreamTrackSink {}
 
-impl Drop for MediaStreamTrackSink<'_> {
+impl Drop for MediaStreamTrackSink {
     fn drop(&mut self) {
         unsafe {
             let _ = Box::from_raw(self.sender);
@@ -201,6 +139,8 @@ impl Drop for MediaStreamTrackSink<'_> {
     }
 }
 
-extern "C" fn on_frame_callback(ctx: *const Sender<&I420Frame>, frame: *const I420Frame) {
-    unsafe { &*ctx }.send(unsafe { &*frame }).unwrap();
+extern "C" fn on_frame_callback(ctx: *const Sender<Arc<I420Frame>>, frame: *const RawI420Frame) {
+    if !frame.is_null() {
+        unsafe { &*ctx }.send(I420Frame::from_raw(frame)).unwrap();
+    }
 }

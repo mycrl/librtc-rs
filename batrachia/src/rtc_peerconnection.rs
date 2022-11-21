@@ -16,7 +16,7 @@ use super::{
     rtc_datachannel::*,
 };
 
-#[link(name = "batrachiatc")]
+#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn rtc_run();
     fn rtc_close(peer: *const RawRTCPeerConnection);
@@ -165,7 +165,7 @@ impl RTCPeerConnection {
         &self, 
         label: &str, 
         opt: &DataChannelOptions
-    ) -> Result<Arc<RTCDataChannel>> {
+    ) -> Arc<RTCDataChannel> {
         let c_label = to_c_str(label).unwrap();
         let opt: RawDataChannelOptions = opt.into();
         let raw = unsafe { rtc_create_data_channel(self.raw, c_label, &opt) };

@@ -1,31 +1,26 @@
-#[cfg(target_os = "windows")]
-use std::{env, path::Path, process::Command};
+use std::env;
 
 #[cfg(target_os = "windows")]
 fn main() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let target_dir = Path::new(&out_dir)
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_str()
-        .unwrap();
-    //  let profile = env::var("PROFILE")
-    //      .unwrap()
-    //      .replace('r', "R")
-    //      .replace('d', "D");
-    //  let vs_home = env::var("VS_HOME")
-    //      .unwrap_or("C:/Program Files (x86)/Microsoft Visual Studio/2019/Community".into());
-    //  Command::new(format!("{}/Common7/IDE/devenv.exe", vs_home))
-    //      .arg("./webrtc_sys/webrtc_sys.sln")
-    //      .arg("/Build")
-    //      .arg(format!("{}|x64", profile))
-    //      .output()
-    //      .unwrap();
-    println!("cargo:rustc-link-search=all={}", target_dir);
+    let is_debug = env::var("DEBUG")
+        .map(|str| str == "true")
+        .unwrap_or(true);
+
+    let build_type = if is_debug { 
+        "Debug" 
+    } else { 
+        "Release" 
+    };
+
+    println!("cargo:rustc-link-search=all=batrachiatc/third_party/webrtc/src/out/{}/obj", build_type);
+    println!("cargo:rustc-link-search=all=batrachiatc/out/{}", build_type);
+    println!("cargo:rustc-link-lib=batrachiatc");
+    println!("cargo:rustc-link-lib=webrtc");
+    println!("cargo:rustc-link-lib=wmcodecdspuuid");
+    println!("cargo:rustc-link-lib=winmm");
+    println!("cargo:rustc-link-lib=secur32");
+    println!("cargo:rustc-link-lib=msdmo");
+    println!("cargo:rustc-link-lib=dmoguids");
 }
 
 #[cfg(target_os = "macos")]
