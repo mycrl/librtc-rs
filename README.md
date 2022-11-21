@@ -49,8 +49,8 @@ async main() -> Result<(), anyhow::Error> {
     });
     
     tokio::spawn(async move {
-        while let Some(track) = observer.data_channel.recv().await {
-            let mut sink = track.get_sink();
+        while let Some(channel) = observer.data_channel.recv().await {
+            let mut sink = channel.get_sink();
             while let Ok(data) = sink.receiver.recv().await {
                 // rtc channel data
             }
