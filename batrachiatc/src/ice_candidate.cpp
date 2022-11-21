@@ -1,4 +1,5 @@
-#include "ice_candidate.h"
+﻿#include "ice_candidate.h"
+#include "base.h"
 
 /**
  * ice candidate

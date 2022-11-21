@@ -1,7 +1,8 @@
-#pragma once
+﻿#pragma once
 
-#include "media_stream_track.h"
 #include "api/video/i420_buffer.h"
+#include "media_stream_track.h"
+#include "base.h"
 
 void free_i420_frame(I420Frame* frame)
 {

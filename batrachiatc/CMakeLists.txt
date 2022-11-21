@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True) 
 
 add_library(batrachiatc STATIC
-    src/platform.h
-    src/platform.cpp
+    src/base.h
+    src/base.cpp
     src/media_stream_track.h
     src/media_stream_track.cpp
     src/observer.cpp
@@ -30,9 +30,6 @@ include_directories(
     third_party/webrtc/src/third_party/libyuv/include
     third_party/webrtc/src/third_party/abseil-cpp
     third_party/webrtc/src)
-
-target_link_directories(batrachiatc
-    PRIVATE "third_party/webrtc/src/out/${CMAKE_BUILD_TYPE}/obj")
     
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(NDEBUG)
@@ -85,14 +82,6 @@ if(WIN32)
         set_property(TARGET batrachiatc PROPERTY
             MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
     endif()
-        
-    target_link_libraries(batrachiatc
-        webrtc
-        winmm
-        secur32
-        msdmo
-        dmoguids
-        wmcodecdspuuid)
 endif()
 
 if(APPLE)
@@ -101,14 +90,4 @@ if(APPLE)
         WEBRTC_MAC
         WEBRTC_IOS
         WEBRTC_POSIX)
-
-    target_link_libraries(batrachiatc
-        webrtc
-        "-framework Foundation"
-        "-framework AudioToolbox"
-        "-framework AudioUnit"
-        "-framework CoreServices"
-        "-framework CoreFoundation"
-        "-framework CoreAudio"
-        "-framework CoreGraphics")
 endif()

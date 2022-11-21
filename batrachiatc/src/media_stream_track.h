@@ -1,7 +1,6 @@
-#pragma once
+﻿#pragma once
 
 #include "media/base/adapted_video_track_source.h"
-#include "platform.h"
 
 typedef struct
 {
@@ -88,21 +87,21 @@ typedef struct {
     /* --------------- audio --------------- */
 } MediaStreamTrack;
 
-extern "C" EXPORT void media_stream_video_track_add_frame(
+extern "C" void media_stream_video_track_add_frame(
     MediaStreamTrack* track, 
     I420Frame* frame);
 
-extern "C" EXPORT void media_stream_video_track_on_frame(
+extern "C" void media_stream_video_track_on_frame(
     MediaStreamTrack * track,
     void(handler)(void* ctx, I420Frame * frame),
     void* ctx);
 
-extern "C" EXPORT MediaStreamTrack* create_media_stream_video_track(
+extern "C" MediaStreamTrack* create_media_stream_video_track(
     char* id,
     char* label);
 
-extern "C" EXPORT void free_i420_frame(I420Frame * frame);
-extern "C" EXPORT void free_media_track(MediaStreamTrack * track);
+extern "C" void free_i420_frame(I420Frame * frame);
+extern "C" void free_media_track(MediaStreamTrack * track);
 
 MediaStreamTrack* media_stream_video_track_from(
     webrtc::VideoTrackInterface* track);

@@ -7,7 +7,6 @@
 #include "ice_candidate.h"
 #include "data_channel.h"
 #include "observer.h"
-#include "platform.h"
 
 /*
 RTCPeerConnection
@@ -26,7 +25,7 @@ typedef struct {
 Returns a newly-created RTCPeerConnection, which represents a
 connection between the local device and a remote peer.
 */
-extern "C" EXPORT RTCPeerConnection* create_rtc_peer_connection(
+extern "C" RTCPeerConnection* create_rtc_peer_connection(
     RTCPeerConnectionConfigure* config,
     IObserver* events);
 
@@ -39,9 +38,9 @@ in use by the ICE agent, including TURN permissions. All RTCRtpSender objects
 are considered to be stopped once this returns (they may still be in the process
 of stopping, but for all intents and purposes, they're stopped).
 */
-extern "C" EXPORT void rtc_close(RTCPeerConnection* peer);
+extern "C" void rtc_close(RTCPeerConnection* peer);
 
-extern "C" EXPORT void rtc_run();
+extern "C" void rtc_run();
 
 /*
 When a web site or app using RTCPeerConnection receives a new ICE candidate from 
@@ -64,7 +63,7 @@ deliver to the ICE agent in this way, allowing it to build up a list of
 potential connection methods. This is covered in more detail in the articles 
 WebRTC connectivity and Signaling and video calling.
 */
-extern "C" EXPORT bool rtc_add_ice_candidate(RTCPeerConnection* peer,
+extern "C" bool rtc_add_ice_candidate(RTCPeerConnection* peer,
     RTCIceCandidate* icecandidate);
 
 /*
@@ -76,7 +75,7 @@ browser, and any ICE candidates already gathered. The answer is delivered to the
 returned Promise, and should then be sent to the source of the offer to continue 
 the negotiation process.
 */
-extern "C" EXPORT void rtc_create_answer(RTCPeerConnection* peer,
+extern "C" void rtc_create_answer(RTCPeerConnection* peer,
     CreateDescCallback callback,
     void* ctx);
 
@@ -89,7 +88,7 @@ the browser, and any candidates already gathered by the ICE agent, for the
 purpose of being sent over the signaling channel to a potential peer to request 
 a connection or to update the configuration of an existing connection.
 */
-extern "C" EXPORT void rtc_create_offer(RTCPeerConnection* peer,
+extern "C" void rtc_create_offer(RTCPeerConnection* peer,
     CreateDescCallback callback,
     void* ctx);
 
@@ -108,7 +107,7 @@ not immediately take effect. Instead, the current connection configuration
 remains in place until negotiation is complete. Only then does the agreed-upon 
 configuration take effect.
 */
-extern "C" EXPORT void rtc_set_local_description(RTCPeerConnection* peer,
+extern "C" void rtc_set_local_description(RTCPeerConnection* peer,
     RTCSessionDescription* desc,
     SetDescCallback callback,
     void* ctx);
@@ -132,7 +131,7 @@ not immediately take effect. Instead, the current connection configuration
 remains in place until negotiation is complete. Only then does the agreed-upon 
 configuration take effect.
 */
-extern "C" EXPORT void rtc_set_remote_description(RTCPeerConnection* peer,
+extern "C" void rtc_set_remote_description(RTCPeerConnection* peer,
     RTCSessionDescription* desc,
     SetDescCallback callback,
     void* ctx);
@@ -141,10 +140,10 @@ extern "C" EXPORT void rtc_set_remote_description(RTCPeerConnection* peer,
 The RTCPeerConnection method addTrack() adds a new media track to the set of
 tracks which will be transmitted to the other peer.
 */
-extern "C" EXPORT void rtc_add_track(RTCPeerConnection * rtc,
+extern "C" void rtc_add_track(RTCPeerConnection * rtc,
     MediaStreamTrack * track,
     char* stream_id);
 
-extern "C" EXPORT RTCDataChannel* rtc_create_data_channel(RTCPeerConnection * rtc,
+extern "C" RTCDataChannel* rtc_create_data_channel(RTCPeerConnection * rtc,
     char* label,
     DataChannelOptions * options);

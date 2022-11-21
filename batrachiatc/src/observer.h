@@ -6,9 +6,6 @@
 #include "ice_candidate.h"
 #include "data_channel.h"
 
-typedef webrtc::PeerConnectionInterface RTC;
-typedef rtc::scoped_refptr<webrtc::DataChannelInterface> DataChannel;
-
 typedef enum {
     PeerConnectionStateNew,
     PeerConnectionStateConnecting,
@@ -85,14 +82,14 @@ class Observer
 public:
     Observer(IObserver* events);
     static Observer* Create(IObserver* events);
-    void OnSignalingChange(RTC::SignalingState state);
-    void OnDataChannel(DataChannel data_channel);
-    void OnIceGatheringChange(RTC::IceGatheringState state);
+    void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState state);
+    void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
+    void OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState state);
     void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
     void OnRenegotiationNeeded();
-    void OnIceConnectionChange(RTC::IceConnectionState state);
+    void OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState state);
     void OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver);
-    void OnConnectionChange(RTC::PeerConnectionState state);
+    void OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState state);
 private:
     IObserver* _events;
 };
@@ -123,7 +120,7 @@ private:
     void* _ctx;
 };
 
-PeerConnectionState into_c(RTC::PeerConnectionState state);
-SignalingState into_c(RTC::SignalingState state);
-IceGatheringState into_c(RTC::IceGatheringState state);
-IceConnectionState into_c(RTC::IceConnectionState state);
+PeerConnectionState into_c(webrtc::PeerConnectionInterface::PeerConnectionState state);
+SignalingState into_c(webrtc::PeerConnectionInterface::SignalingState state);
+IceGatheringState into_c(webrtc::PeerConnectionInterface::IceGatheringState state);
+IceConnectionState into_c(webrtc::PeerConnectionInterface::IceConnectionState state);

@@ -1,7 +1,6 @@
-#pragma once
+﻿#pragma once
 
 #include "api/peer_connection_interface.h"
-#include "platform.h"
 
 typedef enum {
     DataStateConnecting,
@@ -20,9 +19,9 @@ typedef enum {
 typedef struct {
     // Deprecated. Reliability is assumed, and channel will be unreliable if
     // maxRetransmitTime or MaxRetransmits is set.
-    bool reliable = false;
+    bool reliable;
     // True if ordered delivery is required.
-    bool ordered = true;
+    bool ordered;
     // The max period of time in milliseconds in which retransmissions will be
     // sent. After this time, no more retransmissions will be sent.
     //
@@ -41,9 +40,9 @@ typedef struct {
     // in-band signalling in the form of an "open" message. If this is true, `id`
     // below must be set; otherwise it should be unset and will be negotiated
     // in-band.
-    bool negotiated = false;
+    bool negotiated;
     // The stream id, or SID, for SCTP data channels. -1 if unset (see above).
-    int id = -1;
+    int id;
     Priority priority;
 } DataChannelOptions;
 
@@ -55,14 +54,14 @@ public:
     IDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
     static IDataChannel* From(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
     void Send(uint8_t* buf, int size);
-    void OnDataMessage(void* ctx, void(*handler)(void*, uint8_t*, uint64_t));
+    void OnDataMessage(void* ctx, void(*handler)(void* _ctx, uint8_t* buf, uint64_t size));
     void OnStateChange();
     void OnMessage(const webrtc::DataBuffer& buffer);
 
     DataState state;
 private:
     rtc::scoped_refptr<webrtc::DataChannelInterface> _channel;
-    void(*_handler)(void*, uint8_t*, uint64_t);
+    void(*_handler)(void* ctx, uint8_t* buf, uint64_t size);
     void* _ctx;
 };
 
@@ -80,12 +79,12 @@ typedef struct {
     IDataChannel* channel;
 } RTCDataChannel;
 
-extern "C" EXPORT void free_data_channel(RTCDataChannel* channel);
-extern "C" EXPORT DataState data_channel_get_state(RTCDataChannel* channel);
-extern "C" EXPORT void data_channel_send(RTCDataChannel* channel, uint8_t* buf, int size);
-extern "C" EXPORT void data_channel_on_message(RTCDataChannel* channel, 
-    void(*handler)(void*, uint8_t*, uint64_t),
+extern "C" void free_data_channel(RTCDataChannel* channel);
+extern "C" DataState data_channel_get_state(RTCDataChannel* channel);
+extern "C" void data_channel_send(RTCDataChannel* channel, uint8_t* buf, int size);
+extern "C" void data_channel_on_message(RTCDataChannel* channel,
+    void(*handler)(void* ctx, uint8_t* buf, uint64_t size),
     void* ctx);
-
+    
 webrtc::DataChannelInit* from_c(DataChannelOptions* options);
 RTCDataChannel* create_data_channel(rtc::scoped_refptr<webrtc::DataChannelInterface> channel);

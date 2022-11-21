@@ -14,8 +14,8 @@ fn main() {
 
     println!("cargo:rustc-link-search=all=batrachiatc/third_party/webrtc/src/out/{}/obj", build_type);
     println!("cargo:rustc-link-search=all=batrachiatc/out/{}", build_type);
-    println!("cargo:rustc-link-lib=batrachiatc");
-    println!("cargo:rustc-link-lib=webrtc");
+    println!("cargo:rustc-link-lib=static=batrachiatc");
+    println!("cargo:rustc-link-lib=static=webrtc");
     println!("cargo:rustc-link-lib=wmcodecdspuuid");
     println!("cargo:rustc-link-lib=winmm");
     println!("cargo:rustc-link-lib=secur32");

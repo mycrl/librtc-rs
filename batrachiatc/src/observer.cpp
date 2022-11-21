@@ -5,29 +5,29 @@
 connection state
  */
 
-PeerConnectionState into_c(RTC::PeerConnectionState state)
+PeerConnectionState into_c(webrtc::PeerConnectionInterface::PeerConnectionState state)
 {
-    if (state == RTC::PeerConnectionState::kNew)
+    if (state == webrtc::PeerConnectionInterface::PeerConnectionState::kNew)
     {
         return PeerConnectionStateNew;
     }
 	else
-    if (state == RTC::PeerConnectionState::kConnecting)
+    if (state == webrtc::PeerConnectionInterface::PeerConnectionState::kConnecting)
     {
         return PeerConnectionStateConnecting;
     }
     else
-    if (state == RTC::PeerConnectionState::kConnected)
+    if (state == webrtc::PeerConnectionInterface::PeerConnectionState::kConnected)
     {
         return PeerConnectionStateConnected;
     }
     else
-    if (state == RTC::PeerConnectionState::kDisconnected)
+    if (state == webrtc::PeerConnectionInterface::PeerConnectionState::kDisconnected)
     {
         return PeerConnectionStateDisconnected;
     }
     else
-    if (state == RTC::PeerConnectionState::kClosed)
+    if (state == webrtc::PeerConnectionInterface::PeerConnectionState::kClosed)
     {
         return PeerConnectionStateClose;
     }
@@ -41,29 +41,29 @@ PeerConnectionState into_c(RTC::PeerConnectionState state)
 signaling state
  */
 
-SignalingState into_c(RTC::SignalingState state)
+SignalingState into_c(webrtc::PeerConnectionInterface::SignalingState state)
 {
-    if (state == RTC::SignalingState::kStable)
+    if (state == webrtc::PeerConnectionInterface::SignalingState::kStable)
     {
         return SignalingStateStable;
     }
 	else
-    if (state == RTC::SignalingState::kHaveLocalOffer)
+    if (state == webrtc::PeerConnectionInterface::SignalingState::kHaveLocalOffer)
     {
         return SignalingStateHaveLocalOffer;
     }
     else
-    if (state == RTC::SignalingState::kHaveLocalPrAnswer)
+    if (state == webrtc::PeerConnectionInterface::SignalingState::kHaveLocalPrAnswer)
     {
         return SignalingStateHaveLocalPrAnswer;
     }
     else
-    if (state == RTC::SignalingState::kHaveRemoteOffer)
+    if (state == webrtc::PeerConnectionInterface::SignalingState::kHaveRemoteOffer)
     {
         return SignalingStateHaveRemoteOffer;
     }
     else
-    if (state == RTC::SignalingState::kHaveRemotePrAnswer)
+    if (state == webrtc::PeerConnectionInterface::SignalingState::kHaveRemotePrAnswer)
     {
         return SignalingStateHaveRemotePrAnswer;
     }
@@ -76,14 +76,14 @@ SignalingState into_c(RTC::SignalingState state)
 /*
 ice gathering state
 */
-IceGatheringState into_c(RTC::IceGatheringState state)
+IceGatheringState into_c(webrtc::PeerConnectionInterface::IceGatheringState state)
 {
-    if (state == RTC::IceGatheringState::kIceGatheringNew)
+    if (state == webrtc::PeerConnectionInterface::IceGatheringState::kIceGatheringNew)
     {
         return IceGatheringStateNew;
     }
     else
-    if (state == RTC::IceGatheringState::kIceGatheringGathering)
+    if (state == webrtc::PeerConnectionInterface::IceGatheringState::kIceGatheringGathering)
     {
         return IceGatheringStateGathering;
     }
@@ -96,39 +96,39 @@ IceGatheringState into_c(RTC::IceGatheringState state)
 /*
 ice connection state
 */
-IceConnectionState into_c(RTC::IceConnectionState state)
+IceConnectionState into_c(webrtc::PeerConnectionInterface::IceConnectionState state)
 {
-    if (state == RTC::IceConnectionState::kIceConnectionNew)
+    if (state == webrtc::PeerConnectionInterface::IceConnectionState::kIceConnectionNew)
     {
         return IceConnectionStateNew;
     }
     else
-    if (state == RTC::IceConnectionState::kIceConnectionChecking)
+    if (state == webrtc::PeerConnectionInterface::IceConnectionState::kIceConnectionChecking)
     {
         return IceConnectionStateChecking;
     }
     else
-    if (state == RTC::IceConnectionState::kIceConnectionConnected)
+    if (state == webrtc::PeerConnectionInterface::IceConnectionState::kIceConnectionConnected)
     {
         return IceConnectionStateConnected;
     }
     else
-    if (state == RTC::IceConnectionState::kIceConnectionCompleted)
+    if (state == webrtc::PeerConnectionInterface::IceConnectionState::kIceConnectionCompleted)
     {
         return IceConnectionStateCompleted;
     }
     else
-    if (state == RTC::IceConnectionState::kIceConnectionFailed)
+    if (state == webrtc::PeerConnectionInterface::IceConnectionState::kIceConnectionFailed)
     {
         return IceConnectionStateFailed;
     }
     else
-    if (state == RTC::IceConnectionState::kIceConnectionDisconnected)
+    if (state == webrtc::PeerConnectionInterface::IceConnectionState::kIceConnectionDisconnected)
     {
         return IceConnectionStateDisconnected;
     }
     else
-    if (state == RTC::IceConnectionState::kIceConnectionClosed)
+    if (state == webrtc::PeerConnectionInterface::IceConnectionState::kIceConnectionClosed)
     {
         return IceConnectionStateClosed;
     }
@@ -150,12 +150,12 @@ Observer* Observer::Create(IObserver* events)
     return self;
 }
 
-void Observer::OnSignalingChange(RTC::SignalingState state)
+void Observer::OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState state)
 {
     _events->on_signaling_change(_events->ctx, into_c(state));
 }
 
-void Observer::OnDataChannel(DataChannel data_channel)
+void Observer::OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
 {
     auto channel = create_data_channel(data_channel);
     _events->on_datachannel(_events->ctx, channel);
@@ -166,7 +166,7 @@ void Observer::OnRenegotiationNeeded()
     _events->on_renegotiation_needed(_events->ctx);
 }
 
-void Observer::OnIceGatheringChange(RTC::IceGatheringState state)
+void Observer::OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState state)
 {
     _events->on_ice_gathering_change(_events->ctx, into_c(state));
 }
@@ -183,12 +183,12 @@ void Observer::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
     free_ice_candidate(ice_candidate);
 }
 
-void Observer::OnConnectionChange(RTC::PeerConnectionState state)
+void Observer::OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState state)
 {
     _events->on_connection_change(_events->ctx, into_c(state));
 }
 
-void Observer::OnIceConnectionChange(RTC::IceConnectionState state)
+void Observer::OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState state)
 {
     _events->on_ice_connection_change(_events->ctx, into_c(state));
 }
