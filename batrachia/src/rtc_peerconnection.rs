@@ -59,9 +59,7 @@ unsafe impl Send for RTCPeerConnection {}
 unsafe impl Sync for RTCPeerConnection {}
 
 impl RTCPeerConnection {
-    /// By default, RTCPeerConnection::run() calls Thread::Current()->Run().
-    /// To receive and dispatch messages, call ProcessMessages occasionally.
-    pub fn run() {
+    pub(crate) fn run() {
         unsafe { rtc_run() }
     }
 
