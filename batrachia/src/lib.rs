@@ -57,21 +57,8 @@ pub use observer::{
     SignalingState,
 };
 
-use once_cell::sync::Lazy;
-use anyhow::Result;
-use tokio::{
-    task::JoinHandle,
-    runtime::Builder,
-};
-
-static THREAD: Lazy<Result<JoinHandle<()>>> = Lazy::new(|| {
-    Ok(Builder::new_current_thread()
-        .build()?
-        .spawn_blocking(RTCPeerConnection::run))
-});
-
-/// By default, RTCPeerConnection::run() calls Thread::Current()->Run().
+/// By default, run() calls Thread::Current()->Run().
 /// To receive and dispatch messages, call ProcessMessages occasionally.
-pub fn run() -> &'static Lazy<Result<JoinHandle<()>>> {
-    &THREAD
+pub fn run() {
+    RTCPeerConnection::run()
 }

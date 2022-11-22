@@ -1,8 +1,10 @@
+use tokio::sync::Mutex;
 use super::base::*;
 use anyhow::{
     anyhow,
     Result,
 };
+
 use libc::*;
 use std::sync::Arc;
 
@@ -52,7 +54,7 @@ pub(crate) type RawRTCPeerConnection = c_void;
 /// the connection, and close the connection once it's no longer needed.
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
-    tracks: Vec<(Arc<MediaStreamTrack>, Arc<MediaStream>)>,
+    tracks: Mutex<Vec<(Arc<MediaStreamTrack>, Arc<MediaStream>)>>,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -66,17 +68,21 @@ impl RTCPeerConnection {
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
-    pub fn new(config: &RTCConfiguration, observer: &Observer) -> Result<Self> {
+    pub fn new(
+        config: &RTCConfiguration,
+        observer: &Observer,
+    ) -> Result<Arc<Self>> {
         let raw = unsafe {
             create_rtc_peer_connection(config.get_raw(), observer.get_raw())
         };
+        
         if raw.is_null() {
             Err(anyhow!("create peerconnection failed!"))
         } else {
-            Ok(Self {
+            Ok(Arc::new(Self {
                 raw: unsafe { &*raw },
-                tracks: Vec::with_capacity(10),
-            })
+                tracks: Mutex::new(Vec::with_capacity(10)),
+            }))
         }
     }
 
@@ -163,13 +169,13 @@ impl RTCPeerConnection {
 
     /// The RTCPeerConnection method addTrack() adds a new media track to the
     /// set of tracks which will be transmitted to the other peer.
-    pub fn add_track(
-        &mut self,
+    pub async fn add_track(
+        &self,
         track: Arc<MediaStreamTrack>,
         stream: Arc<MediaStream>,
     ) {
         unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
-        self.tracks.push((track, stream));
+        self.tracks.lock().await.push((track, stream));
     }
 
     /// The createDataChannel() method on the RTCPeerConnection interface

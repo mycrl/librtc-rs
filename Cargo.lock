@@ -27,7 +27,6 @@ dependencies = [
  "anyhow",
  "futures",
  "libc",
- "once_cell",
  "tokio",
 ]
 

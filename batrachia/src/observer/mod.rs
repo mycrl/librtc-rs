@@ -370,24 +370,21 @@ extern "C" fn on_signaling_change(
     ctx: *mut ObserverContext,
     state: SignalingState,
 ) {
-    unsafe { &*ctx }.signaling_change_sdr.send(state).unwrap();
+    let _ = unsafe { &*ctx }.signaling_change_sdr.send(state);
 }
 
 extern "C" fn on_connection_change(
     ctx: *mut ObserverContext,
     state: PeerConnectionState,
 ) {
-    unsafe { &*ctx }.connection_change_sdr.send(state).unwrap();
+    let _ = unsafe { &*ctx }.connection_change_sdr.send(state);
 }
 
 extern "C" fn on_ice_gathering_change(
     ctx: *mut ObserverContext,
     state: IceGatheringState,
 ) {
-    unsafe { &*ctx }
-        .ice_gathering_change_sdr
-        .send(state)
-        .unwrap();
+    let _ = unsafe { &*ctx }.ice_gathering_change_sdr.send(state);
 }
 
 extern "C" fn on_ice_candidate(
@@ -395,25 +392,22 @@ extern "C" fn on_ice_candidate(
     candidate: *const RawRTCIceCandidate,
 ) {
     if !candidate.is_null() {
-        unsafe { &*ctx }
-            .ice_candidate_sdr
-            .send(RTCIceCandidate::try_from(unsafe { &*candidate }).unwrap())
-            .unwrap();
+        if let Ok(candidate) = RTCIceCandidate::try_from(unsafe { &*candidate })
+        {
+            let _ = unsafe { &*ctx }.ice_candidate_sdr.send(candidate);
+        }
     }
 }
 
 extern "C" fn on_renegotiation_needed(ctx: *mut ObserverContext) {
-    unsafe { &*ctx }.renegotiation_needed_sdr.send(()).unwrap();
+    let _ = unsafe { &*ctx }.renegotiation_needed_sdr.send(());
 }
 
 extern "C" fn on_ice_connection_change(
     ctx: *mut ObserverContext,
     state: IceConnectionState,
 ) {
-    unsafe { &*ctx }
-        .ice_connection_change_sdr
-        .send(state)
-        .unwrap();
+    let _ = unsafe { &*ctx }.ice_connection_change_sdr.send(state);
 }
 
 extern "C" fn on_datachannel(
@@ -421,10 +415,9 @@ extern "C" fn on_datachannel(
     channel: *const RawRTCDataChannel,
 ) {
     if !channel.is_null() {
-        unsafe { &*ctx }
+        let _ = unsafe { &*ctx }
             .data_channel_sdr
-            .send(RTCDataChannel::from_raw(channel))
-            .unwrap();
+            .send(RTCDataChannel::from_raw(channel));
     }
 }
 
@@ -433,9 +426,8 @@ extern "C" fn on_track(
     track: *const RawMediaStreamTrack,
 ) {
     if !track.is_null() {
-        unsafe { &*ctx }
+        let _ = unsafe { &*ctx }
             .track_sdr
-            .send(MediaStreamTrack::from_raw(track))
-            .unwrap();
+            .send(MediaStreamTrack::from_raw(track));
     }
 }
