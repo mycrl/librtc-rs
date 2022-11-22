@@ -114,11 +114,7 @@ async fn main() -> Result<(), Error> {
 
     tokio::spawn(async move {
         while let Some(state) = observer.signaling_change.recv().await {
-            println!(
-                "+++++++++++++++++++++++++++++++++++++++++++++++++++ \
-                 signaling_change: {:?}",
-                state
-            );
+            println!("signaling_change: {:?}", state);
         }
     });
 
@@ -149,10 +145,7 @@ async fn main() -> Result<(), Error> {
             let mut sink = track.get_sink();
             while let Ok(_frame) = sink.receiver.recv().await {
                 if !start {
-                    println!(
-                        "+++++++++++++++++++++++++++++++++++++++++++++++++++ \
-                         on video frame"
-                    );
+                    println!("on video frame");
                     start = true;
                 }
             }
@@ -163,11 +156,7 @@ async fn main() -> Result<(), Error> {
         while let Some(track) = observer.data_channel.recv().await {
             let mut sink = track.get_sink();
             while let Ok(data) = sink.receiver.recv().await {
-                println!(
-                    "+++++++++++++++++++++++++++++++++++++++++++++++++++ \
-                     channel data: {:?}",
-                    data.as_slice()
-                );
+                println!("channel data: {:?}", data.as_slice());
             }
         }
     });
