@@ -25,31 +25,6 @@ use tokio::sync::{
     Mutex,
 };
 
-#[repr(C)]
-pub(crate) struct IObserver {
-    ctx: *mut ObserverContext,
-
-    on_signaling_change: extern "C" fn(*mut ObserverContext, SignalingState),
-    on_datachannel:
-        extern "C" fn(*mut ObserverContext, *const RawRTCDataChannel),
-    on_ice_gathering_change:
-        extern "C" fn(*mut ObserverContext, IceGatheringState),
-    on_ice_candidate:
-        extern "C" fn(*mut ObserverContext, *const RawRTCIceCandidate),
-    on_renegotiation_needed: extern "C" fn(*mut ObserverContext),
-    on_ice_connection_change:
-        extern "C" fn(*mut ObserverContext, IceConnectionState),
-    on_track: extern "C" fn(*mut ObserverContext, *const RawMediaStreamTrack),
-    on_connection_change:
-        extern "C" fn(*mut ObserverContext, PeerConnectionState),
-}
-
-pub trait ObserverPromisifyExt {
-    type Output;
-    fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()>;
-    fn wake(&self) -> Option<Result<Self::Output>>;
-}
-
 pub struct ObserverPromisify<T>
 where
     T: ObserverPromisifyExt,
@@ -65,6 +40,7 @@ where
 {
     type Output = anyhow::Result<T::Output>;
 
+    #[rustfmt::skip]
     fn poll(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -80,9 +56,73 @@ where
                 },
             }
         } else {
-            this.ext.wake().map(Poll::Ready).unwrap_or(Poll::Pending)
+            this.ext
+                .wake()
+                .map(Poll::Ready)
+                .unwrap_or(Poll::Pending)
         }
     }
+}
+
+#[derive(Clone)]
+pub struct Events<T> {
+    receiver: Arc<Mutex<Receiver<T>>>,
+    sender: Arc<Sender<T>>,
+}
+
+impl<T: Clone> Events<T> {
+    pub fn new(capacity: usize) -> Self {
+        let (sender, receiver) = channel(capacity);
+        Self {
+            receiver: Arc::new(Mutex::new(receiver)),
+            sender: Arc::new(sender),
+        }
+    }
+
+    pub async fn recv(&self) -> Option<T> {
+        self.receiver.lock().await.recv().await.ok()
+    }
+
+    pub fn send(&self, value: T) {
+        let _ = self.sender.send(value);
+    }
+}
+
+#[repr(C)]
+#[rustfmt::skip]
+pub(crate) struct IObserver {
+    ctx: *mut ObserverContext,
+    
+    on_renegotiation_needed: extern "C" fn(*mut ObserverContext),
+    on_signaling_change: extern "C" fn(*mut ObserverContext, SignalingState),
+    on_datachannel: extern "C" fn(*mut ObserverContext, *const RawRTCDataChannel),
+    on_ice_gathering_change: extern "C" fn(*mut ObserverContext, IceGatheringState),
+    on_ice_candidate: extern "C" fn(*mut ObserverContext, *const RawRTCIceCandidate),
+    on_ice_connection_change: extern "C" fn(*mut ObserverContext, IceConnectionState),
+    on_connection_change: extern "C" fn(*mut ObserverContext, PeerConnectionState),
+    on_track: extern "C" fn(*mut ObserverContext, *const RawMediaStreamTrack),
+}
+
+impl IObserver {
+    pub fn new(ctx: *mut ObserverContext) -> Self {
+        Self {
+            ctx,
+            on_signaling_change,
+            on_connection_change,
+            on_ice_gathering_change,
+            on_ice_candidate,
+            on_renegotiation_needed,
+            on_ice_connection_change,
+            on_datachannel,
+            on_track,
+        }
+    }
+}
+
+pub trait ObserverPromisifyExt {
+    type Output;
+    fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()>;
+    fn wake(&self) -> Option<Result<Self::Output>>;
 }
 
 /// This state essentially represents the aggregate state of all ICE
@@ -209,34 +249,28 @@ pub enum IceConnectionState {
 }
 
 pub struct ObserverContext {
-    connection_change_sdr: Sender<PeerConnectionState>,
-    signaling_change_sdr: Sender<SignalingState>,
-    ice_gathering_change_sdr: Sender<IceGatheringState>,
-    ice_candidate_sdr: Sender<RTCIceCandidate>,
-    renegotiation_needed_sdr: Sender<()>,
-    ice_connection_change_sdr: Sender<IceConnectionState>,
-    track_sdr: Sender<Arc<MediaStreamTrack>>,
-    data_channel_sdr: Sender<Arc<RTCDataChannel>>,
+    signaling_change: Events<SignalingState>,
+    connection_change: Events<PeerConnectionState>,
+    ice_gathering_change: Events<IceGatheringState>,
+    ice_candidate: Events<RTCIceCandidate>,
+    renegotiation_needed: Events<()>,
+    ice_connection_change: Events<IceConnectionState>,
+    track: Events<Arc<MediaStreamTrack>>,
+    data_channel: Events<Arc<RTCDataChannel>>,
 }
 
-#[derive(Clone)]
-pub struct ChennelRecv<T> {
-    inner: Arc<Mutex<Receiver<T>>>,
-}
-
-impl<T: Clone> ChennelRecv<T> {
-    pub fn new(capacity: usize) -> (Sender<T>, Self) {
-        let (sender, inner) = channel(capacity);
-        (
-            sender,
-            Self {
-                inner: Arc::new(Mutex::new(inner)),
-            },
-        )
-    }
-
-    pub async fn recv(&self) -> Option<T> {
-        self.inner.lock().await.recv().await.ok()
+impl ObserverContext {
+    fn new() -> Self {
+        Self {
+            connection_change: Events::new(1),
+            signaling_change: Events::new(1),
+            ice_gathering_change: Events::new(1),
+            ice_candidate: Events::new(1),
+            renegotiation_needed: Events::new(1),
+            ice_connection_change: Events::new(1),
+            data_channel: Events::new(1),
+            track: Events::new(1),
+        }
     }
 }
 
@@ -247,11 +281,11 @@ pub struct Observer {
     /// A signalingstatechange event is sent to an RTCPeerConnection to notify
     /// it that its signaling state, as indicated by the signalingState
     /// property, has changed.
-    pub signaling_change: ChennelRecv<SignalingState>,
+    pub signaling_change: Events<SignalingState>,
     /// The connectionstatechange event is sent to the onconnectionstatechange
     /// event handler on an RTCPeerConnection object after a new track has been
     /// added to an RTCRtpReceiver which is part of the connection.
-    pub connection_change: ChennelRecv<PeerConnectionState>,
+    pub connection_change: Events<PeerConnectionState>,
     /// The icegatheringstatechange event is sent to the
     /// onicegatheringstatechange event handler on an RTCPeerConnection when
     /// the state of the ICE candidate gathering process changes. This
@@ -263,35 +297,35 @@ pub struct Observer {
     /// collecting candidate configurations for the connection has begun. When
     /// the value changes to complete, all of the transports that make up the
     /// RTCPeerConnection have finished gathering ICE candidates.
-    pub ice_gathering_change: ChennelRecv<IceGatheringState>,
+    pub ice_gathering_change: Events<IceGatheringState>,
     /// An icecandidate event is sent to an RTCPeerConnection when an
     /// RTCIceCandidate has been identified and added to the local peer by a
     /// call to RTCPeerConnection.setLocalDescription(). The event handler
     /// should transmit the candidate to the remote peer over the signaling
     /// channel so the remote peer can add it to its set of remote candidates.
-    pub ice_candidate: ChennelRecv<RTCIceCandidate>,
+    pub ice_candidate: Events<RTCIceCandidate>,
     /// A negotiationneeded event is sent to the RTCPeerConnection when
     /// negotiation of the connection through the signaling channel is
     /// required. This occurs both during the initial setup of the connection
     /// as well as any time a change to the communication environment requires
     /// reconfiguring the connection.
-    pub renegotiation_needed: ChennelRecv<()>,
+    pub renegotiation_needed: Events<()>,
     /// An iceconnectionstatechange event is sent to an RTCPeerConnection
     /// object each time the ICE connection state changes during the
     /// negotiation process. The new ICE connection state is available in the
     /// object's iceConnectionState property.
-    pub ice_connection_change: ChennelRecv<IceConnectionState>,
+    pub ice_connection_change: Events<IceConnectionState>,
     /// The track event is sent to the ontrack event handler on
     /// RTCPeerConnections after a new track has been added to an
     /// RTCRtpReceiver which is part of the connection.
-    pub track: ChennelRecv<Arc<MediaStreamTrack>>,
+    pub track: Events<Arc<MediaStreamTrack>>,
     /// A datachannel event is sent to an RTCPeerConnection instance when an
     /// RTCDataChannel has been added to the connection, as a result of the
     /// remote peer calling RTCPeerConnection.createDataChannel().
-    pub data_channel: ChennelRecv<Arc<RTCDataChannel>>,
+    pub data_channel: Events<Arc<RTCDataChannel>>,
 
-    ctx: ObserverContext,
     raw_ptr: UnsafeCell<Option<*const IObserver>>,
+    ctx: ObserverContext,
 }
 
 unsafe impl Send for Observer {}
@@ -299,39 +333,16 @@ unsafe impl Sync for Observer {}
 
 impl Observer {
     pub fn new() -> Self {
-        let (connection_change_sdr, connection_change) = ChennelRecv::new(1);
-        let (signaling_change_sdr, signaling_change) = ChennelRecv::new(1);
-        let (ice_gathering_change_sdr, ice_gathering_change) =
-            ChennelRecv::new(1);
-        let (ice_candidate_sdr, ice_candidate) = ChennelRecv::new(1);
-        let (renegotiation_needed_sdr, renegotiation_needed) =
-            ChennelRecv::new(1);
-        let (ice_connection_change_sdr, ice_connection_change) =
-            ChennelRecv::new(1);
-        let (track_sdr, track) = ChennelRecv::new(1);
-        let (data_channel_sdr, data_channel) = ChennelRecv::new(1);
-
-        let ctx = ObserverContext {
-            connection_change_sdr,
-            signaling_change_sdr,
-            ice_gathering_change_sdr,
-            ice_candidate_sdr,
-            renegotiation_needed_sdr,
-            ice_connection_change_sdr,
-            data_channel_sdr,
-            track_sdr,
-        };
-
+        let ctx = ObserverContext::new();
         Self {
-            ice_gathering_change,
-            connection_change,
-            signaling_change,
-            ice_candidate,
-            renegotiation_needed,
-            ice_connection_change,
-            data_channel,
-            track,
-
+            track: ctx.track.clone(),
+            connection_change: ctx.connection_change.clone(),
+            signaling_change: ctx.signaling_change.clone(),
+            ice_gathering_change: ctx.ice_gathering_change.clone(),
+            ice_candidate: ctx.ice_candidate.clone(),
+            renegotiation_needed: ctx.renegotiation_needed.clone(),
+            ice_connection_change: ctx.ice_connection_change.clone(),
+            data_channel: ctx.data_channel.clone(),
             raw_ptr: UnsafeCell::new(None),
             ctx,
         }
@@ -343,18 +354,9 @@ impl Observer {
             return *ptr;
         }
 
-        let raw = Box::into_raw(Box::new(IObserver {
-            ctx: &self.ctx as *const ObserverContext as *mut ObserverContext,
-            on_signaling_change,
-            on_connection_change,
-            on_ice_gathering_change,
-            on_ice_candidate,
-            on_renegotiation_needed,
-            on_ice_connection_change,
-            on_datachannel,
-            on_track,
-        }));
-
+        let raw_ctx =
+            &self.ctx as *const ObserverContext as *mut ObserverContext;
+        let raw = Box::into_raw(Box::new(IObserver::new(raw_ctx)));
         let _ = raw_ptr.insert(raw);
         raw
     }
@@ -370,21 +372,21 @@ extern "C" fn on_signaling_change(
     ctx: *mut ObserverContext,
     state: SignalingState,
 ) {
-    let _ = unsafe { &*ctx }.signaling_change_sdr.send(state);
+    unsafe { &*ctx }.signaling_change.send(state);
 }
 
 extern "C" fn on_connection_change(
     ctx: *mut ObserverContext,
     state: PeerConnectionState,
 ) {
-    let _ = unsafe { &*ctx }.connection_change_sdr.send(state);
+    unsafe { &*ctx }.connection_change.send(state);
 }
 
 extern "C" fn on_ice_gathering_change(
     ctx: *mut ObserverContext,
     state: IceGatheringState,
 ) {
-    let _ = unsafe { &*ctx }.ice_gathering_change_sdr.send(state);
+    unsafe { &*ctx }.ice_gathering_change.send(state);
 }
 
 extern "C" fn on_ice_candidate(
@@ -394,20 +396,20 @@ extern "C" fn on_ice_candidate(
     if !candidate.is_null() {
         if let Ok(candidate) = RTCIceCandidate::try_from(unsafe { &*candidate })
         {
-            let _ = unsafe { &*ctx }.ice_candidate_sdr.send(candidate);
+            unsafe { &*ctx }.ice_candidate.send(candidate);
         }
     }
 }
 
 extern "C" fn on_renegotiation_needed(ctx: *mut ObserverContext) {
-    let _ = unsafe { &*ctx }.renegotiation_needed_sdr.send(());
+    unsafe { &*ctx }.renegotiation_needed.send(());
 }
 
 extern "C" fn on_ice_connection_change(
     ctx: *mut ObserverContext,
     state: IceConnectionState,
 ) {
-    let _ = unsafe { &*ctx }.ice_connection_change_sdr.send(state);
+    unsafe { &*ctx }.ice_connection_change.send(state);
 }
 
 extern "C" fn on_datachannel(
@@ -415,8 +417,8 @@ extern "C" fn on_datachannel(
     channel: *const RawRTCDataChannel,
 ) {
     if !channel.is_null() {
-        let _ = unsafe { &*ctx }
-            .data_channel_sdr
+        unsafe { &*ctx }
+            .data_channel
             .send(RTCDataChannel::from_raw(channel));
     }
 }
@@ -426,8 +428,8 @@ extern "C" fn on_track(
     track: *const RawMediaStreamTrack,
 ) {
     if !track.is_null() {
-        let _ = unsafe { &*ctx }
-            .track_sdr
+        unsafe { &*ctx }
+            .track
             .send(MediaStreamTrack::from_raw(track));
     }
 }

@@ -207,11 +207,8 @@ extern "C" fn on_message_callback(
     size: u64,
 ) {
     if !buf.is_null() {
-        unsafe { &*ctx }
-            .send(
-                unsafe { std::slice::from_raw_parts(buf, size as usize) }
-                    .to_vec(),
-            )
-            .unwrap();
+        let _ = unsafe { &*ctx }.send(
+            unsafe { std::slice::from_raw_parts(buf, size as usize) }.to_vec(),
+        );
     }
 }

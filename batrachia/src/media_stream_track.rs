@@ -156,6 +156,6 @@ extern "C" fn on_frame_callback(
     frame: *const RawI420Frame,
 ) {
     if !frame.is_null() {
-        unsafe { &*ctx }.send(I420Frame::from_raw(frame)).unwrap();
+        let _ = unsafe { &*ctx }.send(I420Frame::from_raw(frame));
     }
 }

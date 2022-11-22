@@ -50,12 +50,13 @@ async fn main() -> Result<(), Error> {
             if let Message::Text(msg) = msg {
                 let payload: Payload = serde_json::from_str(&msg).unwrap();
                 if payload.r#type == "offer" {
-                    peer_ref.set_remote_description(&RTCSessionDescription {
-                        kind: RTCSessionDescriptionType::Offer,
-                        sdp: payload.sdp.unwrap().clone(),
-                    })
-                    .await
-                    .unwrap();
+                    peer_ref
+                        .set_remote_description(&RTCSessionDescription {
+                            kind: RTCSessionDescriptionType::Offer,
+                            sdp: payload.sdp.unwrap().clone(),
+                        })
+                        .await
+                        .unwrap();
 
                     let answer = peer_ref.create_answer().await.unwrap();
                     peer_ref.set_local_description(&answer).await.unwrap();
@@ -77,12 +78,13 @@ async fn main() -> Result<(), Error> {
                         .await
                         .unwrap();
                 } else if payload.r#type == "candidate" {
-                    peer_ref.add_ice_candidate(&RTCIceCandidate {
-                        candidate: payload.candidate.unwrap().clone(),
-                        sdp_mid: payload.sdpMid.unwrap().clone(),
-                        sdp_mline_index: payload.sdpMLineIndex.unwrap(),
-                    })
-                    .unwrap();
+                    peer_ref
+                        .add_ice_candidate(&RTCIceCandidate {
+                            candidate: payload.candidate.unwrap().clone(),
+                            sdp_mid: payload.sdpMid.unwrap().clone(),
+                            sdp_mline_index: payload.sdpMLineIndex.unwrap(),
+                        })
+                        .unwrap();
                 }
             }
         }
@@ -137,7 +139,6 @@ async fn main() -> Result<(), Error> {
         }
     });
 
-    
     let stream = MediaStream::new("stream_id")?;
     let track =
         MediaStreamTrack::new("video_track", MediaStreamTrackKind::Video)?;

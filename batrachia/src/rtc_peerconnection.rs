@@ -75,7 +75,7 @@ impl RTCPeerConnection {
         let raw = unsafe {
             create_rtc_peer_connection(config.get_raw(), observer.get_raw())
         };
-        
+
         if raw.is_null() {
             Err(anyhow!("create peerconnection failed!"))
         } else {
