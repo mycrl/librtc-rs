@@ -18,7 +18,28 @@
 <br/>
 
 
-### Example
+The rust high-level abstraction binding of Google WebRTC [M99](https://groups.google.com/g/discuss-webrtc/c/Yf6c3HW4N3k/m/3SC_Hy15BQAJ). With WebRTC, you can add real-time communication capabilities to your application that works on top of an open standard. It supports video, voice, and generic data to be sent between peers, allowing developers to build powerful voice- and video-communication solutions.
+
+
+## Table of contents
+
+* [Platform Support](#platform-support)
+* [Example](#example)
+* [Features](#features)  
+
+
+## Platform Support
+
+The windows clang target is not a high priority, other platform support is being done quickly.  
+
+|          | x64-msvc | x86-msvc | x64-clang | x86-clang | arm64 |
+|----------|----------|----------|-----------|-----------|-------|
+| Windows  | √        |   ?      | x         | x         | x     |
+| Macos    | x        |   x      | ?         | ?         | √     |
+| Linux    | x        |   x      | x         | x         | x     |
+
+
+## Example
 
 ```rust
 use batrachia::*;
@@ -76,7 +97,7 @@ async main() -> Result<(), anyhow::Error> {
 }
 ```
 
-### Features
+## Features
 
 ##### RTCPeerConnection
 * [x] RTCConfiguration
