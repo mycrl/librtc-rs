@@ -34,9 +34,9 @@ The windows clang target is not a high priority, other platform support is being
 
 |          | x64-msvc | x86-msvc | x64-clang | x86-clang | arm64 |
 |----------|----------|----------|-----------|-----------|-------|
-| Windows  | √        |   ?      | x         | x         | x     |
+| Windows  | √        |   √      | x         | x         | x     |
 | Macos    | x        |   x      | ?         | ?         | √     |
-| Linux    | x        |   x      | x         | x         | x     |
+| Linux    | x        |   x      | √         | √         | ?     |
 
 
 ## Example
