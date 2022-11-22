@@ -1,36 +1,41 @@
-use std::sync::Arc;
-use libc::*;
 use super::base::*;
+use libc::*;
+use std::sync::Arc;
 use tokio::sync::broadcast::*;
 
 #[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn data_channel_send(
-        channel: *const RawRTCDataChannel, 
-        buf: *const u8, 
-        size: c_int
+        channel: *const RawRTCDataChannel,
+        buf: *const u8,
+        size: c_int,
     );
 
     #[allow(improper_ctypes)]
     fn data_channel_on_message(
-        channel: *const RawRTCDataChannel, 
+        channel: *const RawRTCDataChannel,
         handler: extern "C" fn(*mut Sender<Vec<u8>>, *const u8, u64),
         ctx: *mut Sender<Vec<u8>>,
     );
 
-    fn data_channel_get_state(channel: *const RawRTCDataChannel) -> DataChannelState;
+    fn data_channel_get_state(
+        channel: *const RawRTCDataChannel,
+    ) -> DataChannelState;
     fn free_data_channel(channel: *const RawRTCDataChannel);
 }
 
+/// Indicates the state of the data channel connection.
 #[repr(i32)]
 #[derive(Debug, Clone, Copy)]
 pub enum DataChannelState {
     Connecting,
     Open,
     Closing,
-    Closed
+    Closed,
 }
 
+/// Used to process outgoing WebRTC packets and prioritize outgoing WebRTC
+/// packets in case of congestion.
 #[repr(i32)]
 #[derive(Debug, Clone, Copy)]
 pub enum DataChannelPriority {
@@ -77,20 +82,22 @@ pub struct DataChannelOptions {
     //
     // Cannot be set along with `maxRetransmits`.
     // This is called `maxPacketLifeTime` in the WebRTC JS API.
-    // Negative values are ignored, and positive values are clamped to [0-65535]
+    // Negative values are ignored, and positive values are clamped to
+    // [0-65535]
     pub max_retransmit_time: Option<u64>,
     // The max number of retransmissions.
     //
     // Cannot be set along with `maxRetransmitTime`.
-    // Negative values are ignored, and positive values are clamped to [0-65535]
+    // Negative values are ignored, and positive values are clamped to
+    // [0-65535]
     pub max_retransmits: Option<u64>,
     // This is set by the application and opaque to the WebRTC implementation.
     pub protocol: String, // = ""
     // True if the channel has been externally negotiated and we do not send an
-    // in-band signalling in the form of an "open" message. If this is true, `id`
-    // below must be set; otherwise it should be unset and will be negotiated
-    // in-band.
-    pub negotiated: bool, // = false 
+    // in-band signalling in the form of an "open" message. If this is true,
+    // `id` below must be set; otherwise it should be unset and will be
+    // negotiated in-band.
+    pub negotiated: bool, // = false
     // The stream id, or SID, for SCTP data channels. -1 if unset (see above).
     pub id: i8,
     pub priority: Option<DataChannelPriority>,
@@ -121,14 +128,16 @@ impl Into<RawDataChannelOptions> for &DataChannelOptions {
             protocol: to_c_str(&self.protocol).unwrap(),
             negotiated: self.negotiated,
             id: self.id as c_int,
-            priority: self.priority
-                .as_ref()
-                .map(|x| *x as c_int)
-                .unwrap_or(0),
+            priority: self.priority.as_ref().map(|x| *x as c_int).unwrap_or(0),
         }
     }
 }
 
+/// The RTCDataChannel interface represents a network channel which can be used
+/// for bidirectional peer-to-peer transfers of arbitrary data.
+///
+/// Every data channel is associated with an RTCPeerConnection, and each peer
+/// connection can have up to a theoretical maximum of 65,534 data channels.
 #[derive(Debug)]
 pub struct RTCDataChannel {
     raw: *const RawRTCDataChannel,
@@ -140,15 +149,18 @@ unsafe impl Sync for RTCDataChannel {}
 impl RTCDataChannel {
     pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Arc<Self> {
         assert!(!raw.is_null());
-        Arc::new(Self { raw })
+        Arc::new(Self {
+            raw,
+        })
     }
 
+    /// Sends data across the data channel to the remote peer.
     pub fn send(&self, buf: &[u8]) {
-        unsafe {
-            data_channel_send(self.raw, buf.as_ptr(), buf.len() as c_int)
-        }
+        unsafe { data_channel_send(self.raw, buf.as_ptr(), buf.len() as c_int) }
     }
 
+    /// Returns a string which indicates the state of the data channel's
+    /// underlying data connection.
     pub fn get_state(&self) -> DataChannelState {
         unsafe { data_channel_get_state(self.raw) }
     }
@@ -156,11 +168,13 @@ impl RTCDataChannel {
     pub fn get_sink(&self) -> RTCDataChannelSink {
         let (tx, receiver) = channel(1);
         let sender = Box::into_raw(Box::new(tx));
-        unsafe { data_channel_on_message(self.raw, on_message_callback, sender) }
+        unsafe {
+            data_channel_on_message(self.raw, on_message_callback, sender)
+        }
 
-        RTCDataChannelSink { 
-            receiver, 
-            sender 
+        RTCDataChannelSink {
+            receiver,
+            sender,
         }
     }
 }
@@ -181,14 +195,23 @@ unsafe impl Sync for RTCDataChannelSink {}
 
 impl Drop for RTCDataChannelSink {
     fn drop(&mut self) {
-        unsafe { let _ = Box::from_raw(self.sender); }
+        unsafe {
+            let _ = Box::from_raw(self.sender);
+        }
     }
 }
 
-extern "C" fn on_message_callback(ctx: *mut Sender<Vec<u8>>, buf: *const u8, size: u64) {
+extern "C" fn on_message_callback(
+    ctx: *mut Sender<Vec<u8>>,
+    buf: *const u8,
+    size: u64,
+) {
     if !buf.is_null() {
-        unsafe { &*ctx }.send(unsafe { 
-            std::slice::from_raw_parts(buf, size as usize) 
-        }.to_vec()).unwrap();
+        unsafe { &*ctx }
+            .send(
+                unsafe { std::slice::from_raw_parts(buf, size as usize) }
+                    .to_vec(),
+            )
+            .unwrap();
     }
 }

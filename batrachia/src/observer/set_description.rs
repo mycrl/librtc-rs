@@ -1,12 +1,12 @@
+use anyhow::{
+    anyhow,
+    Result,
+};
 use futures::task::AtomicWaker;
 use libc::*;
-use anyhow::{
-    anyhow, 
-    Result
-};
 
 use super::{
-    ObserverPromisify, 
+    ObserverPromisify,
     ObserverPromisifyExt,
 };
 
@@ -22,8 +22,8 @@ use std::{
 };
 
 use std::sync::atomic::{
-    AtomicPtr, 
-    Ordering
+    AtomicPtr,
+    Ordering,
 };
 
 #[link(name = "batrachiatc", kind = "static")]
@@ -90,9 +90,23 @@ impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
 
         let desc: RawRTCSessionDescription = self.desc.try_into()?;
         if self.kind == SetDescriptionKind::Local {
-            unsafe { rtc_set_local_description(self.pc, &desc, set_description_callback, ctx) };
+            unsafe {
+                rtc_set_local_description(
+                    self.pc,
+                    &desc,
+                    set_description_callback,
+                    ctx,
+                )
+            };
         } else {
-            unsafe { rtc_set_remote_description(self.pc, &desc, set_description_callback, ctx) };
+            unsafe {
+                rtc_set_remote_description(
+                    self.pc,
+                    &desc,
+                    set_description_callback,
+                    ctx,
+                )
+            };
         }
 
         Ok(())
@@ -104,7 +118,8 @@ impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
     }
 }
 
-pub type SetDescriptionFuture<'a> = ObserverPromisify<SetDescriptionObserver<'a>>;
+pub type SetDescriptionFuture<'a> =
+    ObserverPromisify<SetDescriptionObserver<'a>>;
 impl<'a> SetDescriptionFuture<'a> {
     pub(crate) fn new(
         pc: *const RawRTCPeerConnection,

@@ -1,12 +1,12 @@
-use tokio::sync::broadcast::*;
-use super::video_frame::*;
 use super::base::*;
-use std::sync::Arc;
-use libc::*;
+use super::video_frame::*;
 use anyhow::{
-    anyhow, 
-    Result
+    anyhow,
+    Result,
 };
+use libc::*;
+use std::sync::Arc;
+use tokio::sync::broadcast::*;
 
 #[link(name = "batrachiatc", kind = "static")]
 extern "C" {
@@ -18,11 +18,16 @@ extern "C" {
     #[allow(improper_ctypes)]
     fn media_stream_video_track_on_frame(
         track: *const RawMediaStreamTrack,
-        handler: extern "C" fn(*const Sender<Arc<I420Frame>>, *const RawI420Frame),
+        handler: extern "C" fn(
+            *const Sender<Arc<I420Frame>>,
+            *const RawI420Frame,
+        ),
         ctx: *const Sender<Arc<I420Frame>>,
     );
 
-    fn create_media_stream_video_track(label: *const c_char) -> *const RawMediaStreamTrack;
+    fn create_media_stream_video_track(
+        label: *const c_char,
+    ) -> *const RawMediaStreamTrack;
     fn free_media_track(track: *const RawMediaStreamTrack);
 }
 
@@ -39,10 +44,11 @@ pub(crate) struct RawMediaStreamTrack {
     /// "video", if it is a video track. It doesn't change if the track is
     /// disassociated from its source.
     pub kind: MediaStreamTrackKind,
-    /// Returns a string containing a user agent-assigned label that identifies the
-    /// track source, as in "internal microphone". The string may be left empty and
-    /// is empty as long as no source has been connected. When the track is
-    /// disassociated from its source, the label is not changed.
+    /// Returns a string containing a user agent-assigned label that identifies
+    /// the track source, as in "internal microphone". The string may be
+    /// left empty and is empty as long as no source has been connected.
+    /// When the track is disassociated from its source, the label is not
+    /// changed.
     pub label: *const c_char,
     /// Returns a Boolean with a value of true if the track is sourced by a
     /// RTCPeerConnection, false otherwise.
@@ -53,7 +59,7 @@ pub(crate) struct RawMediaStreamTrack {
     video_sink: *const c_void,
 }
 
-/// The MediaStreamTrack interface represents a single media track within 
+/// The MediaStreamTrack interface represents a single media track within
 /// a stream typically.
 ///
 /// these are audio or video tracks, but other track types may exist as
@@ -69,7 +75,9 @@ unsafe impl Sync for MediaStreamTrack {}
 impl MediaStreamTrack {
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
-        Arc::new(Self { raw })
+        Arc::new(Self {
+            raw,
+        })
     }
 
     pub fn new(label: &str, kind: MediaStreamTrackKind) -> Result<Arc<Self>> {
@@ -82,7 +90,9 @@ impl MediaStreamTrack {
         if raw.is_null() {
             Err(anyhow!("create media stream track failed!"))
         } else {
-            Ok(Arc::new(Self { raw }))
+            Ok(Arc::new(Self {
+                raw,
+            }))
         }
     }
 
@@ -95,11 +105,17 @@ impl MediaStreamTrack {
     pub fn get_sink(&self) -> MediaStreamTrackSink {
         let (tx, receiver) = channel(1);
         let sender = Box::into_raw(Box::new(tx));
-        unsafe { media_stream_video_track_on_frame(self.raw, on_frame_callback, sender) }
+        unsafe {
+            media_stream_video_track_on_frame(
+                self.raw,
+                on_frame_callback,
+                sender,
+            )
+        }
 
-        MediaStreamTrackSink { 
-            receiver, 
-            sender 
+        MediaStreamTrackSink {
+            receiver,
+            sender,
         }
     }
 
@@ -135,7 +151,10 @@ impl Drop for MediaStreamTrackSink {
     }
 }
 
-extern "C" fn on_frame_callback(ctx: *const Sender<Arc<I420Frame>>, frame: *const RawI420Frame) {
+extern "C" fn on_frame_callback(
+    ctx: *const Sender<Arc<I420Frame>>,
+    frame: *const RawI420Frame,
+) {
     if !frame.is_null() {
         unsafe { &*ctx }.send(I420Frame::from_raw(frame)).unwrap();
     }

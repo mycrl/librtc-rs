@@ -1,10 +1,10 @@
-use std::mem::ManuallyDrop;
 use anyhow::Result;
 use libc::*;
 use std::ffi::{
-    CStr, 
-    CString
+    CStr,
+    CString,
 };
+use std::mem::ManuallyDrop;
 
 pub(crate) fn to_c_str(str: &str) -> Result<*const c_char> {
     Ok(CString::new(str)?.into_raw())

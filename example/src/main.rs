@@ -1,14 +1,26 @@
-use batrachia::*;
 use anyhow::Error;
-use tokio::fs;
-use tokio::time::{sleep, Duration};
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
-use futures_util::{StreamExt, SinkExt};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use batrachia::*;
+use futures_util::{
+    SinkExt,
+    StreamExt,
+};
 use serde::*;
 use std::io::SeekFrom;
 use std::sync::Arc;
+use tokio::fs;
+use tokio::io::{
+    AsyncReadExt,
+    AsyncSeekExt,
+};
 use tokio::sync::Mutex;
+use tokio::time::{
+    sleep,
+    Duration,
+};
+use tokio_tungstenite::{
+    connect_async,
+    tungstenite::protocol::Message,
+};
 
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,14 +44,17 @@ async fn main() -> Result<(), Error> {
     let mut peer = RTCPeerConnection::new(&config, &observer)?;
 
     let stream = MediaStream::new("stream_id")?;
-    let track = MediaStreamTrack::new("video_track", MediaStreamTrackKind::Video)?;
+    let track =
+        MediaStreamTrack::new("video_track", MediaStreamTrackKind::Video)?;
     peer.add_track(track.clone(), stream.clone());
 
     tokio::spawn(async move {
         let need_size = (1920 as f64 * 1080 as f64 * 1.5) as usize;
         let mut buf = vec![0u8; need_size];
 
-        let mut fs = fs::File::open("E:/batrachia/target/test.yuv").await.unwrap();
+        let mut fs = fs::File::open("E:/batrachia/target/test.yuv")
+            .await
+            .unwrap();
 
         loop {
             if let Ok(size) = fs.read_exact(&mut buf).await {
@@ -62,26 +77,36 @@ async fn main() -> Result<(), Error> {
                     peer.set_remote_description(&RTCSessionDescription {
                         kind: RTCSessionDescriptionType::Offer,
                         sdp: payload.sdp.unwrap().clone(),
-                    }).await.unwrap();
+                    })
+                    .await
+                    .unwrap();
 
                     let answer = peer.create_answer().await.unwrap();
                     peer.set_local_description(&answer).await.unwrap();
 
-                    write_1.lock().await.send(Message::Text(serde_json::to_string(&Payload {
-                        id: "client".to_string(),
-                        r#type: "answer".to_string(),
-                        sdp: Some(answer.sdp.clone()),
-                        sdpMLineIndex: None,
-                        candidate: None,
-                        sdpMid: None,
-                    }).unwrap())).await.unwrap();
-                } else
-                if payload.r#type == "candidate" {
+                    write_1
+                        .lock()
+                        .await
+                        .send(Message::Text(
+                            serde_json::to_string(&Payload {
+                                id: "client".to_string(),
+                                r#type: "answer".to_string(),
+                                sdp: Some(answer.sdp.clone()),
+                                sdpMLineIndex: None,
+                                candidate: None,
+                                sdpMid: None,
+                            })
+                            .unwrap(),
+                        ))
+                        .await
+                        .unwrap();
+                } else if payload.r#type == "candidate" {
                     peer.add_ice_candidate(&RTCIceCandidate {
                         candidate: payload.candidate.unwrap().clone(),
                         sdp_mid: payload.sdpMid.unwrap().clone(),
                         sdp_mline_index: payload.sdpMLineIndex.unwrap(),
-                    }).unwrap();
+                    })
+                    .unwrap();
                 }
             }
         }
@@ -89,20 +114,32 @@ async fn main() -> Result<(), Error> {
 
     tokio::spawn(async move {
         while let Some(state) = observer.signaling_change.recv().await {
-            println!("+++++++++++++++++++++++++++++++++++++++++++++++++++ signaling_change: {:?}", state);
+            println!(
+                "+++++++++++++++++++++++++++++++++++++++++++++++++++ \
+                 signaling_change: {:?}",
+                state
+            );
         }
     });
 
     tokio::spawn(async move {
         while let Some(candidate) = observer.ice_candidate.recv().await {
-            write.lock().await.send(Message::Text(serde_json::to_string(&Payload {
-                id: "client".to_string(),
-                r#type: "candidate".to_string(),
-                sdp: None,
-                sdpMLineIndex: Some(candidate.sdp_mline_index),
-                candidate: Some(candidate.candidate),
-                sdpMid: Some(candidate.sdp_mid),
-            }).unwrap())).await.unwrap();
+            write
+                .lock()
+                .await
+                .send(Message::Text(
+                    serde_json::to_string(&Payload {
+                        id: "client".to_string(),
+                        r#type: "candidate".to_string(),
+                        sdp: None,
+                        sdpMLineIndex: Some(candidate.sdp_mline_index),
+                        candidate: Some(candidate.candidate),
+                        sdpMid: Some(candidate.sdp_mid),
+                    })
+                    .unwrap(),
+                ))
+                .await
+                .unwrap();
         }
     });
 
@@ -112,7 +149,10 @@ async fn main() -> Result<(), Error> {
             let mut sink = track.get_sink();
             while let Ok(_frame) = sink.receiver.recv().await {
                 if !start {
-                    println!("+++++++++++++++++++++++++++++++++++++++++++++++++++ on video frame");
+                    println!(
+                        "+++++++++++++++++++++++++++++++++++++++++++++++++++ \
+                         on video frame"
+                    );
                     start = true;
                 }
             }
@@ -123,7 +163,11 @@ async fn main() -> Result<(), Error> {
         while let Some(track) = observer.data_channel.recv().await {
             let mut sink = track.get_sink();
             while let Ok(data) = sink.receiver.recv().await {
-                println!("+++++++++++++++++++++++++++++++++++++++++++++++++++ channel data: {:?}", data.as_slice());
+                println!(
+                    "+++++++++++++++++++++++++++++++++++++++++++++++++++ \
+                     channel data: {:?}",
+                    data.as_slice()
+                );
             }
         }
     });

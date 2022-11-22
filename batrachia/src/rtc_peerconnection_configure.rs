@@ -1,47 +1,50 @@
 use super::base::*;
 use libc::*;
 use std::{
-    convert::*,
     cell::UnsafeCell,
+    convert::*,
 };
 
-/// How to handle negotiation of candidates when remote peer is not compatible 
+/// How to handle negotiation of candidates when remote peer is not compatible
 /// with standard SDP BUNDLE.
 ///
-/// Specifies how to handle negotiation of candidates when the remote peer is not 
-/// compatible with the SDP BUNDLE standard. If the remote endpoint is BUNDLE-aware,
-/// all media tracks and data channels are bundled onto a single transport at the 
-/// completion of negotiation, regardless of policy used, and any superfluous 
-/// transports that were created initially are closed at that point.
+/// Specifies how to handle negotiation of candidates when the remote peer is
+/// not compatible with the SDP BUNDLE standard. If the remote endpoint is
+/// BUNDLE-aware, all media tracks and data channels are bundled onto a single
+/// transport at the completion of negotiation, regardless of policy used, and
+/// any superfluous transports that were created initially are closed at that
+/// point.
 ///
-/// In technical terms, a BUNDLE lets all media flow between two peers flow across 
-/// a single 5-tuple; that is, from a single IP and port on one peer to a single IP 
-/// and port on the other peer, using the same transport protocol.
+/// In technical terms, a BUNDLE lets all media flow between two peers flow
+/// across a single 5-tuple; that is, from a single IP and port on one peer to a
+/// single IP and port on the other peer, using the same transport protocol.
 #[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum BundlePolicy {
-    /// The ICE agent initially creates one RTCDtlsTransport for each type of 
-    /// content added: audio, video, and data channels. If the remote endpoint is 
-    /// not BUNDLE-aware, then each of these DTLS transports handles all the 
-    /// communication for one type of data.
+    /// The ICE agent initially creates one RTCDtlsTransport for each type of
+    /// content added: audio, video, and data channels. If the remote endpoint
+    /// is not BUNDLE-aware, then each of these DTLS transports handles all
+    /// the communication for one type of data.
     Balanced = 1,
-    /// The ICE agent initially creates one RTCDtlsTransport per media track and a 
-    /// separate one for data channels. If the remote endpoint is not BUNDLE-aware, 
-    /// everything is negotiated on these separate DTLS transports.
+    /// The ICE agent initially creates one RTCDtlsTransport per media track
+    /// and a separate one for data channels. If the remote endpoint is not
+    /// BUNDLE-aware, everything is negotiated on these separate DTLS
+    /// transports.
     MaxCompat,
-    /// The ICE agent initially creates only a single RTCDtlsTransport to carry all 
-    /// of the RTCPeerConnection's data. If the remote endpoint is not BUNDLE-aware, 
-    /// then only a single track will be negotiated and the rest ignored.
+    /// The ICE agent initially creates only a single RTCDtlsTransport to carry
+    /// all of the RTCPeerConnection's data. If the remote endpoint is not
+    /// BUNDLE-aware, then only a single track will be negotiated and the
+    /// rest ignored.
     MaxBundle,
 }
 
-/// The current ICE transport policy; if the policy isn't specified, all is assumed 
-/// by default, allowing all candidates to be considered.
+/// The current ICE transport policy; if the policy isn't specified, all is
+/// assumed by default, allowing all candidates to be considered.
 #[repr(i32)]
 #[derive(Clone, Copy, Debug)]
 pub enum IceTransportPolicy {
     None = 1,
-    /// Only ICE candidates whose IP addresses are being relayed, such as those 
+    /// Only ICE candidates whose IP addresses are being relayed, such as those
     /// being passed through a STUN or TURN server, will be considered.
     Relay,
     /// Only ICE candidates with public IP addresses will be considered.
@@ -57,12 +60,13 @@ pub enum IceTransportPolicy {
 pub enum RtcpMuxPolicy {
     /// Instructs the ICE agent to gather both RTP and RTCP candidates.
     /// If the remote peer can multiplex RTCP,
-    /// then RTCP candidates are multiplexed atop the corresponding RTP candidates.
-    /// Otherwise, both the RTP and RTCP candidates are returned, separately.
+    /// then RTCP candidates are multiplexed atop the corresponding RTP
+    /// candidates. Otherwise, both the RTP and RTCP candidates are
+    /// returned, separately.
     Negotiate = 1,
     /// Tells the ICE agent to gather ICE candidates for only RTP,
-    /// and to multiplex RTCP atop them. If the remote peer doesn't support RTCP 
-    /// multiplexing, then session negotiation fails.
+    /// and to multiplex RTCP atop them. If the remote peer doesn't support
+    /// RTCP multiplexing, then session negotiation fails.
     Require,
 }
 
@@ -122,11 +126,11 @@ impl Drop for RawRTCPeerConnectionConfigure {
     }
 }
 
-/// The RTCIceServer dictionary defines how to connect to a single ICE 
+/// The RTCIceServer dictionary defines how to connect to a single ICE
 /// server (such as a STUN or TURN server).
 ///
-/// An array of RTCIceServer objects, each describing one server which may be used
-/// by the ICE agent; these are typically STUN and/or TURN servers.
+/// An array of RTCIceServer objects, each describing one server which may be
+/// used by the ICE agent; these are typically STUN and/or TURN servers.
 /// If this isn't specified, the connection attempt will be made with no STUN or
 /// TURN server available, which limits the connection to local peers.
 #[derive(Default, Clone, Debug)]
@@ -137,8 +141,9 @@ pub struct RTCIceServer {
     /// If the RTCIceServer is a TURN server, then this is the username to use
     /// during the authentication process.
     pub username: Option<String>,
-    /// This required property is either a single string or an array of strings,
-    /// each specifying a URL which can be used to connect to the server.
+    /// This required property is either a single string or an array of
+    /// strings, each specifying a URL which can be used to connect to the
+    /// server.
     pub urls: Option<Vec<String>>,
 }
 
@@ -221,6 +226,9 @@ pub struct RTCConfiguration {
     raw_ptr: UnsafeCell<Option<*const RawRTCPeerConnectionConfigure>>,
 }
 
+unsafe impl Send for RTCConfiguration {}
+unsafe impl Sync for RTCConfiguration {}
+
 impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
     fn into(self) -> RawRTCPeerConnectionConfigure {
         let (ice_servers, ice_servers_size, ice_servers_capacity) = self
@@ -235,23 +243,27 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
             .unwrap_or((std::ptr::null_mut(), 0, 0));
         RawRTCPeerConnectionConfigure {
             bundle_policy: self.bundle_policy.map(|i| i as c_int).unwrap_or(0),
-            ice_transport_policy: self.ice_transport_policy.map(|i| i as c_int).unwrap_or(0),
+            ice_transport_policy: self
+                .ice_transport_policy
+                .map(|i| i as c_int)
+                .unwrap_or(0),
             peer_identity: self
                 .peer_identity
                 .as_ref()
                 .map(|s| to_c_str(s).unwrap())
                 .unwrap_or(std::ptr::null_mut()),
-            rtcp_mux_policy: self.rtcp_mux_policy.map(|i| i as c_int).unwrap_or(0),
-            ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0) as c_int,
+            rtcp_mux_policy: self
+                .rtcp_mux_policy
+                .map(|i| i as c_int)
+                .unwrap_or(0),
+            ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0)
+                as c_int,
             ice_servers_capacity: ice_servers_capacity as c_int,
             ice_servers_size: ice_servers_size as c_int,
             ice_servers,
         }
     }
 }
-
-unsafe impl Send for RTCConfiguration {}
-unsafe impl Sync for RTCConfiguration {}
 
 impl RTCConfiguration {
     pub(crate) fn get_raw(&self) -> *const RawRTCPeerConnectionConfigure {
@@ -261,7 +273,7 @@ impl RTCConfiguration {
         }
 
         let raw = Box::into_raw(Box::new((self as &Self).into()));
-        let  _ = raw_ptr.insert(raw);
+        let _ = raw_ptr.insert(raw);
         raw
     }
 }
@@ -270,7 +282,9 @@ impl Drop for RTCConfiguration {
     fn drop(&mut self) {
         let raw_ptr = unsafe { *self.raw_ptr.get() };
         if let Some(ptr) = raw_ptr {
-            let  _ = unsafe { Box::from_raw(ptr as *mut RawRTCPeerConnectionConfigure) };
+            let _ = unsafe {
+                Box::from_raw(ptr as *mut RawRTCPeerConnectionConfigure)
+            };
         }
     }
 }

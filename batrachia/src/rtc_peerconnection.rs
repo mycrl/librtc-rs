@@ -1,19 +1,19 @@
-use std::sync::Arc;
 use super::base::*;
-use libc::*;
 use anyhow::{
-    anyhow, 
-    Result
+    anyhow,
+    Result,
 };
+use libc::*;
+use std::sync::Arc;
 
 use super::{
-    observer::*,
     media_stream::*,
     media_stream_track::*,
+    observer::*,
+    rtc_datachannel::*,
     rtc_icecandidate::*,
     rtc_peerconnection_configure::*,
     rtc_session_description::*,
-    rtc_datachannel::*,
 };
 
 #[link(name = "batrachiatc", kind = "static")]
@@ -45,10 +45,10 @@ extern "C" {
 
 pub(crate) type RawRTCPeerConnection = c_void;
 
-/// The RTCPeerConnection interface represents a WebRTC connection between 
+/// The RTCPeerConnection interface represents a WebRTC connection between
 /// the local computer and a remote peer.
 ///
-/// It provides methods to connect to a remote peer, maintain and monitor 
+/// It provides methods to connect to a remote peer, maintain and monitor
 /// the connection, and close the connection once it's no longer needed.
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
@@ -69,7 +69,9 @@ impl RTCPeerConnection {
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
     pub fn new(config: &RTCConfiguration, observer: &Observer) -> Result<Self> {
-        let raw = unsafe { create_rtc_peer_connection(config.get_raw(), observer.get_raw()) };
+        let raw = unsafe {
+            create_rtc_peer_connection(config.get_raw(), observer.get_raw())
+        };
         if raw.is_null() {
             Err(anyhow!("create peerconnection failed!"))
         } else {
@@ -96,17 +98,18 @@ impl RTCPeerConnection {
     /// SDP answer to an offer received from a remote peer during the
     /// offer/answer negotiation of a WebRTC connection. The answer contains
     /// information about any media already attached to the session, codecs and
-    /// options supported by the browser, and any ICE candidates already gathered.
-    /// The answer is delivered to the returned Future, and should then be sent
-    /// to the source of the offer to continue the negotiation process.
+    /// options supported by the browser, and any ICE candidates already
+    /// gathered. The answer is delivered to the returned Future, and should
+    /// then be sent to the source of the offer to continue the negotiation
+    /// process.
     pub fn create_answer(&self) -> CreateDescriptionFuture {
         CreateDescriptionFuture::new(self.raw, CreateDescriptionKind::Answer)
     }
 
-    /// The RTCPeerConnection method setLocalDescription() changes the local 
-    /// description associated with the connection. This description specifies 
-    /// the properties of the local end of the connection, including the media 
-    /// format. 
+    /// The RTCPeerConnection method setLocalDescription() changes the local
+    /// description associated with the connection. This description specifies
+    /// the properties of the local end of the connection, including the media
+    /// format.
     pub fn set_local_description<'b>(
         &'b self,
         desc: &'b RTCSessionDescription,
@@ -114,10 +117,10 @@ impl RTCPeerConnection {
         SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Local)
     }
 
-    /// The RTCPeerConnection method setRemoteDescription() sets the specified 
-    /// session description as the remote peer's current offer or answer. The 
-    /// description specifies the properties of the remote end of the connection, 
-    /// including the media format.
+    /// The RTCPeerConnection method setRemoteDescription() sets the specified
+    /// session description as the remote peer's current offer or answer. The
+    /// description specifies the properties of the remote end of the
+    /// connection, including the media format.
     pub fn set_remote_description<'b>(
         &'b self,
         desc: &'b RTCSessionDescription,
@@ -125,26 +128,32 @@ impl RTCPeerConnection {
         SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Remote)
     }
 
-    /// When a web site or app using RTCPeerConnection receives a new ICE candidate from
-    /// the remote peer over its signaling channel, it delivers the newly-received
-    /// candidate to the browser's ICE agent by calling RTCPeerConnection.addIceCandidate().
-    /// This adds this new remote candidate to the RTCPeerConnection's remote
-    /// description, which describes the state of the remote end of the connection.
+    /// When a web site or app using RTCPeerConnection receives a new ICE
+    /// candidate from the remote peer over its signaling channel, it
+    /// delivers the newly-received candidate to the browser's ICE agent by
+    /// calling RTCPeerConnection.addIceCandidate(). This adds this new
+    /// remote candidate to the RTCPeerConnection's remote description,
+    /// which describes the state of the remote end of the connection.
     ///
-    /// If the candidate parameter is missing or a value of null is given when calling
-    /// addIceCandidate(), the added ICE candidate is an "end-of-candidates" indicator.
-    /// The same is the case if the value of the specified object's candidate is either
-    /// missing or an empty string (""), it signals that all remote candidates have been
+    /// If the candidate parameter is missing or a value of null is given when
+    /// calling addIceCandidate(), the added ICE candidate is an
+    /// "end-of-candidates" indicator. The same is the case if the value of
+    /// the specified object's candidate is either missing or an empty
+    /// string (""), it signals that all remote candidates have been
     /// delivered.
     ///
-    /// The end-of-candidates notification is transmitted to the remote peer using a
-    /// candidate with an a-line value of end-of-candidates.
+    /// The end-of-candidates notification is transmitted to the remote peer
+    /// using a candidate with an a-line value of end-of-candidates.
     ///
-    /// During negotiation, your app will likely receive many candidates which you'll
-    /// deliver to the ICE agent in this way, allowing it to build up a list of
-    /// potential connection methods. This is covered in more detail in the articles
-    /// WebRTC connectivity and Signaling and video calling.
-    pub fn add_ice_candidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<()> {
+    /// During negotiation, your app will likely receive many candidates which
+    /// you'll deliver to the ICE agent in this way, allowing it to build up
+    /// a list of potential connection methods. This is covered in more
+    /// detail in the articles WebRTC connectivity and Signaling and video
+    /// calling.
+    pub fn add_ice_candidate<'b>(
+        &'b self,
+        candidate: &'b RTCIceCandidate,
+    ) -> Result<()> {
         let raw: RawRTCIceCandidate = candidate.try_into()?;
         let ret = unsafe { rtc_add_ice_candidate(self.raw, &raw) };
         if !ret {
@@ -154,17 +163,24 @@ impl RTCPeerConnection {
         Ok(())
     }
 
-    /// The RTCPeerConnection method addTrack() adds a new media track to the set of
-    /// tracks which will be transmitted to the other peer.
-    pub fn add_track(&mut self, track: Arc<MediaStreamTrack>, stream: Arc<MediaStream>) {
+    /// The RTCPeerConnection method addTrack() adds a new media track to the
+    /// set of tracks which will be transmitted to the other peer.
+    pub fn add_track(
+        &mut self,
+        track: Arc<MediaStreamTrack>,
+        stream: Arc<MediaStream>,
+    ) {
         unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
         self.tracks.push((track, stream));
     }
 
+    /// The createDataChannel() method on the RTCPeerConnection interface
+    /// creates a new channel linked with the remote peer, over which any kind
+    /// of data may be transmitted.
     pub fn create_data_channel(
-        &self, 
-        label: &str, 
-        opt: &DataChannelOptions
+        &self,
+        label: &str,
+        opt: &DataChannelOptions,
     ) -> Arc<RTCDataChannel> {
         let c_label = to_c_str(label).unwrap();
         let opt: RawDataChannelOptions = opt.into();

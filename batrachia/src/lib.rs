@@ -10,13 +10,14 @@ mod rtc_session_description;
 mod video_frame;
 
 pub use media_stream::MediaStream;
-pub use rtc_icecandidate::RTCIceCandidate;
-pub use rtc_peerconnection::RTCPeerConnection;
 pub use media_stream_track::{
-    MediaStreamTrack, 
+    MediaStreamTrack,
     MediaStreamTrackKind,
     MediaStreamTrackSink,
 };
+
+pub use rtc_icecandidate::RTCIceCandidate;
+pub use rtc_peerconnection::RTCPeerConnection;
 
 pub use video_frame::{
     I420Frame,
@@ -24,33 +25,34 @@ pub use video_frame::{
 };
 
 pub use rtc_datachannel::{
-    RTCDataChannel,
     DataChannelOptions,
-    DataChannelState,
     DataChannelPriority,
+    DataChannelState,
+    RTCDataChannel,
+    RTCDataChannelSink,
 };
 
 pub use rtc_peerconnection_configure::{
-    BundlePolicy, 
-    IceTransportPolicy, 
-    RTCConfiguration, 
-    RTCIceServer, 
+    BundlePolicy,
+    IceTransportPolicy,
+    RTCConfiguration,
+    RTCIceServer,
     RtcpMuxPolicy,
 };
 
 pub use rtc_session_description::{
-    RTCSessionDescription, 
-    RTCSessionDescriptionType
+    RTCSessionDescription,
+    RTCSessionDescriptionType,
 };
 
 pub use observer::{
-    CreateDescriptionObserver, 
-    IceConnectionState, 
-    IceGatheringState, 
-    Observer, 
+    CreateDescriptionObserver,
+    IceConnectionState,
+    IceGatheringState,
+    Observer,
     ObserverPromisify,
     ObserverPromisifyExt,
-    PeerConnectionState, 
-    SetDescriptionObserver, 
+    PeerConnectionState,
+    SetDescriptionObserver,
     SignalingState,
 };

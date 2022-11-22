@@ -2,17 +2,14 @@ use std::env;
 
 #[cfg(target_os = "windows")]
 fn main() {
-    let is_debug = env::var("DEBUG")
-        .map(|str| str == "true")
-        .unwrap_or(true);
+    let is_debug = env::var("DEBUG").map(|str| str == "true").unwrap_or(true);
+    let build_type = if is_debug { "Debug" } else { "Release" };
 
-    let build_type = if is_debug { 
-        "Debug" 
-    } else { 
-        "Release" 
-    };
-
-    println!("cargo:rustc-link-search=all=batrachiatc/third_party/webrtc/src/out/{}/obj", build_type);
+    println!(
+        "cargo:rustc-link-search=all=batrachiatc/third_party/webrtc/src/out/\
+         {}/obj",
+        build_type
+    );
     println!("cargo:rustc-link-search=all=batrachiatc/out/{}", build_type);
     println!("cargo:rustc-link-lib=static=batrachiatc");
     println!("cargo:rustc-link-lib=static=webrtc");
@@ -25,17 +22,14 @@ fn main() {
 
 #[cfg(target_os = "macos")]
 fn main() {
-    let is_debug = env::var("DEBUG")
-        .map(|str| str == "true")
-        .unwrap_or(true);
+    let is_debug = env::var("DEBUG").map(|str| str == "true").unwrap_or(true);
+    let build_type = if is_debug { "Debug" } else { "Release" };
 
-    let build_type = if is_debug { 
-        "Debug" 
-    } else { 
-        "Release" 
-    };
-
-    println!("cargo:rustc-link-search=all=batrachiatc/third_party/webrtc/src/out/{}/obj", build_type);
+    println!(
+        "cargo:rustc-link-search=all=batrachiatc/third_party/webrtc/src/out/\
+         {}/obj",
+        build_type
+    );
     println!("cargo:rustc-link-search=all=batrachiatc/out");
     println!("cargo:rustc-link-lib=batrachiatc");
     println!("cargo:rustc-link-lib=webrtc");

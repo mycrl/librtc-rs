@@ -1,6 +1,6 @@
 use super::base::*;
-use std::convert::*;
 use libc::*;
+use std::convert::*;
 
 #[repr(C)]
 pub(crate) struct RawRTCIceCandidate {
@@ -16,42 +16,45 @@ impl Drop for RawRTCIceCandidate {
     }
 }
 
-/// Indicates a candidate Interactive Connection Establishment 
+/// Indicates a candidate Interactive Connection Establishment
 /// (ICE) configuration.
 ///
-/// The RTCIceCandidate interface¡ªpart of the WebRTC API¡ªrepresents a candidate
-/// Interactive Connectivity Establishment (ICE) configuration which may be used to
-/// establish an RTCPeerConnection.
+/// The RTCIceCandidate interface¡ªpart of the WebRTC API¡ªrepresents a
+/// candidate Interactive Connectivity Establishment (ICE) configuration which
+/// may be used to establish an RTCPeerConnection.
 ///
 /// An ICE candidate describes the protocols and routing needed for WebRTC to be
-/// able to communicate with a remote device. When starting a WebRTC peer connection,
-/// typically a number of candidates are proposed by each end of the connection,
-/// until they mutually agree upon one which describes the connection they decide
-/// will be best. WebRTC then uses that candidate's details to initiate the
-/// connection.
+/// able to communicate with a remote device. When starting a WebRTC peer
+/// connection, typically a number of candidates are proposed by each end of the
+/// connection, until they mutually agree upon one which describes the
+/// connection they decide will be best. WebRTC then uses that candidate's
+/// details to initiate the connection.
 ///
 /// For details on how the ICE process works, see Lifetime of a WebRTC session.
 /// The article WebRTC connectivity provides additional useful details.
 #[derive(Clone, Debug)]
 pub struct RTCIceCandidate {
-    /// A string describing the properties of the candidate, taken directly from the
-    /// SDP attribute "candidate". The candidate string specifies the network
-    /// connectivity information for the candidate. If the candidate is an empty
-    /// string (""), the end of the candidate list has been reached; this candidate
-    /// is known as the "end-of-candidates" marker.
+    /// A string describing the properties of the candidate, taken directly
+    /// from the SDP attribute "candidate". The candidate string specifies
+    /// the network connectivity information for the candidate. If the
+    /// candidate is an empty string (""), the end of the candidate list
+    /// has been reached; this candidate is known as the
+    /// "end-of-candidates" marker.
     pub candidate: String,
-    /// A string containing the identification tag of the media stream with which
-    /// the candidate is associated, or null if there is no associated media stream.
-    /// The default is null.
+    /// A string containing the identification tag of the media stream with
+    /// which the candidate is associated, or null if there is no
+    /// associated media stream. The default is null.
     pub sdp_mid: String,
-    /// TA number property containing the zero-based index of the m-line with which
-    /// Tthe candidate is associated, within the SDP of the media description, or
-    /// Tnull if no such associated exists. The default is null.
+    /// TA number property containing the zero-based index of the m-line with
+    /// which Tthe candidate is associated, within the SDP of the media
+    /// description, or Tnull if no such associated exists. The default is
+    /// null.
     pub sdp_mline_index: u8,
 }
 
 impl TryInto<RawRTCIceCandidate> for &RTCIceCandidate {
     type Error = anyhow::Error;
+
     fn try_into(self) -> Result<RawRTCIceCandidate, Self::Error> {
         Ok(RawRTCIceCandidate {
             sdp_mline_index: self.sdp_mline_index as c_int,
@@ -63,6 +66,7 @@ impl TryInto<RawRTCIceCandidate> for &RTCIceCandidate {
 
 impl TryFrom<&RawRTCIceCandidate> for RTCIceCandidate {
     type Error = anyhow::Error;
+
     fn try_from(value: &RawRTCIceCandidate) -> Result<Self, Self::Error> {
         Ok(RTCIceCandidate {
             sdp_mline_index: value.sdp_mline_index as u8,

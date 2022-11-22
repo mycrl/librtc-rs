@@ -19,9 +19,10 @@ pub(crate) struct RawI420Frame {
     remote: bool,
 }
 
+/// Describe the layout information of i420.
 #[derive(Debug, Clone, Copy)]
 pub struct I420Layout {
-    pub width: u32, 
+    pub width: u32,
     pub height: u32,
     pub len: usize,
     pub y_size: usize,
@@ -48,6 +49,7 @@ impl I420Layout {
     }
 }
 
+/// I420Frame represents the frame of the video, and the format is i420 (yu12).
 #[derive(Debug)]
 pub struct I420Frame {
     raw_ptr: *const RawI420Frame,
@@ -65,12 +67,13 @@ impl I420Frame {
                 height: layout.height,
                 data_y: buf[..layout.y_size].as_ptr(),
                 stride_y: layout.y_stride,
-                data_u: buf[layout.y_size..layout.y_size + layout.u_size].as_ptr(),
+                data_u: buf[layout.y_size..layout.y_size + layout.u_size]
+                    .as_ptr(),
                 stride_u: layout.u_stride,
                 data_v: buf[layout.y_size + layout.u_size..].as_ptr(),
                 stride_v: layout.v_stride,
                 remote: false,
-            }))
+            })),
         })
     }
 
@@ -80,7 +83,9 @@ impl I420Frame {
 
     pub(crate) fn from_raw(raw_ptr: *const RawI420Frame) -> Arc<Self> {
         assert!(!raw_ptr.is_null());
-        Arc::new(Self { raw_ptr })
+        Arc::new(Self {
+            raw_ptr,
+        })
     }
 
     pub(crate) fn get_raw(&self) -> *const RawI420Frame {
