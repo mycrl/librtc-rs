@@ -46,29 +46,12 @@ typedef struct
     void* ctx;
 
     void (*on_signaling_change)(void* ctx, SignalingState state);
-    /*
-    A datachannel event is sent to an RTCPeerConnection instance when an
-    RTCDataChannel has been added to the connection, as a result of the remote peer
-    calling RTCPeerConnection.createDataChannel().
-    */
     void (*on_datachannel)(void* ctx, RTCDataChannel* channel);
-
     void (*on_ice_gathering_change)(void* ctx, IceGatheringState state);
-
     void (*on_ice_candidate)(void* ctx, RTCIceCandidate* candidate);
-
     void (*on_renegotiation_needed)(void* ctx);
-    
     void (*on_ice_connection_change)(void* ctx, IceConnectionState state);
-    
     void (*on_track)(void* ctx, MediaStreamTrack* track);
-    /*
-    The connectionstatechange event is sent to the onconnectionstatechange event
-    handler on an RTCPeerConnection object after a new track has been added to an
-    RTCRtpReceiver which is part of the connection. The new connection state can be
-    found in connectionState, and is one of the string values: new, connecting,
-    connected, disconnected, failed, or closed.
-    */
     void (*on_connection_change)(void* ctx, PeerConnectionState state);
 } IObserver;
 

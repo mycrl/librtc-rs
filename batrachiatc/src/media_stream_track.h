@@ -40,17 +40,13 @@ public:
     virtual webrtc::VideoFrame Preprocess(const webrtc::VideoFrame& frame) = 0;
 };
 
-class IVideoSourceTrack
+class IVideoSource
     : public rtc::VideoSourceInterface<webrtc::VideoFrame>
-    , public webrtc::VideoTrackSource
 {
 public:
-    IVideoSourceTrack(): VideoTrackSource(false) {}
-    static IVideoSourceTrack* Create();
     void AddOrUpdateSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink, const rtc::VideoSinkWants& wants);
     void RemoveSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink);
     void AddFrame(const webrtc::VideoFrame& original_frame);
-    rtc::VideoSourceInterface<webrtc::VideoFrame>* source();
 private:
     webrtc::VideoFrame _MaybePreprocess(const webrtc::VideoFrame& frame);
     AdaptFrameResult _AdaptFrameResolution(const webrtc::VideoFrame& frame);
@@ -60,6 +56,18 @@ private:
     rtc::VideoBroadcaster _broadcaster;
     cricket::VideoAdapter _video_adapter;
     std::unique_ptr<FramePreprocessor> _preprocessor RTC_GUARDED_BY(_lock);
+};
+
+class IVideoSourceTrack
+    : public webrtc::VideoTrackSource
+{
+public:
+    IVideoSourceTrack(): VideoTrackSource(false), _source(IVideoSource()) {}
+    static IVideoSourceTrack* Create();
+    void AddFrame(const webrtc::VideoFrame& frame);
+    rtc::VideoSourceInterface<webrtc::VideoFrame>* source();
+private:
+    IVideoSource _source;
 };
 
 class IVideoSinkTrack

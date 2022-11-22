@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.16)
 project(batrachiatc)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -86,8 +86,12 @@ endif()
 
 if(APPLE)
     add_compile_definitions(
-        APPLE
         WEBRTC_MAC
         WEBRTC_IOS
+        WEBRTC_POSIX)
+endif()
+
+if(UNIX)
+    add_compile_definitions(
         WEBRTC_POSIX)
 endif()

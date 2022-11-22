@@ -89,29 +89,22 @@ webrtc::VideoFrame from_c(I420Frame* frame)
 }
 
 /*
-IVideoSourceTrack
+IVideoSource
 */
-IVideoSourceTrack* IVideoSourceTrack::Create()
-{
-    auto self = new rtc::RefCountedObject<IVideoSourceTrack>();
-    self->AddRef();
-    return self;
-}
-
-void IVideoSourceTrack::AddOrUpdateSink(
+void IVideoSource::AddOrUpdateSink(
     rtc::VideoSinkInterface<webrtc::VideoFrame>* sink, 
     const rtc::VideoSinkWants& wants)
 {
     _broadcaster.AddOrUpdateSink(sink, wants);
 }
 
-void IVideoSourceTrack::RemoveSink(
+void IVideoSource::RemoveSink(
     rtc::VideoSinkInterface<webrtc::VideoFrame>* sink)
 {
     _broadcaster.RemoveSink(sink);
 }
 
-void IVideoSourceTrack::AddFrame(const webrtc::VideoFrame& original_frame)
+void IVideoSource::AddFrame(const webrtc::VideoFrame& original_frame)
 {
     auto frame = _MaybePreprocess(original_frame);
     auto ret = _AdaptFrameResolution(frame);
@@ -130,12 +123,7 @@ void IVideoSourceTrack::AddFrame(const webrtc::VideoFrame& original_frame)
     }
 }
 
-rtc::VideoSourceInterface<webrtc::VideoFrame>* IVideoSourceTrack::source()
-{
-    return this;
-}
-
-webrtc::VideoFrame IVideoSourceTrack::_MaybePreprocess(
+webrtc::VideoFrame IVideoSource::_MaybePreprocess(
     const webrtc::VideoFrame& frame)
 {
     webrtc::MutexLock lock(&_lock);
@@ -149,8 +137,7 @@ webrtc::VideoFrame IVideoSourceTrack::_MaybePreprocess(
     }
 }
 
-
-webrtc::VideoFrame IVideoSourceTrack::_ScaleFrame(
+webrtc::VideoFrame IVideoSource::_ScaleFrame(
     const webrtc::VideoFrame& original_frame, 
     AdaptFrameResult& ret)
 {
@@ -180,7 +167,7 @@ webrtc::VideoFrame IVideoSourceTrack::_ScaleFrame(
     return new_frame_builder.build();
 }
 
-AdaptFrameResult IVideoSourceTrack::_AdaptFrameResolution(
+AdaptFrameResult IVideoSource::_AdaptFrameResolution(
     const webrtc::VideoFrame& frame)
 {
     AdaptFrameResult ret;
@@ -192,8 +179,29 @@ AdaptFrameResult IVideoSourceTrack::_AdaptFrameResolution(
         &ret.cropped_height,
         &ret.width,
         &ret.height);
-    ret.resize = ret.height != frame.height() || ret.width != frame.width();
+    ret.resize = ret.height != frame.height() || 
+        ret.width != frame.width();
     return ret;
+}
+
+/*
+IVideoSourceTrack
+*/
+IVideoSourceTrack* IVideoSourceTrack::Create()
+{
+    auto self = new rtc::RefCountedObject<IVideoSourceTrack>();
+    self->AddRef();
+    return self;
+}
+
+void IVideoSourceTrack::AddFrame(const webrtc::VideoFrame& frame)
+{
+    _source.AddFrame(frame);
+}
+
+rtc::VideoSourceInterface<webrtc::VideoFrame>* IVideoSourceTrack::source()
+{
+    return static_cast<rtc::VideoSourceInterface<webrtc::VideoFrame>*>(&_source);
 }
 
 /*

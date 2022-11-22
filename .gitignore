@@ -8,7 +8,7 @@ build/
 */doc/*
 .idea/
 pkg/
-out/
+out*/
 
 
 # Added by cargo
