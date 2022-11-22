@@ -56,3 +56,7 @@ pub use observer::{
     SetDescriptionObserver,
     SignalingState,
 };
+
+pub fn run() {
+    RTCPeerConnection::run()
+}

@@ -172,6 +172,6 @@ async fn main() -> Result<(), Error> {
         }
     });
 
-    RTCPeerConnection::run();
+    batrachia::run();
     Ok(())
 }

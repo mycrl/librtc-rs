@@ -92,7 +92,7 @@ async main() -> Result<(), anyhow::Error> {
     peer.set_local_description(&answer).await?;
     
     // webrtc inner pool
-    RTCPeerConnection::run();
+    batrachia::run();
     Ok(())
 }
 ```
