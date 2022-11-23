@@ -18,7 +18,6 @@ use super::{
     rtc_session_description::*,
 };
 
-#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn rtc_run();
     fn rtc_close(peer: *const RawRTCPeerConnection);

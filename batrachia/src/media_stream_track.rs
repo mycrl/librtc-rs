@@ -8,7 +8,6 @@ use libc::*;
 use std::sync::Arc;
 use tokio::sync::broadcast::*;
 
-#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn media_stream_video_track_add_frame(
         track: *const RawMediaStreamTrack,

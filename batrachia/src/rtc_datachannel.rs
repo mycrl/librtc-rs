@@ -3,7 +3,6 @@ use libc::*;
 use std::sync::Arc;
 use tokio::sync::broadcast::*;
 
-#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn data_channel_send(
         channel: *const RawRTCDataChannel,

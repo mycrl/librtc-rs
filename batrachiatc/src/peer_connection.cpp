@@ -14,7 +14,14 @@ void rtc_run()
     rtc::Thread::Current()->Run();
 }
 
-RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_config, IObserver* events)
+void rtc_close(RTCPeerConnection* peer)
+{
+    delete peer;
+    rtc::CleanupSSL();
+}
+
+RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_config, 
+    IObserver* events)
 {
     RTCPeerConnection* rtc = new RTCPeerConnection();
     rtc->pc_factory = webrtc::CreatePeerConnectionFactory(
@@ -46,12 +53,6 @@ RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_conf
     return rtc;
 }
 
-void rtc_close(RTCPeerConnection* peer)
-{
-    delete peer;
-    rtc::CleanupSSL();
-}
-
 bool rtc_add_ice_candidate(RTCPeerConnection* rtc, RTCIceCandidate* icecandidate)
 {
     return rtc->pc->AddIceCandidate(from_c(icecandidate));
@@ -74,7 +75,8 @@ void rtc_set_local_description(RTCPeerConnection* rtc,
     SetDescCallback callback, 
     void* ctx)
 {
-    rtc->pc->SetLocalDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).release());
+    auto observer = SetDescObserver::Create(callback, ctx);
+    rtc->pc->SetLocalDescription(observer, from_c(c_desc).release());
 }
 
 void rtc_set_remote_description(RTCPeerConnection* rtc,
@@ -82,16 +84,21 @@ void rtc_set_remote_description(RTCPeerConnection* rtc,
     SetDescCallback callback,
     void* ctx)
 {
-    rtc->pc->SetRemoteDescription(SetDescObserver::Create(callback, ctx), from_c(c_desc).release());
+    auto observer = SetDescObserver::Create(callback, ctx);
+    rtc->pc->SetRemoteDescription(observer, from_c(c_desc).release());
 }
 
-void rtc_add_track(RTCPeerConnection* rtc,
-    MediaStreamTrack* track,
-    char* stream_id)
+void rtc_add_track(RTCPeerConnection* rtc, MediaStreamTrack* track, char* stream_id)
 {
-    // TODO: only video track for current;
-    auto video_track = rtc->pc_factory->CreateVideoTrack(track->label, track->video_source);
-    rtc->pc->AddTrack(video_track, { stream_id });
+    if (track->kind == MediaStreamTrackKind::MediaStreamTrackKindVideo)
+    {
+        auto video_track = rtc->pc_factory->CreateVideoTrack(track->label, track->video_source);
+        rtc->pc->AddTrack(video_track, { stream_id });
+    }
+    else
+    {
+        // rtc->pc_factory->CreateAudioSource();
+    }
 }
 
 RTCDataChannel* rtc_create_data_channel(RTCPeerConnection* rtc,

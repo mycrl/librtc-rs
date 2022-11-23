@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(batrachiatc)
 
+# default build target is Debug
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
@@ -30,7 +31,25 @@ include_directories(
     third_party/webrtc/src/third_party/libyuv/include
     third_party/webrtc/src/third_party/abseil-cpp
     third_party/webrtc/src)
-    
+
+if(MSVC)
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/out)
+else()
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/out/${CMAKE_BUILD_TYPE})
+endif()
+
+# windows msvc runtime
+if(MSVC)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set_property(TARGET batrachiatc PROPERTY
+            MSVC_RUNTIME_LIBRARY MultiThreaded)
+    else()
+        set_property(TARGET batrachiatc PROPERTY
+            MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
+    endif()
+endif()
+
+# build target header
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(NDEBUG)
 else()
@@ -74,24 +93,12 @@ if(WIN32)
         WEBRTC_WIN
         ABSL_ALLOCATOR_NOTHROW=1
         WEBRTC_VIDEO_CAPTURE_WINRT)
-        
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set_property(TARGET batrachiatc PROPERTY
-            MSVC_RUNTIME_LIBRARY MultiThreaded)
-    else()
-        set_property(TARGET batrachiatc PROPERTY
-            MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
-    endif()
-endif()
-
-if(APPLE)
+elseif(APPLE)
     add_compile_definitions(
         WEBRTC_MAC
         WEBRTC_IOS
         WEBRTC_POSIX)
-endif()
-
-if(UNIX)
+elseif(UNIX)
     add_compile_definitions(
         WEBRTC_POSIX)
 endif()

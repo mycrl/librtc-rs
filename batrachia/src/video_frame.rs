@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-#[link(name = "batrachiatc", kind = "static")]
 extern "C" {
     fn free_i420_frame(frame: *const RawI420Frame);
 }
