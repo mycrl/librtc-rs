@@ -3,7 +3,7 @@ use std::env;
 fn main() {
     let is_debug = env::var("DEBUG").map(|str| str == "true").unwrap_or(true);
     let build_type = if is_debug { "Debug" } else { "Release" };
-    
+
     println!(
         "cargo:rustc-link-search=all=batrachiatc/third_party/webrtc/src/out/\
          {}/obj",
@@ -16,7 +16,6 @@ fn main() {
 
     #[cfg(target_os = "windows")]
     {
-        
         println!("cargo:rustc-link-lib=wmcodecdspuuid");
         println!("cargo:rustc-link-lib=winmm");
         println!("cargo:rustc-link-lib=secur32");
