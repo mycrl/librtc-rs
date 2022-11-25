@@ -25,6 +25,7 @@ fn main() {
 
     #[cfg(target_os = "macos")]
     {
+        println!("cargo:rustc-link-lib=c++");
         println!("cargo:rustc-link-lib=framework=Foundation");
         println!("cargo:rustc-link-lib=framework=AudioToolbox");
         println!("cargo:rustc-link-lib=framework=AudioUnit");
