@@ -156,7 +156,7 @@ impl Into<RawRTCIceServer> for &RTCIceServer {
                 v.iter()
                     .map(|s| to_c_str(s).unwrap())
                     .collect::<Vec<*const c_char>>()
-                    .ext_into_raw_parts()
+                    .into_c_layout()
             })
             .unwrap_or((std::ptr::null_mut(), 0, 0));
         RawRTCIceServer {
@@ -238,7 +238,7 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
                 i.iter()
                     .map(|s| s.into())
                     .collect::<Vec<RawRTCIceServer>>()
-                    .ext_into_raw_parts()
+                    .into_c_layout()
             })
             .unwrap_or((std::ptr::null_mut(), 0, 0));
         RawRTCPeerConnectionConfigure {

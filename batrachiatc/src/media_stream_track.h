@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-#include "media/base/adapted_video_track_source.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "media/base/video_broadcaster.h"
 #include "api/video/video_frame_buffer.h"
 #include "media/base/video_adapter.h"
 #include "pc/video_track_source.h"
 #include "api/video/i420_buffer.h"
+#include "base.h"
 
 typedef struct
 {
@@ -22,6 +22,19 @@ typedef struct
     
     bool remote;
 } I420Frame;
+
+typedef struct
+{
+    const uint8_t* buf;
+    int bits_per_sample;
+    int sample_rate;
+    int channels;
+    int frames;
+} PCMFrames;
+
+/*
+Video source
+*/
 
 typedef struct
 {
@@ -58,25 +71,29 @@ private:
     std::unique_ptr<FramePreprocessor> _preprocessor RTC_GUARDED_BY(_lock);
 };
 
-class IVideoSourceTrack
+class IVideoTrackSource
     : public webrtc::VideoTrackSource
 {
 public:
-    IVideoSourceTrack(): VideoTrackSource(false), _source(IVideoSource()) {}
-    static IVideoSourceTrack* Create();
+    IVideoTrackSource(): VideoTrackSource(false), _source(IVideoSource()) {}
+    static IVideoTrackSource* Create();
     void AddFrame(const webrtc::VideoFrame& frame);
     rtc::VideoSourceInterface<webrtc::VideoFrame>* source();
 private:
     IVideoSource _source;
 };
 
-class IVideoSinkTrack
+/*
+Video Sink
+*/
+
+class IVideoTrackSink
     : public rtc::VideoSinkInterface<webrtc::VideoFrame>
     , public rtc::RefCountInterface
 {
 public:
-    IVideoSinkTrack(webrtc::VideoTrackInterface* track);
-    static IVideoSinkTrack* Create(webrtc::VideoTrackInterface* track);
+    IVideoTrackSink(webrtc::VideoTrackInterface* track);
+    static IVideoTrackSink* Create(webrtc::VideoTrackInterface* track);
     void OnFrame(const webrtc::VideoFrame& frame);
     void SetOnFrame(void* ctx, void(*handler)(void* ctx, I420Frame* frame));
 private:
@@ -85,6 +102,29 @@ private:
     rtc::VideoSinkWants _wants;
     void* _ctx;
 };
+
+/*
+audio sink
+*/
+
+class IAudioTrackSink
+    : public webrtc::AudioTrackSinkInterface
+    , public rtc::RefCountInterface
+{
+public:
+    IAudioTrackSink(webrtc::AudioTrackInterface* track);
+    static IAudioTrackSink* Create(webrtc::AudioTrackInterface* track);
+    void OnData(const void* buf, int b, int s, size_t c, size_t f);
+    void SetOnFrame(void* ctx, void(*handler)(void* ctx, PCMFrames* frame));
+private:
+    void(*_handler)(void* ctx, PCMFrames* frame) = NULL;
+    webrtc::AudioTrackInterface* _track = NULL;
+    void* _ctx = NULL;
+};
+
+/*
+extern
+*/
 
 typedef enum {
     MediaStreamTrackKindVideo,
@@ -119,21 +159,29 @@ typedef struct {
     bool remote;
 
     /* --------------- video --------------- */
-    IVideoSourceTrack* video_source;
-    IVideoSinkTrack* video_sink;
+    IVideoTrackSource* video_source;
+    IVideoTrackSink* video_sink;
 
     /* --------------- audio --------------- */
+    IAudioTrackSink* audio_sink;
 } MediaStreamTrack;
 
-extern "C" void media_stream_video_track_on_frame(
+extern "C" EXPORT void media_stream_video_track_on_frame(
     MediaStreamTrack * track,
     void(handler)(void* ctx, I420Frame * frame),
     void* ctx);
-extern "C" void media_stream_video_track_add_frame(MediaStreamTrack * track, I420Frame * frame);
-extern "C" MediaStreamTrack* create_media_stream_video_track(char* label);
-extern "C" void free_media_track(MediaStreamTrack * track);
-extern "C" void free_i420_frame(I420Frame * frame);
+extern "C" EXPORT void media_stream_audio_track_on_frame(
+    MediaStreamTrack* track,
+    void(handler)(void* ctx, PCMFrames* frame),
+    void* ctx);
+extern "C" EXPORT void media_stream_video_track_add_frame(MediaStreamTrack * track, I420Frame* frame);
+extern "C" EXPORT MediaStreamTrack* create_media_stream_video_track(char* label);
+extern "C" EXPORT void free_media_track(MediaStreamTrack * track);
+extern "C" EXPORT void free_i420_frame(I420Frame* frame);
+extern "C" EXPORT void free_pcm_frames(PCMFrames* frame);
 
 MediaStreamTrack* media_stream_video_track_from(webrtc::VideoTrackInterface* track);
+MediaStreamTrack* media_stream_audio_track_from(webrtc::AudioTrackInterface* track);
+PCMFrames* into_c(const uint8_t* buf, int b, int r, size_t c, size_t f);
 I420Frame* into_c(webrtc::VideoFrame* frame);
 webrtc::VideoFrame from_c(I420Frame* frame);

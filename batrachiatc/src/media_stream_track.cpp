@@ -22,6 +22,11 @@ void free_media_track(MediaStreamTrack* track)
     free_incomplete_ptr(track);
 }
 
+void free_pcm_frames(PCMFrames* frames)
+{
+    free_incomplete_ptr(frames);
+}
+
 I420Frame* into_c(webrtc::VideoFrame* frame)
 {
     I420Frame* i420_frame = (I420Frame*)malloc(sizeof(I420Frame));
@@ -86,6 +91,26 @@ webrtc::VideoFrame from_c(I420Frame* frame)
         frame->data_u, frame->stride_u,
         frame->data_v, frame->stride_v);
     return webrtc::VideoFrame(i420_buf, 0, 0, webrtc::kVideoRotation_0);
+}
+
+PCMFrames* into_c(const uint8_t* buf,
+    int bits_per_sample,
+    int sample_rate,
+    size_t channels,
+    size_t frames_)
+{
+    PCMFrames* frames = (PCMFrames*)malloc(sizeof(PCMFrames));
+    if (!frames)
+    {
+        return NULL;
+    }
+
+    frames->buf = buf;
+    frames->frames = frames_;
+    frames->channels = channels;
+    frames->sample_rate = sample_rate;
+    frames->bits_per_sample = bits_per_sample;
+    return frames;
 }
 
 /*
@@ -185,30 +210,30 @@ AdaptFrameResult IVideoSource::_AdaptFrameResolution(
 }
 
 /*
-IVideoSourceTrack
+IVideoTrackSource
 */
-IVideoSourceTrack* IVideoSourceTrack::Create()
+IVideoTrackSource* IVideoTrackSource::Create()
 {
-    auto self = new rtc::RefCountedObject<IVideoSourceTrack>();
+    auto self = new rtc::RefCountedObject<IVideoTrackSource>();
     self->AddRef();
     return self;
 }
 
-void IVideoSourceTrack::AddFrame(const webrtc::VideoFrame& frame)
+void IVideoTrackSource::AddFrame(const webrtc::VideoFrame& frame)
 {
     _source.AddFrame(frame);
 }
 
-rtc::VideoSourceInterface<webrtc::VideoFrame>* IVideoSourceTrack::source()
+rtc::VideoSourceInterface<webrtc::VideoFrame>* IVideoTrackSource::source()
 {
     return static_cast<rtc::VideoSourceInterface<webrtc::VideoFrame>*>(&_source);
 }
 
 /*
-IVideoSinkTrack
+IVideoTrackSink
 */
 
-IVideoSinkTrack::IVideoSinkTrack(webrtc::VideoTrackInterface* track)
+IVideoTrackSink::IVideoTrackSink(webrtc::VideoTrackInterface* track)
 {
     _ctx = NULL;
     _track = track;
@@ -216,14 +241,14 @@ IVideoSinkTrack::IVideoSinkTrack(webrtc::VideoTrackInterface* track)
     _track->AddRef();
 }
 
-IVideoSinkTrack* IVideoSinkTrack::Create(webrtc::VideoTrackInterface* track)
+IVideoTrackSink* IVideoTrackSink::Create(webrtc::VideoTrackInterface* track)
 {
-    auto self = new rtc::RefCountedObject<IVideoSinkTrack>(track);
+    auto self = new rtc::RefCountedObject<IVideoTrackSink>(track);
     self->AddRef();
     return self;
 }
 
-void IVideoSinkTrack::OnFrame(const webrtc::VideoFrame& frame)
+void IVideoTrackSink::OnFrame(const webrtc::VideoFrame& frame)
 {
     if (!_on_frame)
     {
@@ -239,12 +264,58 @@ void IVideoSinkTrack::OnFrame(const webrtc::VideoFrame& frame)
     _on_frame(_ctx, i420_frame);
 }
 
-void IVideoSinkTrack::SetOnFrame(void* ctx, 
+void IVideoTrackSink::SetOnFrame(void* ctx, 
     void(*handler)(void* ctx, I420Frame* frame))
 {
     _on_frame = handler;
     _ctx = ctx;
 }
+
+/*
+IAudioTrackSink
+*/
+
+IAudioTrackSink::IAudioTrackSink(webrtc::AudioTrackInterface* track)
+{
+    _track = track;
+}
+
+IAudioTrackSink* IAudioTrackSink::Create(webrtc::AudioTrackInterface* track)
+{
+    auto self = new rtc::RefCountedObject<IAudioTrackSink>(track);
+    self->AddRef();
+    return self;
+}
+
+void IAudioTrackSink::OnData(const void* audio_data,
+    int bits_per_sample,
+    int sample_rate,
+    size_t number_of_channels,
+    size_t number_of_frames)
+{
+    if (!_handler)
+    {
+        return;
+    }
+
+    auto frames = into_c((const uint8_t*)audio_data,
+        bits_per_sample,
+        sample_rate,
+        number_of_channels,
+        number_of_frames);
+    _handler(_ctx, frames);
+}
+
+void IAudioTrackSink::SetOnFrame(void* ctx, 
+    void(*handler)(void* ctx, PCMFrames* frame))
+{
+    _handler = handler;
+    _ctx = ctx;
+}
+
+/*
+extern
+*/
 
 void media_stream_video_track_add_frame(MediaStreamTrack* track, I420Frame* frame)
 {
@@ -275,7 +346,7 @@ MediaStreamTrack* create_media_stream_video_track(char* label)
         return NULL;
     }
 
-    track->video_source = IVideoSourceTrack::Create();
+    track->video_source = IVideoTrackSource::Create();
     if (!track->video_source)
     {
         return NULL;
@@ -297,7 +368,7 @@ MediaStreamTrack* media_stream_video_track_from(webrtc::VideoTrackInterface* itr
         return NULL;
     }
 
-    track->video_sink = IVideoSinkTrack::Create(itrack);
+    track->video_sink = IVideoTrackSink::Create(itrack);
     if (!track->video_sink)
     {
         free_media_track(track);
@@ -318,4 +389,44 @@ MediaStreamTrack* media_stream_video_track_from(webrtc::VideoTrackInterface* itr
     track->remote = true;
 
     return track;
+}
+
+MediaStreamTrack* media_stream_audio_track_from(webrtc::AudioTrackInterface* itrack)
+{
+    MediaStreamTrack* track = (MediaStreamTrack*)malloc(sizeof(MediaStreamTrack));
+    if (!track)
+    {
+        free_media_track(track);
+        return NULL;
+    }
+
+    track->audio_sink = IAudioTrackSink::Create(itrack);
+    if (!track->audio_sink)
+    {
+        free_media_track(track);
+        return NULL;
+    }
+
+    auto id = itrack->id();
+    track->label = (char*)malloc(sizeof(char) * id.size() + 1);
+    if (!track->label)
+    {
+        free_media_track(track);
+        return NULL;
+    }
+
+    strcpy(track->label, id.c_str());
+
+    track->kind = MediaStreamTrackKindAudio;
+    track->remote = true;
+
+    return track;
+}
+
+void media_stream_audio_track_on_frame(
+    MediaStreamTrack* track,
+    void(handler)(void* ctx, PCMFrames* frame),
+    void* ctx)
+{
+    track->audio_sink->SetOnFrame(ctx, handler);
 }

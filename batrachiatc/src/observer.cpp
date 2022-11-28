@@ -201,6 +201,12 @@ void Observer::OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverInterface> trans
         auto sink = media_stream_video_track_from(static_cast<webrtc::VideoTrackInterface*>(track));
         _events->on_track(_events->ctx, sink);
     }
+    else
+    if (track->kind() == webrtc::MediaStreamTrackInterface::kAudioKind) 
+    {
+        auto sink = media_stream_audio_track_from(static_cast<webrtc::AudioTrackInterface*>(track));
+        _events->on_track(_events->ctx, sink);
+    }
 }
 
 CreateDescObserver::CreateDescObserver(CreateDescCallback callback, void* ctx)

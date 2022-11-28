@@ -1,26 +1,30 @@
-use super::base::*;
 use libc::*;
+use super::base::*;
 use std::sync::Arc;
+use std::slice::from_raw_parts;
 use tokio::sync::broadcast::*;
 
+#[rustfmt::skip]
+#[allow(improper_ctypes)]
 extern "C" {
+    fn free_data_channel(channel: *const RawRTCDataChannel);
+    
+    /// Returns a string which indicates the state of the data channel's
+    /// underlying data connection.
+    fn data_channel_get_state(channel: *const RawRTCDataChannel) -> DataChannelState;
+    
+    /// Sends data across the data channel to the remote peer.
     fn data_channel_send(
         channel: *const RawRTCDataChannel,
         buf: *const u8,
         size: c_int,
     );
 
-    #[allow(improper_ctypes)]
     fn data_channel_on_message(
         channel: *const RawRTCDataChannel,
         handler: extern "C" fn(*mut Sender<Vec<u8>>, *const u8, u64),
         ctx: *mut Sender<Vec<u8>>,
     );
-
-    fn data_channel_get_state(
-        channel: *const RawRTCDataChannel,
-    ) -> DataChannelState;
-    fn free_data_channel(channel: *const RawRTCDataChannel);
 }
 
 /// Indicates the state of the data channel connection.
@@ -164,6 +168,7 @@ impl RTCDataChannel {
         unsafe { data_channel_get_state(self.raw) }
     }
 
+    /// get rtc data channel sink.
     pub fn get_sink(&self) -> RTCDataChannelSink {
         let (tx, receiver) = channel(1);
         let sender = Box::into_raw(Box::new(tx));
@@ -184,6 +189,8 @@ impl Drop for RTCDataChannel {
     }
 }
 
+/// Used to receive the remote data channel, the channel data of the 
+/// remote data channel is pushed to the receiver through the channel.
 pub struct RTCDataChannelSink {
     pub receiver: Receiver<Vec<u8>>,
     sender: *mut Sender<Vec<u8>>,
@@ -207,7 +214,7 @@ extern "C" fn on_message_callback(
 ) {
     if !buf.is_null() {
         let _ = unsafe { &*ctx }.send(
-            unsafe { std::slice::from_raw_parts(buf, size as usize) }.to_vec(),
+            unsafe { from_raw_parts(buf, size as usize) }.to_vec(),
         );
     }
 }

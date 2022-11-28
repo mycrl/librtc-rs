@@ -92,15 +92,15 @@ impl<T: Clone> Events<T> {
 #[rustfmt::skip]
 pub(crate) struct IObserver {
     ctx: *mut ObserverContext,
-    
-    on_renegotiation_needed: extern "C" fn(*mut ObserverContext),
+
     on_signaling_change: extern "C" fn(*mut ObserverContext, SignalingState),
     on_datachannel: extern "C" fn(*mut ObserverContext, *const RawRTCDataChannel),
     on_ice_gathering_change: extern "C" fn(*mut ObserverContext, IceGatheringState),
     on_ice_candidate: extern "C" fn(*mut ObserverContext, *const RawRTCIceCandidate),
+    on_renegotiation_needed: extern "C" fn(*mut ObserverContext),
     on_ice_connection_change: extern "C" fn(*mut ObserverContext, IceConnectionState),
-    on_connection_change: extern "C" fn(*mut ObserverContext, PeerConnectionState),
     on_track: extern "C" fn(*mut ObserverContext, *const RawMediaStreamTrack),
+    on_connection_change: extern "C" fn(*mut ObserverContext, PeerConnectionState),
 }
 
 impl IObserver {
@@ -332,6 +332,7 @@ unsafe impl Send for Observer {}
 unsafe impl Sync for Observer {}
 
 impl Observer {
+    /// Create a peer connection event listener.
     pub fn new() -> Self {
         let ctx = ObserverContext::new();
         Self {

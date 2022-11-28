@@ -8,21 +8,22 @@ mod rtc_peerconnection;
 mod rtc_peerconnection_configure;
 mod rtc_session_description;
 mod video_frame;
+mod audio_frame;
 
 pub use media_stream::MediaStream;
 pub use media_stream_track::{
     MediaStreamTrack,
     MediaStreamTrackKind,
-    MediaStreamTrackSink,
+    video_track::VideoTrack,
+    video_track::VideoTrackSink,
+    audio_track::AudioTrack,
+    audio_track::AudioTrackSink,
 };
 
 pub use rtc_icecandidate::RTCIceCandidate;
 pub use rtc_peerconnection::RTCPeerConnection;
-
-pub use video_frame::{
-    I420Frame,
-    I420Layout,
-};
+pub use audio_frame::PCMFrames;
+pub use video_frame::I420Frame;
 
 pub use rtc_datachannel::{
     DataChannelOptions,

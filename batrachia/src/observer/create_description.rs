@@ -1,9 +1,9 @@
+use futures::task::AtomicWaker;
+use libc::*;
 use anyhow::{
     anyhow,
     Result,
 };
-use futures::task::AtomicWaker;
-use libc::*;
 
 use super::{
     ObserverPromisify,
@@ -26,24 +26,33 @@ use std::sync::atomic::{
     Ordering,
 };
 
+#[rustfmt::skip]
 extern "C" {
+    /// The create_answer() method on the RTCPeerConnection interface creates an
+    /// SDP answer to an offer received from a remote peer during the
+    /// offer/answer negotiation of a WebRTC connection. The answer contains
+    /// information about any media already attached to the session, codecs and
+    /// options supported by the browser, and any ICE candidates already
+    /// gathered. The answer is delivered to the returned Future, and should
+    /// then be sent to the source of the offer to continue the negotiation
+    /// process.
     fn rtc_create_answer(
         pc: *const RawRTCPeerConnection,
-        cb: extern "C" fn(
-            *const c_char,
-            *const RawRTCSessionDescription,
-            *mut c_void,
-        ),
+        cb: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void),
         ctx: *mut c_void,
     );
-
+    
+    /// The create_offer() method of the RTCPeerConnection interface initiates
+    /// the creation of an SDP offer for the purpose of starting a new WebRTC
+    /// connection to a remote peer. The SDP offer includes information about
+    /// any MediaStreamTrack objects already attached to the WebRTC session,
+    /// codec, and options supported by the browser, and any candidates already
+    /// gathered by the ICE agent, for the purpose of being sent over the
+    /// signaling channel to a potential peer to request a connection or to
+    /// update the configuration of an existing connection.
     fn rtc_create_offer(
         pc: *const RawRTCPeerConnection,
-        cb: extern "C" fn(
-            *const c_char,
-            *const RawRTCSessionDescription,
-            *mut c_void,
-        ),
+        cb: extern "C" fn(*const c_char, *const RawRTCSessionDescription, *mut c_void,),
         ctx: *mut c_void,
     );
 }
@@ -68,7 +77,7 @@ extern "C" fn create_description_callback(
     (ctx.callback)(
         from_raw_ptr(error)
             .map(|_| {
-                cstr_to_string(error)
+                from_c_str(error)
                     .map_err(|e| anyhow!(e.to_string()))
                     .and_then(|s| Err(anyhow!(s)))
             })

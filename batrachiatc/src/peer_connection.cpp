@@ -24,6 +24,11 @@ RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_conf
     IObserver* events)
 {
     RTCPeerConnection* rtc = new RTCPeerConnection();
+    if (!rtc)
+    {
+        return NULL;
+    }
+
     rtc->pc_factory = webrtc::CreatePeerConnectionFactory(
         nullptr,
         nullptr,

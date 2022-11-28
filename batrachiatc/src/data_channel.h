@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "api/peer_connection_interface.h"
+#include "base.h"
 
 typedef enum {
     DataStateConnecting,
@@ -79,10 +80,10 @@ typedef struct {
     IDataChannel* channel;
 } RTCDataChannel;
 
-extern "C" void free_data_channel(RTCDataChannel* channel);
-extern "C" DataState data_channel_get_state(RTCDataChannel* channel);
-extern "C" void data_channel_send(RTCDataChannel* channel, uint8_t* buf, int size);
-extern "C" void data_channel_on_message(RTCDataChannel* channel,
+extern "C" EXPORT void free_data_channel(RTCDataChannel* channel);
+extern "C" EXPORT DataState data_channel_get_state(RTCDataChannel* channel);
+extern "C" EXPORT void data_channel_send(RTCDataChannel* channel, uint8_t* buf, int size);
+extern "C" EXPORT void data_channel_on_message(RTCDataChannel* channel,
     void(*handler)(void* ctx, uint8_t* buf, uint64_t size),
     void* ctx);
     

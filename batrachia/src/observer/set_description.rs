@@ -1,9 +1,9 @@
+use futures::task::AtomicWaker;
+use libc::*;
 use anyhow::{
     anyhow,
     Result,
 };
-use futures::task::AtomicWaker;
-use libc::*;
 
 use super::{
     ObserverPromisify,
@@ -27,13 +27,21 @@ use std::sync::atomic::{
 };
 
 extern "C" {
+    /// The RTCPeerConnection method setLocalDescription() changes the local
+    /// description associated with the connection. This description specifies
+    /// the properties of the local end of the connection, including the media
+    /// format.
     fn rtc_set_local_description(
         peer: *const RawRTCPeerConnection,
         desc: *const RawRTCSessionDescription,
         callback: extern "C" fn(*const c_char, *mut c_void),
         ctx: *mut c_void,
     );
-
+    
+    /// The RTCPeerConnection method setRemoteDescription() sets the specified
+    /// session description as the remote peer's current offer or answer. The
+    /// description specifies the properties of the remote end of the
+    /// connection, including the media format.
     fn rtc_set_remote_description(
         peer: *const RawRTCPeerConnection,
         desc: *const RawRTCSessionDescription,
@@ -57,7 +65,7 @@ extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
     (ctx.callback)(
         from_raw_ptr(error)
             .map(|_| {
-                cstr_to_string(error)
+                from_c_str(error)
                     .map_err(|e| anyhow!(e.to_string()))
                     .and_then(|s| Err(anyhow!(s)))
             })
