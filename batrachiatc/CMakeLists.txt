@@ -9,7 +9,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-add_library(batrachiatc SHARED
+add_library(batrachiatc STATIC
     src/base.h
     src/base.cpp
     src/media_stream_track.h
@@ -31,15 +31,6 @@ include_directories(
     third_party/webrtc/src/third_party/libyuv/include
     third_party/webrtc/src/third_party/abseil-cpp
     third_party/webrtc/src)
-    
-target_link_directories(batrachiatc
-    PRIVATE third_party/webrtc/src/out/${CMAKE_BUILD_TYPE}/obj)
-
-if(MSVC)
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}../../target)
-else()
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}../../target/${CMAKE_BUILD_TYPE})
-endif()
 
 # windows msvc runtime
 if(MSVC)
@@ -96,30 +87,12 @@ if(MSVC)
         WEBRTC_WIN
         ABSL_ALLOCATOR_NOTHROW=1
         WEBRTC_VIDEO_CAPTURE_WINRT)
-    target_link_libraries(batrachiatc
-        webrtc
-        winmm
-        secur32
-        msdmo
-        dmoguids
-        wmcodecdspuuid)
 elseif(APPLE)
     add_compile_definitions(
         WEBRTC_MAC
         WEBRTC_IOS
         WEBRTC_POSIX)
-    target_link_libraries(batrachiatc
-        webrtc
-        "-framework Foundation"
-        "-framework AudioToolbox"
-        "-framework AudioUnit"
-        "-framework CoreServices"
-        "-framework CoreFoundation"
-        "-framework CoreAudio"
-        "-framework CoreGraphics")
 elseif(UNIX)
     add_compile_definitions(
         WEBRTC_POSIX)
-    target_link_libraries(batrachiatc
-        webrtc)
 endif()

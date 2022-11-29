@@ -75,7 +75,7 @@ class IVideoTrackSource
     : public webrtc::VideoTrackSource
 {
 public:
-    IVideoTrackSource(): VideoTrackSource(false), _source(IVideoSource()) {}
+    IVideoTrackSource(): VideoTrackSource(false) {}
     static IVideoTrackSource* Create();
     void AddFrame(const webrtc::VideoFrame& frame);
     rtc::VideoSourceInterface<webrtc::VideoFrame>* source();
