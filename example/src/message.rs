@@ -1,6 +1,6 @@
 use serde::*;
 use batrachia::*;
-use anyhow::{Result, anyhow, Ok};
+use anyhow::{Result, anyhow};
 use std::convert::*;
 
 #[allow(non_snake_case)]
