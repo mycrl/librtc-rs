@@ -6,7 +6,7 @@ use std::convert::*;
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Payload {
-    pub r#type: String,
+    pub kind: String,
     sdp: Option<String>,
     sdpMLineIndex: Option<u8>,
     candidate: Option<String>,
@@ -15,7 +15,7 @@ pub struct Payload {
 
 impl Payload {
     pub fn from_str(str: &str) -> Result<Self> {
-        Ok(serde_json::from_str(&str)?)
+        Ok(serde_json::from_str(str)?)
     }
 
     pub fn to_string(&self) -> Result<String> {
@@ -51,7 +51,7 @@ impl From<RTCSessionDescription> for Payload {
             candidate: None,
             sdpMLineIndex: None,
             sdp: Some(value.sdp.clone()),
-            r#type: match value.kind {
+            kind: match value.kind {
                 RTCSessionDescriptionType::Answer => "answer".to_string(),
                 RTCSessionDescriptionType::Offer => "offer".to_string(),
                 RTCSessionDescriptionType::PrAnswer => "prAnswer".to_string(),
@@ -65,7 +65,7 @@ impl From<RTCIceCandidate> for Payload {
     fn from(value: RTCIceCandidate) -> Self {
         Self {
             sdp: None,
-            r#type: "candidate".to_string(),
+            kind: "candidate".to_string(),
             sdpMLineIndex: Some(value.sdp_mline_index),
             candidate: Some(value.candidate),
             sdpMid: Some(value.sdp_mid),

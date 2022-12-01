@@ -6,7 +6,7 @@
 
 <script>
     const stream = new MediaStream()
-    const socket = new WebSocket('ws://localhost/client')
+    const socket = new WebSocket('ws://localhost')
     const pc = new RTCPeerConnection({
         sdpSemantics: 'unified-plan'
     })
@@ -32,7 +32,7 @@
         pc.addEventListener('icecandidate', ({ candidate }) => {
             console.log(candidate)
             candidate && socket.send(JSON.stringify({
-                type: 'candidate',
+                kind: 'candidate',
                 sdpMLineIndex: candidate.sdpMLineIndex,
                 candidate: candidate.candidate,
                 sdpMid: candidate.sdpMid,
@@ -41,14 +41,14 @@
     }
     
     socket.onmessage = async ({ data }) => {
-        const { type, ...payload } = JSON.parse(data)
-        if (type == 'answer') {
+        const { kind, ...payload } = JSON.parse(data)
+        if (kind == 'answer') {
             await pc.setRemoteDescription({
                 type: 'answer',
                 sdp: payload.sdp,
             })
         } else
-        if (type == 'candidate') {
+        if (kind == 'candidate') {
             await pc.addIceCandidate({
                 sdpMLineIndex: payload.sdpMLineIndex,
                 candidate: payload.candidate,
@@ -71,7 +71,7 @@
             const offer = await pc.createOffer()
             await pc.setLocalDescription(offer)
             socket.send(JSON.stringify({
-                type: 'offer',
+                kind: 'offer',
                 sdp: offer.sdp
             }))
         })

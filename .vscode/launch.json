@@ -19,7 +19,9 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": [
+                "--video-input=e:/rtc/example/test.yuv"
+            ],
             "cwd": "${workspaceFolder}"
         },
         {

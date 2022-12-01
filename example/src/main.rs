@@ -8,7 +8,7 @@ use std::io::SeekFrom;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio::fs;
-use tokio::sync::broadcast::*;
+use tokio::sync::*;
 use tokio::time::{sleep, Duration};
 
 // rtc signaling state change.
@@ -21,7 +21,7 @@ async fn signaling_change(observer: Arc<Observer>) {
 // rtc ice candidate change.
 async fn handle_ice_candidate(
     observer: Arc<Observer>,
-    write: Sender<String>,
+    write: broadcast::Sender<String>,
 ) -> anyhow::Result<()> {
     while let Some(candidate) = observer.ice_candidate.recv().await {
         write.send(Payload::from(candidate).to_string()?)?;
@@ -63,19 +63,19 @@ async fn handle_track(observer: Arc<Observer>) {
 // get signaling data for websocket.
 async fn read_ws_message(
     pc: Arc<RTCPeerConnection>,
-    mut read: Receiver<String>,
-    write: Sender<String>,
+    mut read: mpsc::UnboundedReceiver<String>,
+    write: broadcast::Sender<String>,
 ) -> anyhow::Result<()> {
-    while let Ok(msg) = read.recv().await {
+    while let Some(msg) = read.recv().await {
         let payload = Payload::from_str(&msg)?;
-
-        if payload.r#type == "offer" {
+        
+        if payload.kind == "offer" {
             pc.set_remote_description(&Payload::try_into(payload)?)
                 .await?;
             let answer = pc.create_answer().await?;
             pc.set_local_description(&answer).await?;
             write.send(Payload::from(answer).to_string()?)?;
-        } else if payload.r#type == "candidate" {
+        } else if payload.kind == "candidate" {
             pc.add_ice_candidate(&Payload::try_into(payload)?)?;
         }
     }
@@ -89,7 +89,6 @@ async fn read_frame(
     mut fs: fs::File,
     track: Arc<VideoTrack>,
 ) -> anyhow::Result<()> {
-
     // fixed pixel size.
     let need_size = (1920 as f64 * 1080 as f64 * 1.5) as usize;
     let mut buf = vec![0u8; need_size];
@@ -124,12 +123,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let frames_fs = fs::File::open(args.video_input).await?;
 
-    let (writer, reader) = channel(10);
-    tokio::spawn(signaling::run(
-        args.bind,
-        reader.resubscribe(),
-        writer.clone(),
-    ));
+    let (writer, reader) = broadcast::channel(10);
+    let (iwriter, ireader) = mpsc::unbounded_channel();
+
+    tokio::spawn(signaling::run(args.bind, reader, iwriter));
 
     let observer = Arc::new(Observer::new());
     let config = RTCConfiguration::default();
@@ -138,17 +135,15 @@ async fn main() -> Result<(), anyhow::Error> {
     let stream = MediaStream::new("stream_id")?;
     let track = VideoTrack::new("video_track")?;
 
-    pc.add_track(
-        MediaStreamTrack::from_video(track.clone()), 
-        stream.clone()
-    ).await;
+    pc.add_track(MediaStreamTrack::from_video(track.clone()), stream.clone())
+        .await;
 
     tokio::spawn(read_frame(frames_fs, track));
     tokio::spawn(handle_track(observer.clone()));
     tokio::spawn(signaling_change(observer.clone()));
     tokio::spawn(handle_data_channel(observer.clone()));
     tokio::spawn(handle_ice_candidate(observer, writer.clone()));
-    tokio::spawn(read_ws_message(pc.clone(), reader, writer));
+    tokio::spawn(read_ws_message(pc.clone(), ireader, writer));
 
     batrachia::run();
     Ok(())

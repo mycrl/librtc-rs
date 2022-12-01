@@ -77,10 +77,10 @@ async main() -> Result<(), anyhow::Error> {
     
     // create local video media track
     let stream = MediaStream::new("stream_id")?;
-    let track = MediaStreamTrack::new("video_track", MediaStreamTrackKind::Video)?;
+    let track = VideoTrack::new("video_track")?;
 
     // push video track in peer
-    peer.add_track(track.clone(), stream);
+    peer.add_track(MediaStreamTrack::from_video(track.clone()), stream);
     
     // push empty frame to local video track
     let buf = vec![0u8; (1920.0 * 1080.0 * 1.5) as usize];
