@@ -180,7 +180,7 @@ void Observer::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
     }
 
     _events->on_ice_candidate(_events->ctx, ice_candidate);
-    free_ice_candidate(ice_candidate);
+    // free_ice_candidate(ice_candidate);
 }
 
 void Observer::OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState state)

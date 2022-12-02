@@ -21,6 +21,7 @@ pub(crate) fn to_c_str(str: &str) -> Result<*const c_char> {
 /// assert_eq!(&str, "test");
 /// ```
 pub(crate) fn from_c_str(str: *const c_char) -> Result<String> {
+    assert!(!str.is_null());
     Ok(unsafe { CStr::from_ptr(str).to_str()?.to_string() })
 }
 
@@ -30,10 +31,9 @@ pub(crate) fn from_c_str(str: *const c_char) -> Result<String> {
 ///
 /// free_cstring(c_str);
 /// ```
-pub(crate) fn free_cstring(c_str: *const c_char) {
-    if !c_str.is_null() {
-        drop(unsafe { CString::from_raw(c_str as *mut c_char) })
-    }
+pub(crate) fn free_cstring(str: *const c_char) {
+    assert!(!str.is_null());
+    drop(unsafe { CString::from_raw(str as *mut c_char) })
 }
 
 /// ```no_run

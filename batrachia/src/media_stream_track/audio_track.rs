@@ -74,7 +74,9 @@ extern "C" fn on_audio_frame_callback(
     ctx: *const Sender<Arc<PCMFrames>>,
     frame: *const RawPCMFrames,
 ) {
-    if !frame.is_null() {
-        let _ = unsafe { &*ctx }.send(PCMFrames::from_raw(frame));
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        if let Some(frame) = unsafe { frame.as_ref() } {
+            ctx.send(PCMFrames::from_raw(frame)).unwrap();
+        }
     }
 }

@@ -16,6 +16,7 @@ pub struct RawPCMFrames {
 }
 
 /// A list of audio frames in pcm format, usually 10ms long.
+#[derive(Debug)]
 pub struct PCMFrames {
     raw_ptr: *const RawPCMFrames,
 }

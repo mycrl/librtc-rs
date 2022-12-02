@@ -212,9 +212,10 @@ extern "C" fn on_message_callback(
     buf: *const u8,
     size: u64,
 ) {
+    assert!(!ctx.is_null());
     if !buf.is_null() {
-        let _ = unsafe { &*ctx }.send(
+        unsafe { &*ctx }.send(
             unsafe { from_raw_parts(buf, size as usize) }.to_vec(),
-        );
+        ).unwrap();
     }
 }

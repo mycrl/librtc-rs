@@ -10,6 +10,7 @@
 
 void rtc_run()
 {
+    // rtc::LogCheckLevel;
     rtc::InitializeSSL();
     rtc::Thread::Current()->Run();
 }

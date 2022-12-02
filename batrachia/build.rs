@@ -181,11 +181,16 @@ fn link() {
 }
 
 fn main() {
-    println!("cargo:cargo:rerun-if-env-changed=WEBRTC_LIBRARY_PATH");
-    println!("cargo:cargo:rerun-if-env-changed=WEBRTC_SOURCE_PATH");
-    println!("cargo:cargo:rerun-if-env-changed=SYS_LIBRARY_PATH");
-    println!("cargo:cargo:rerun-if-env-changed=SYS_SOURCE_PATH");
-    println!("cargo:rerun-if-changed=batrachiatc");
+    for name in [
+        "WEBRTC_LIBRARY_PATH",
+        "SYS_LIBRARY_PATH",
+        "SYS_SOURCE_PATH",
+    ] {
+        println!("cargo:cargo:rerun-if-env-changed={}", name);
+        if let Ok(path) = env::var(name) {
+            println!("cargo:rerun-if-changed={}", path);
+        }
+    }
     
     let output = env::var("OUT_DIR").unwrap();
     let debug = env::var("DEBUG")

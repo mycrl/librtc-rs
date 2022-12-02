@@ -11,7 +11,7 @@ use std::{
     future::Future,
     pin::Pin,
     sync::Arc,
-    task::*,
+    task::*, fmt::Debug,
 };
 
 use super::{
@@ -22,7 +22,6 @@ use super::{
 
 use tokio::sync::{
     broadcast::*,
-    Mutex,
 };
 
 pub struct ObserverPromisify<T>
@@ -64,47 +63,55 @@ where
     }
 }
 
-#[derive(Clone)]
 pub struct Events<T> {
-    receiver: Arc<Mutex<Receiver<T>>>,
-    sender: Arc<Sender<T>>,
+    receiver: Receiver<T>,
+    sender: Sender<T>,
 }
 
-impl<T: Clone> Events<T> {
+impl<T: Clone + Debug> Clone for Events<T> {
+    fn clone(&self) -> Self {
+        Self {
+            receiver: self.receiver.resubscribe(),
+            sender: self.sender.clone(),
+        }
+    }
+}
+
+impl<T: Clone + Debug> Events<T> {
     pub fn new(capacity: usize) -> Self {
         let (sender, receiver) = channel(capacity);
         Self {
-            receiver: Arc::new(Mutex::new(receiver)),
-            sender: Arc::new(sender),
+            receiver,
+            sender,
         }
     }
 
-    pub async fn recv(&self) -> Option<T> {
-        self.receiver.lock().await.recv().await.ok()
+    pub async fn recv(&mut self) -> Option<T> {
+        self.receiver.recv().await.ok()
     }
 
     pub fn send(&self, value: T) {
-        let _ = self.sender.send(value);
+        self.sender.send(value).unwrap();
     }
 }
 
 #[repr(C)]
 #[rustfmt::skip]
 pub(crate) struct IObserver {
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
 
-    on_signaling_change: extern "C" fn(*mut ObserverContext, SignalingState),
-    on_datachannel: extern "C" fn(*mut ObserverContext, *const RawRTCDataChannel),
-    on_ice_gathering_change: extern "C" fn(*mut ObserverContext, IceGatheringState),
-    on_ice_candidate: extern "C" fn(*mut ObserverContext, *const RawRTCIceCandidate),
-    on_renegotiation_needed: extern "C" fn(*mut ObserverContext),
-    on_ice_connection_change: extern "C" fn(*mut ObserverContext, IceConnectionState),
-    on_track: extern "C" fn(*mut ObserverContext, *const RawMediaStreamTrack),
-    on_connection_change: extern "C" fn(*mut ObserverContext, PeerConnectionState),
+    on_signaling_change: extern "C" fn(*const ObserverContext, SignalingState),
+    on_datachannel: extern "C" fn(*const ObserverContext, *const RawRTCDataChannel),
+    on_ice_gathering_change: extern "C" fn(*const ObserverContext, IceGatheringState),
+    on_ice_candidate: extern "C" fn(*const ObserverContext, *const RawRTCIceCandidate),
+    on_renegotiation_needed: extern "C" fn(*const ObserverContext),
+    on_ice_connection_change: extern "C" fn(*const ObserverContext, IceConnectionState),
+    on_track: extern "C" fn(*const ObserverContext, *const RawMediaStreamTrack),
+    on_connection_change: extern "C" fn(*const ObserverContext, PeerConnectionState),
 }
 
 impl IObserver {
-    pub fn new(ctx: *mut ObserverContext) -> Self {
+    pub fn new(ctx: *const ObserverContext) -> Self {
         Self {
             ctx,
             on_signaling_change,
@@ -262,14 +269,14 @@ pub struct ObserverContext {
 impl ObserverContext {
     fn new() -> Self {
         Self {
-            connection_change: Events::new(1),
-            signaling_change: Events::new(1),
-            ice_gathering_change: Events::new(1),
-            ice_candidate: Events::new(1),
-            renegotiation_needed: Events::new(1),
-            ice_connection_change: Events::new(1),
-            data_channel: Events::new(1),
-            track: Events::new(1),
+            connection_change: Events::new(10),
+            signaling_change: Events::new(10),
+            ice_gathering_change: Events::new(10),
+            ice_candidate: Events::new(10),
+            renegotiation_needed: Events::new(10),
+            ice_connection_change: Events::new(10),
+            data_channel: Events::new(10),
+            track: Events::new(10),
         }
     }
 }
@@ -325,7 +332,7 @@ pub struct Observer {
     pub data_channel: Events<Arc<RTCDataChannel>>,
 
     raw_ptr: UnsafeCell<Option<*const IObserver>>,
-    ctx: ObserverContext,
+    ctx: *const ObserverContext,
 }
 
 unsafe impl Send for Observer {}
@@ -345,7 +352,7 @@ impl Observer {
             ice_connection_change: ctx.ice_connection_change.clone(),
             data_channel: ctx.data_channel.clone(),
             raw_ptr: UnsafeCell::new(None),
-            ctx,
+            ctx: Box::into_raw(Box::new(ctx)),
         }
     }
 
@@ -355,9 +362,7 @@ impl Observer {
             return *ptr;
         }
 
-        let raw_ctx =
-            &self.ctx as *const ObserverContext as *mut ObserverContext;
-        let raw = Box::into_raw(Box::new(IObserver::new(raw_ctx)));
+        let raw = Box::into_raw(Box::new(IObserver::new(self.ctx)));
         let _ = raw_ptr.insert(raw);
         raw
     }
@@ -369,68 +374,97 @@ impl Default for Observer {
     }
 }
 
+impl Drop for Observer {
+    fn drop(&mut self) {
+        let raw_ptr = unsafe { *self.raw_ptr.get() };
+        if let Some(ptr) = raw_ptr {
+            let _ = unsafe {
+                Box::from_raw(ptr as *mut IObserver)
+            };
+        }
+
+        let _ = unsafe {
+            Box::from_raw(self.ctx as *mut ObserverContext)
+        };
+    }
+}
+
 extern "C" fn on_signaling_change(
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
     state: SignalingState,
 ) {
-    unsafe { &*ctx }.signaling_change.send(state);
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        ctx.signaling_change.send(state);
+    }
 }
 
 extern "C" fn on_connection_change(
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
     state: PeerConnectionState,
 ) {
-    unsafe { &*ctx }.connection_change.send(state);
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        ctx.connection_change.send(state);
+    }
 }
 
 extern "C" fn on_ice_gathering_change(
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
     state: IceGatheringState,
 ) {
-    unsafe { &*ctx }.ice_gathering_change.send(state);
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        ctx.ice_gathering_change.send(state);
+    }
 }
 
 extern "C" fn on_ice_candidate(
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
     candidate: *const RawRTCIceCandidate,
 ) {
-    if !candidate.is_null() {
-        if let Ok(candidate) = RTCIceCandidate::try_from(unsafe { &*candidate })
-        {
-            unsafe { &*ctx }.ice_candidate.send(candidate);
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        if let Some(candidate) = unsafe { candidate.as_ref() } {
+            if let Ok(candidate) = RTCIceCandidate::try_from(candidate)
+            {
+                ctx.ice_candidate.send(candidate);
+            }
         }
     }
 }
 
-extern "C" fn on_renegotiation_needed(ctx: *mut ObserverContext) {
-    unsafe { &*ctx }.renegotiation_needed.send(());
+extern "C" fn on_renegotiation_needed(ctx: *const ObserverContext) {
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        ctx.renegotiation_needed.send(());
+    }
 }
 
 extern "C" fn on_ice_connection_change(
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
     state: IceConnectionState,
 ) {
-    unsafe { &*ctx }.ice_connection_change.send(state);
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        ctx.ice_connection_change.send(state);
+    }
 }
 
 extern "C" fn on_datachannel(
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
     channel: *const RawRTCDataChannel,
 ) {
-    if !channel.is_null() {
-        unsafe { &*ctx }
-            .data_channel
-            .send(RTCDataChannel::from_raw(channel));
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        if let Some(channel) = unsafe { channel.as_ref() } {
+            ctx.data_channel
+                .send(RTCDataChannel::from_raw(channel));
+        }
     }
 }
 
 extern "C" fn on_track(
-    ctx: *mut ObserverContext,
+    ctx: *const ObserverContext,
     track: *const RawMediaStreamTrack,
 ) {
-    if !track.is_null() {
-        unsafe { &*ctx }
-            .track
-            .send(MediaStreamTrack::from_raw(track));
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        if let Some(track) = unsafe { track.as_ref() } {
+            ctx.track
+                .send(MediaStreamTrack::from_raw(track));
+        }
     }
 }

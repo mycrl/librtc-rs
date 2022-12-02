@@ -103,7 +103,9 @@ extern "C" fn on_video_frame_callback(
     ctx: *const Sender<Arc<I420Frame>>,
     frame: *const RawI420Frame,
 ) {
-    if !frame.is_null() {
-        let _ = unsafe { &*ctx }.send(I420Frame::from_raw(frame));
+    if let Some(ctx) = unsafe { ctx.as_ref() } {
+        if let Some(frame) = unsafe { frame.as_ref() } {
+            ctx.send(I420Frame::from_raw(frame)).unwrap();
+        }
     }
 }
