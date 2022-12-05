@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef BATRACHIATC_DATA_CHANNEL_H_
+#define BATRACHIATC_DATA_CHANNEL_H_
+#pragma once
 
 #include "api/peer_connection_interface.h"
 #include "base.h"
@@ -89,3 +91,5 @@ extern "C" EXPORT void data_channel_on_message(RTCDataChannel* channel,
     
 webrtc::DataChannelInit* from_c(DataChannelOptions* options);
 RTCDataChannel* create_data_channel(rtc::scoped_refptr<webrtc::DataChannelInterface> channel);
+
+#endif  // BATRACHIATC_DATA_CHANNEL_H_

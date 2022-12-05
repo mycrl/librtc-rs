@@ -25,7 +25,9 @@ add_library(batrachiatc STATIC
     src/ice_candidate.h
     src/ice_candidate.cpp
     src/data_channel.h
-    src/data_channel.cpp)
+    src/data_channel.cpp
+    src/audio_capture_module.h
+    src/audio_capture_module.cpp)
     
 include_directories(
     third_party/webrtc/src/third_party/libyuv/include

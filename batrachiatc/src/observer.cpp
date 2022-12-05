@@ -138,74 +138,115 @@ IceConnectionState into_c(webrtc::PeerConnectionInterface::IceConnectionState st
     }
 }
 
-Observer::Observer(IObserver* events)
+Observer::Observer(Events* events, void* ctx)
 {
     _events = events;
+    _ctx = ctx;
 }
 
-Observer* Observer::Create(IObserver* events)
+Observer* Observer::Create(Events* events, void* ctx)
 {
-    auto self = new rtc::RefCountedObject<Observer>(events);
+    auto self = new rtc::RefCountedObject<Observer>(events, ctx);
     self->AddRef();
     return self;
 }
 
 void Observer::OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState state)
 {
-    _events->on_signaling_change(_events->ctx, into_c(state));
+    if (!_ctx)
+    {
+        return;
+    }
+
+    _events->on_signaling_change(_ctx, into_c(state));
 }
 
 void Observer::OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
 {
+    if (!_ctx)
+    {
+        return;
+    }
+
     auto channel = create_data_channel(data_channel);
-    _events->on_datachannel(_events->ctx, channel);
+    _events->on_datachannel(_ctx, channel);
 }
 
 void Observer::OnRenegotiationNeeded()
 {
-    _events->on_renegotiation_needed(_events->ctx);
+    if (!_ctx)
+    {
+        return;
+    }
+
+    _events->on_renegotiation_needed(_ctx);
 }
 
 void Observer::OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState state)
 {
-    _events->on_ice_gathering_change(_events->ctx, into_c(state));
+    if (!_ctx)
+    {
+        return;
+    }
+
+    _events->on_ice_gathering_change(_ctx, into_c(state));
 }
 
 void Observer::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
 {
+    if (!_ctx)
+    {
+        return;
+    }
+
     auto ice_candidate = into_c((webrtc::IceCandidateInterface*)candidate);
     if (!ice_candidate)
     {
         return;
     }
 
-    _events->on_ice_candidate(_events->ctx, ice_candidate);
-    // free_ice_candidate(ice_candidate);
+    _events->on_ice_candidate(_ctx, ice_candidate);
+    free_ice_candidate(ice_candidate);
 }
 
 void Observer::OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState state)
 {
-    _events->on_connection_change(_events->ctx, into_c(state));
+    if (!_ctx)
+    {
+        return;
+    }
+
+    _events->on_connection_change(_ctx, into_c(state));
 }
 
 void Observer::OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState state)
 {
-    _events->on_ice_connection_change(_events->ctx, into_c(state));
+    if (!_ctx)
+    {
+        return;
+    }
+
+    _events->on_ice_connection_change(_ctx, into_c(state));
 }
 
 void Observer::OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver)
 {
+    if (!_ctx)
+    {
+        return;
+    }
+
     webrtc::MediaStreamTrackInterface* track = transceiver->receiver()->track().get();
     if (track->kind() == webrtc::MediaStreamTrackInterface::kVideoKind)
     {
         auto sink = media_stream_video_track_from(static_cast<webrtc::VideoTrackInterface*>(track));
-        _events->on_track(_events->ctx, sink);
+        _events->on_track(_ctx, sink);
     }
     else
     if (track->kind() == webrtc::MediaStreamTrackInterface::kAudioKind) 
     {
         auto sink = media_stream_audio_track_from(static_cast<webrtc::AudioTrackInterface*>(track));
-        _events->on_track(_events->ctx, sink);
+        _events->on_track(_ctx, sink);
     }
 }
 
@@ -227,7 +268,7 @@ void CreateDescObserver::OnSuccess(webrtc::SessionDescriptionInterface* desc)
     {
         _callback("malloc failed", NULL, _ctx);
     } 
-    else 
+    else
     {
         _callback(NULL, res, _ctx);
         free_session_description(res);

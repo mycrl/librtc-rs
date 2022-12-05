@@ -37,7 +37,7 @@ extern "C" {
         callback: extern "C" fn(*const c_char, *mut c_void),
         ctx: *mut c_void,
     );
-    
+
     /// The RTCPeerConnection method setRemoteDescription() sets the specified
     /// session description as the remote peer's current offer or answer. The
     /// description specifies the properties of the remote end of the
@@ -60,6 +60,7 @@ struct SetDescriptionContext {
     callback: Box<dyn FnMut(Result<()>)>,
 }
 
+#[no_mangle]
 extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
     let mut ctx = unsafe { Box::from_raw(ctx as *mut SetDescriptionContext) };
     (ctx.callback)(

@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef BATRACHIATC_SESSION_DESCRIPTION_H_
+#define BATRACHIATC_SESSION_DESCRIPTION_H_
+#pragma once
 
 #include "api/peer_connection_interface.h"
 
@@ -47,3 +49,5 @@ webrtc::SdpType from_c(RTCSessionDescriptionType type);
 std::unique_ptr<webrtc::SessionDescriptionInterface> from_c(RTCSessionDescription* desc);
 RTCSessionDescription* into_c(webrtc::SessionDescriptionInterface* raw);
 void free_session_description(RTCSessionDescription* raw);
+
+#endif  // BATRACHIATC_SESSION_DESCRIPTION_H_

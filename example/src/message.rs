@@ -1,6 +1,9 @@
 use serde::*;
 use batrachia::*;
-use anyhow::{Result, anyhow};
+use anyhow::{
+    Result,
+    anyhow,
+};
 use std::convert::*;
 
 #[allow(non_snake_case)]
@@ -25,6 +28,7 @@ impl Payload {
 
 impl TryInto<RTCSessionDescription> for Payload {
     type Error = anyhow::Error;
+
     fn try_into(self) -> Result<RTCSessionDescription, Self::Error> {
         Ok(RTCSessionDescription {
             kind: RTCSessionDescriptionType::Offer,
@@ -35,6 +39,7 @@ impl TryInto<RTCSessionDescription> for Payload {
 
 impl TryInto<RTCIceCandidate> for Payload {
     type Error = anyhow::Error;
+
     fn try_into(self) -> Result<RTCIceCandidate, Self::Error> {
         Ok(RTCIceCandidate {
             sdp_mid: self.sdpMid.ok_or(anyhow!(""))?.clone(),

@@ -26,6 +26,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cc",
+ "enver",
  "futures",
  "libc",
  "tokio",
@@ -135,6 +136,10 @@ dependencies = [
  "block-buffer",
  "crypto-common",
 ]
+
+[[package]]
+name = "enver"
+version = "0.1.0"
 
 [[package]]
 name = "errno"

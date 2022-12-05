@@ -2,8 +2,8 @@ use anyhow::Result;
 use std::sync::Arc;
 use libc::*;
 use super::{
-    base::*,
     media_stream_track::*,
+    base::*,
 };
 
 /// The MediaStream interface represents a stream of media content.

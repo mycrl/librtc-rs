@@ -3,12 +3,11 @@ pub(crate) mod video_track;
 
 use audio_track::*;
 use video_track::*;
-use super::base::*;
 use std::sync::Arc;
 use libc::*;
 
 extern "C" {
-    fn free_media_track(track: *const RawMediaStreamTrack);
+    pub(crate) fn free_media_track(track: *const RawMediaStreamTrack);
 }
 
 #[repr(i32)]
@@ -47,7 +46,7 @@ pub(crate) struct RawMediaStreamTrack {
 ///
 /// these are audio or video tracks, but other track types may exist as
 /// well.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MediaStreamTrack {
     Audio(Arc<AudioTrack>),
     Video(Arc<VideoTrack>),
@@ -58,18 +57,18 @@ impl MediaStreamTrack {
         Arc::new(Self::Video(track))
     }
 
-    /// Created through the original media stream track, video and audio 
+    /// Created through the original media stream track, video and audio
     /// are processed separately.
-    pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
+    pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Self {
         assert!(!raw.is_null());
-        Arc::new(match unsafe { (&*raw).kind } {
+        match unsafe { (&*raw).kind } {
             MediaStreamTrackKind::Audio => {
                 Self::Audio(AudioTrack::from_raw(raw))
             },
             MediaStreamTrackKind::Video => {
                 Self::Video(VideoTrack::from_raw(raw))
             },
-        })
+        }
     }
 
     pub(crate) fn get_raw(&self) -> *const RawMediaStreamTrack {
@@ -77,20 +76,5 @@ impl MediaStreamTrack {
             Self::Audio(track) => track.raw,
             Self::Video(track) => track.raw,
         }
-    }
-}
-
-impl Drop for MediaStreamTrack {
-    fn drop(&mut self) {
-        let raw_ptr = self.get_raw();
-        let raw = unsafe { &*raw_ptr };
-        
-        // If it is a track created locally, the label is allocated by rust 
-        // and needs to be freed by rust.
-        if !raw.remote {
-            free_cstring(raw.label);
-        }
-
-        unsafe { free_media_track(raw_ptr) }
     }
 }

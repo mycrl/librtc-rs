@@ -7,23 +7,12 @@ fn join(a: &str, b: &str) -> PathBuf {
 }
 
 fn split(path: &Path) -> (String, String) {
-    let name = path
-        .file_stem()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string();
-    let dir = path
-        .parent()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string();
+    let name = path.file_stem().unwrap().to_str().unwrap().to_string();
+    let dir = path.parent().unwrap().to_str().unwrap().to_string();
 
     (
         dir,
-        name
-            .starts_with("lib")
+        name.starts_with("lib")
             .then(|| name.replacen("lib", "", 1))
             .unwrap_or(name),
     )
@@ -32,7 +21,7 @@ fn split(path: &Path) -> (String, String) {
 fn get_lib_name(debug: bool, key: &str, long: bool) -> String {
     let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let os = env::var("CARGO_CFG_TARGET_OS").unwrap();
-    
+
     let ext = if cfg!(windows) { "lib" } else { "a" };
     let flag = if cfg!(windows) { "" } else { "lib" };
     let kind = if cfg!(windows) || !debug {
@@ -40,17 +29,11 @@ fn get_lib_name(debug: bool, key: &str, long: bool) -> String {
     } else {
         "debug"
     };
-    
-    let name = format!(
-        "{}-{}-{}-{}", 
-        key, os, arch, kind
-    );
-    
+
+    let name = format!("{}-{}-{}-{}", key, os, arch, kind);
+
     if long {
-        format!(
-            "{}{}.{}", 
-            flag, name, ext
-        )
+        format!("{}{}.{}", flag, name, ext)
     } else {
         name
     }
@@ -69,10 +52,8 @@ fn download(debug: bool, name: &str) -> (String, String) {
             .arg("-o")
             .arg(path.to_str().unwrap())
             .arg(&format!(
-                "{}/releases/download/v{}/{}", 
-                repository, 
-                version, 
-                lib_name
+                "{}/releases/download/v{}/{}",
+                repository, version, lib_name
             ))
             .output()
             .unwrap();
@@ -181,6 +162,12 @@ fn link() {
 }
 
 fn main() {
+    let output = env::var("OUT_DIR").unwrap();
+    let debug = env::var("DEBUG")
+        .map(|label| label == "true")
+        .unwrap_or(true);
+    enver::init(debug).unwrap();
+
     for name in [
         "WEBRTC_LIBRARY_PATH",
         "SYS_LIBRARY_PATH",
@@ -191,26 +178,15 @@ fn main() {
             println!("cargo:rerun-if-changed={}", path);
         }
     }
-    
-    let output = env::var("OUT_DIR").unwrap();
-    let debug = env::var("DEBUG")
-        .map(|label| label == "true")
-        .unwrap_or(true);
 
-    let (
-        webrtc_lib_path, 
-        webrtc_lib_name
-    ) = env::var("WEBRTC_LIBRARY_PATH")
+    let (webrtc_lib_path, webrtc_lib_name) = env::var("WEBRTC_LIBRARY_PATH")
         .map(|path| split(Path::new(&path)))
         .unwrap_or_else(|_| download(debug, "webrtc"));
-    
+
     let is_webrtc_source = env::var("WEBRTC_SOURCE_PATH").is_ok();
     let is_sys_source = env::var("SYS_SOURCE_PATH").is_ok();
 
-    let (
-        sys_lib_path, 
-        sys_lib_name
-    ) = env::var("SYS_LIBRARY_PATH")
+    let (sys_lib_path, sys_lib_name) = env::var("SYS_LIBRARY_PATH")
         .map(|path| split(Path::new(&path)))
         .unwrap_or_else(|_| {
             if is_webrtc_source && is_sys_source {

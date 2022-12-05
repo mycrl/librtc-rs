@@ -212,6 +212,7 @@ AdaptFrameResult IVideoSource::_AdaptFrameResolution(
 /*
 IVideoTrackSource
 */
+
 IVideoTrackSource* IVideoTrackSource::Create()
 {
     auto self = new rtc::RefCountedObject<IVideoTrackSource>();
@@ -278,6 +279,8 @@ IAudioTrackSink
 IAudioTrackSink::IAudioTrackSink(webrtc::AudioTrackInterface* track)
 {
     _track = track;
+    _track->AddSink(this);
+    _track->AddRef();
 }
 
 IAudioTrackSink* IAudioTrackSink::Create(webrtc::AudioTrackInterface* track)

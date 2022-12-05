@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef BATRACHIATC_OBSERVER_H_
+#define BATRACHIATC_OBSERVER_H_
+#pragma once
 
 #include "api/peer_connection_interface.h"
 #include "session_description.h"
@@ -43,8 +45,6 @@ typedef enum {
 
 typedef struct
 {
-    void* ctx;
-
     void (*on_signaling_change)(void* ctx, SignalingState state);
     void (*on_datachannel)(void* ctx, RTCDataChannel* channel);
     void (*on_ice_gathering_change)(void* ctx, IceGatheringState state);
@@ -53,7 +53,7 @@ typedef struct
     void (*on_ice_connection_change)(void* ctx, IceConnectionState state);
     void (*on_track)(void* ctx, MediaStreamTrack* track);
     void (*on_connection_change)(void* ctx, PeerConnectionState state);
-} IObserver;
+} Events;
 
 typedef void (*SetDescCallback)(const char* error, void* ctx);
 typedef void (*CreateDescCallback)(const char* error, RTCSessionDescription* desc, void* ctx);
@@ -63,8 +63,8 @@ class Observer
     , public rtc::RefCountInterface
 {
 public:
-    Observer(IObserver* events);
-    static Observer* Create(IObserver* events);
+    Observer(Events* events, void* ctx);
+    static Observer* Create(Events* events, void* ctx);
     void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState state);
     void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
     void OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState state);
@@ -74,7 +74,8 @@ public:
     void OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver);
     void OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState state);
 private:
-    IObserver* _events;
+    Events* _events;
+    void* _ctx;
 };
 
 class CreateDescObserver
@@ -107,3 +108,5 @@ PeerConnectionState into_c(webrtc::PeerConnectionInterface::PeerConnectionState 
 SignalingState into_c(webrtc::PeerConnectionInterface::SignalingState state);
 IceGatheringState into_c(webrtc::PeerConnectionInterface::IceGatheringState state);
 IceConnectionState into_c(webrtc::PeerConnectionInterface::IceConnectionState state);
+
+#endif  // BATRACHIATC_OBSERVER_H_

@@ -1,6 +1,5 @@
 use tokio::sync::Mutex;
 use std::sync::Arc;
-use super::base::*;
 use libc::*;
 use anyhow::{
     anyhow,
@@ -8,6 +7,7 @@ use anyhow::{
 };
 
 use super::{
+    base::*,
     media_stream::*,
     media_stream_track::*,
     observer::*,
@@ -28,7 +28,8 @@ extern "C" {
     /// device and a remote peer.
     fn create_rtc_peer_connection(
         config: *const RawRTCPeerConnectionConfigure,
-        eventer: *const IObserver,
+        events: *const TEvents,
+        observer: *mut Observer,
     ) -> *const RawRTCPeerConnection;
     
     /// When a web site or app using RTCPeerConnection receives a new ICE
@@ -101,10 +102,10 @@ impl RTCPeerConnection {
     /// device and a remote peer.
     pub fn new(
         config: &RTCConfiguration,
-        observer: &Observer,
+        observer: &mut Observer,
     ) -> Result<Arc<Self>> {
         let raw = unsafe {
-            create_rtc_peer_connection(config.get_raw(), observer.get_raw())
+            create_rtc_peer_connection(config.get_raw(), &EVENTS, observer)
         };
 
         if raw.is_null() {
@@ -216,7 +217,7 @@ impl RTCPeerConnection {
         &self,
         label: &str,
         opt: &DataChannelOptions,
-    ) -> Arc<RTCDataChannel> {
+    ) -> RTCDataChannel {
         let c_label = to_c_str(label).unwrap();
         let opt: RawDataChannelOptions = opt.into();
         let raw = unsafe { rtc_create_data_channel(self.raw, c_label, &opt) };

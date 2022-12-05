@@ -1,13 +1,12 @@
-use std::sync::Arc;
 use libc::*;
 
 extern "C" {
-    fn free_pcm_frames(frame: *const RawPCMFrames);
+    fn free_pcm_frames(frame: *const RawAudioFrame);
 }
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct RawPCMFrames {
+pub struct RawAudioFrame {
     buf: *const u8,
     bits_per_sample: c_int,
     sample_rate: c_int,
@@ -17,23 +16,23 @@ pub struct RawPCMFrames {
 
 /// A list of audio frames in pcm format, usually 10ms long.
 #[derive(Debug)]
-pub struct PCMFrames {
-    raw_ptr: *const RawPCMFrames,
+pub struct AudioFrame {
+    raw_ptr: *const RawAudioFrame,
 }
 
-unsafe impl Send for PCMFrames {}
-unsafe impl Sync for PCMFrames {}
+unsafe impl Send for AudioFrame {}
+unsafe impl Sync for AudioFrame {}
 
-impl PCMFrames {
-    pub(crate) fn from_raw(raw_ptr: *const RawPCMFrames) -> Arc<Self> {
+impl AudioFrame {
+    pub(crate) fn from_raw(raw_ptr: *const RawAudioFrame) -> Self {
         assert!(!raw_ptr.is_null());
-        Arc::new(Self {
+        Self {
             raw_ptr,
-        })
+        }
     }
 }
 
-impl Drop for PCMFrames {
+impl Drop for AudioFrame {
     fn drop(&mut self) {
         unsafe { free_pcm_frames(self.raw_ptr) }
     }

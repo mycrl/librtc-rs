@@ -1,6 +1,4 @@
-﻿#include <stdio.h>
-
-#include "api/audio_codecs/builtin_audio_decoder_factory.h"
+﻿#include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/video_codecs/builtin_video_decoder_factory.h"
 #include "api/video_codecs/builtin_video_encoder_factory.h"
@@ -10,7 +8,6 @@
 
 void rtc_run()
 {
-    // rtc::LogCheckLevel;
     rtc::InitializeSSL();
     rtc::Thread::Current()->Run();
 }
@@ -22,7 +19,8 @@ void rtc_close(RTCPeerConnection* peer)
 }
 
 RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_config, 
-    IObserver* events)
+    Events* events,
+    void* ctx)
 {
     RTCPeerConnection* rtc = new RTCPeerConnection();
     if (!rtc)
@@ -50,7 +48,7 @@ RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_conf
         from_c(c_config),
         nullptr,
         nullptr,
-        Observer::Create(events));
+        Observer::Create(events, ctx));
     if (!rtc->pc)
     {
         return NULL;

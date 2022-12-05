@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef BATRACHIATC_MEDIA_STREAM_TRACK_H_
+#define BATRACHIATC_MEDIA_STREAM_TRACK_H_
+#pragma once
 
 #include "rtc_base/synchronization/mutex.h"
 #include "media/base/video_broadcaster.h"
@@ -185,3 +187,5 @@ MediaStreamTrack* media_stream_audio_track_from(webrtc::AudioTrackInterface* tra
 PCMFrames* into_c(const uint8_t* buf, int b, int r, size_t c, size_t f);
 I420Frame* into_c(webrtc::VideoFrame* frame);
 webrtc::VideoFrame from_c(I420Frame* frame);
+
+#endif  // BATRACHIATC_MEDIA_STREAM_TRACK_H_

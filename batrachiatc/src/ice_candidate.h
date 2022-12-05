@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef BATRACHIATC_ICE_CANDIDATE_H_
+#define BATRACHIATC_ICE_CANDIDATE_H_
+#pragma once
 
 #include "api/peer_connection_interface.h"
 
@@ -45,3 +47,5 @@ typedef struct {
 const webrtc::IceCandidateInterface* from_c(RTCIceCandidate* candidate);
 RTCIceCandidate* into_c(webrtc::IceCandidateInterface* candidate);
 void free_ice_candidate(RTCIceCandidate* candidate);
+
+#endif  // BATRACHIATC_ICE_CANDIDATE_H_

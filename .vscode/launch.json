@@ -20,7 +20,8 @@
                 }
             },
             "args": [
-                "--video-input=e:/rtc/example/test.yuv"
+                "--video-input=e:/rtc/example/test.yuv",
+                "--video-output=e:/rtc/example/output.yuv"
             ],
             "cwd": "${workspaceFolder}"
         },

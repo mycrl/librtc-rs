@@ -1,14 +1,13 @@
 use std::slice::from_raw_parts;
-use std::sync::Arc;
 
 extern "C" {
     // free the i420 video frame allocated by c.
-    fn free_i420_frame(frame: *const RawI420Frame);
+    fn free_i420_frame(frame: *const RawVideoFrame);
 }
 
 #[repr(C)]
 #[derive(Debug)]
-pub(crate) struct RawI420Frame {
+pub(crate) struct RawVideoFrame {
     // frame size
     width: u32,
     height: u32,
@@ -26,80 +25,78 @@ pub(crate) struct RawI420Frame {
     remote: bool,
 }
 
-/// I420Frame represents the frame of the video, 
+/// VideoFrame represents the frame of the video,
 /// and the format is i420 (yu12).
 ///
-/// Also known as Planar YUV 4:2:0, this format is composed of 
-/// three distinct planes, one plane of luma and two planes of 
-/// chroma, denoted Y, U and V, and present in this order. 
-/// The U an V planes are sub-sampled horizontally and vertically 
-/// by a factor of 2 compared to the Y plane. Each sample in this 
+/// Also known as Planar YUV 4:2:0, this format is composed of
+/// three distinct planes, one plane of luma and two planes of
+/// chroma, denoted Y, U and V, and present in this order.
+/// The U an V planes are sub-sampled horizontally and vertically
+/// by a factor of 2 compared to the Y plane. Each sample in this
 /// format is 8 bits.
 #[derive(Debug)]
-pub struct I420Frame {
-    raw: *const RawI420Frame,
+pub struct VideoFrame {
+    raw: *const RawVideoFrame,
 }
 
-unsafe impl Send for I420Frame {}
-unsafe impl Sync for I420Frame {}
+unsafe impl Send for VideoFrame {}
+unsafe impl Sync for VideoFrame {}
 
-impl I420Frame {
-    pub(crate) fn from_raw(raw: *const RawI420Frame) -> Arc<Self> {
+impl VideoFrame {
+    pub(crate) fn from_raw(raw: *const RawVideoFrame) -> Self {
         assert!(!raw.is_null());
-        Arc::new(Self {
+        Self {
             raw,
-        })
+        }
     }
 
-    pub(crate) fn get_raw(&self) -> *const RawI420Frame {
+    pub(crate) fn get_raw(&self) -> *const RawVideoFrame {
         self.raw
     }
 
     /// Create i420 frame structure from memory buffer.
     ///
-    /// The created frame is memory-safe and thread-safe, and can be 
+    /// The created frame is memory-safe and thread-safe, and can be
     /// transferred and copied in threads
-    pub fn new(width: u32, height: u32, buf: &[u8]) -> Arc<Self> {
+    pub fn new(width: u32, height: u32, buf: &[u8]) -> Self {
         // Check memory buffer compliance
         let len = ((width * height) as f64 * 1.5) as usize;
         assert!(buf.len() >= len);
-        
-        /*
-         * ----> width
-         * | Y0 | Y1 | Y2 | Y3
-         * | U0 | U1 |
-         * | V0 | V0 |
-         */
+
+        // ----> width
+        // | Y0 | Y1 | Y2 | Y3
+        // | U0 | U1 |
+        // | V0 | V0 |
 
         // y planar: width * height
         // y stride: width (Does not calculate memory alignment)
         let y_size = (width * height) as usize;
         let y_stride = width as u32;
-        
+
         // uv planar: (width / 2) * (height / 2)
         // uv stride: width / 2 (Does not calculate memory alignment)
         let uv_size = (width * height / 4) as usize;
         let uv_stride = (width / 2) as u32;
 
-        Arc::new(Self {
-            raw: Box::into_raw(Box::new(RawI420Frame {
+        Self {
+            raw: Box::into_raw(Box::new(RawVideoFrame {
                 remote: false,
-                
+
                 // frame size
                 width,
                 height,
-                
+
                 //  yuv ptr
                 data_y: buf[..y_size].as_ptr(),
                 data_u: buf[y_size..y_size + uv_size].as_ptr(),
                 data_v: buf[y_size + uv_size..].as_ptr(),
-                
+
                 // yuv stride
                 stride_y: y_stride,
                 stride_u: uv_stride,
                 stride_v: uv_stride,
             })),
-        })
+        }
     }
 
     /// get i420 frame y buffer
@@ -142,15 +139,16 @@ impl I420Frame {
     }
 }
 
-impl Drop for I420Frame {
+impl Drop for VideoFrame {
     fn drop(&mut self) {
         let raw = unsafe { &*self.raw };
         if raw.remote {
             unsafe { free_i420_frame(self.raw) }
         } else {
             unsafe {
-                // If remote is false, it means the distribution is on the rust box.
-                let _ = Box::from_raw(self.raw as *mut RawI420Frame);
+                // If remote is false, it means the distribution is on the rust
+                // box.
+                let _ = Box::from_raw(self.raw as *mut RawVideoFrame);
             }
         }
     }

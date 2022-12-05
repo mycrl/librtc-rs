@@ -1,8 +1,13 @@
 use libc::*;
-use super::base::*;
-use std::sync::Arc;
-use std::slice::from_raw_parts;
-use tokio::sync::broadcast::*;
+use crate::{
+    stream_ext::*,
+    base::*,
+};
+
+use std::{
+    slice::from_raw_parts,
+    cell::UnsafeCell,
+};
 
 #[rustfmt::skip]
 #[allow(improper_ctypes)]
@@ -22,8 +27,8 @@ extern "C" {
 
     fn data_channel_on_message(
         channel: *const RawRTCDataChannel,
-        handler: extern "C" fn(*mut Sender<Vec<u8>>, *const u8, u64),
-        ctx: *mut Sender<Vec<u8>>,
+        handler: extern "C" fn(*mut Sinker<Vec<u8>>, *const u8, u64),
+        ctx: *mut Sinker<Vec<u8>>,
     );
 }
 
@@ -144,19 +149,13 @@ impl Into<RawDataChannelOptions> for &DataChannelOptions {
 #[derive(Debug)]
 pub struct RTCDataChannel {
     raw: *const RawRTCDataChannel,
+    sink: UnsafeCell<Option<*mut Sinker<Vec<u8>>>>,
 }
 
 unsafe impl Send for RTCDataChannel {}
 unsafe impl Sync for RTCDataChannel {}
 
 impl RTCDataChannel {
-    pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Arc<Self> {
-        assert!(!raw.is_null());
-        Arc::new(Self {
-            raw,
-        })
-    }
-
     /// Sends data across the data channel to the remote peer.
     pub fn send(&self, buf: &[u8]) {
         unsafe { data_channel_send(self.raw, buf.as_ptr(), buf.len() as c_int) }
@@ -168,17 +167,21 @@ impl RTCDataChannel {
         unsafe { data_channel_get_state(self.raw) }
     }
 
-    /// get rtc data channel sink.
-    pub fn get_sink(&self) -> RTCDataChannelSink {
-        let (tx, receiver) = channel(1);
-        let sender = Box::into_raw(Box::new(tx));
-        unsafe {
-            data_channel_on_message(self.raw, on_message_callback, sender)
-        }
+    /// Used to receive the remote data channel, the channel data of the
+    /// remote data channel is pushed to the receiver through the channel.
+    pub fn register_sink(&self, sink: Sinker<Vec<u8>>) {
+        let sink = Box::into_raw(Box::new(sink));
+        let raw_ptr = unsafe { &mut *self.sink.get() };
+        let _ = raw_ptr.insert(sink);
 
-        RTCDataChannelSink {
-            receiver,
-            sender,
+        unsafe { data_channel_on_message(self.raw, on_message_callback, sink) }
+    }
+
+    pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Self {
+        assert!(!raw.is_null());
+        Self {
+            sink: UnsafeCell::new(None),
+            raw,
         }
     }
 }
@@ -189,33 +192,15 @@ impl Drop for RTCDataChannel {
     }
 }
 
-/// Used to receive the remote data channel, the channel data of the 
-/// remote data channel is pushed to the receiver through the channel.
-pub struct RTCDataChannelSink {
-    pub receiver: Receiver<Vec<u8>>,
-    sender: *mut Sender<Vec<u8>>,
-}
-
-unsafe impl Send for RTCDataChannelSink {}
-unsafe impl Sync for RTCDataChannelSink {}
-
-impl Drop for RTCDataChannelSink {
-    fn drop(&mut self) {
-        unsafe {
-            let _ = Box::from_raw(self.sender);
-        }
-    }
-}
-
+#[no_mangle]
 extern "C" fn on_message_callback(
-    ctx: *mut Sender<Vec<u8>>,
+    ctx: *mut Sinker<Vec<u8>>,
     buf: *const u8,
     size: u64,
 ) {
     assert!(!ctx.is_null());
-    if !buf.is_null() {
-        unsafe { &*ctx }.send(
-            unsafe { from_raw_parts(buf, size as usize) }.to_vec(),
-        ).unwrap();
-    }
+    assert!(!buf.is_null());
+    unsafe { &mut *ctx }
+        .sink
+        .on_data(unsafe { from_raw_parts(buf, size as usize) }.to_vec());
 }

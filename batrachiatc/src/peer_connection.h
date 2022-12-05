@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef BATRACHIATC_PEER_CONNECTION_H_
+#define BATRACHIATC_PEER_CONNECTION_H_
+#pragma once
 
 #include "api/peer_connection_interface.h"
 #include "peer_connection_config.h"
@@ -28,7 +30,8 @@ connection between the local device and a remote peer.
 */
 extern "C" EXPORT RTCPeerConnection* create_rtc_peer_connection(
     RTCPeerConnectionConfigure* config,
-    IObserver* events);
+    Events* events,
+    void* ctx);
 
 /*
 The RTCPeerConnection.close() method closes the current peer connection.
@@ -148,3 +151,5 @@ extern "C" EXPORT void rtc_add_track(RTCPeerConnection * rtc,
 extern "C" EXPORT RTCDataChannel* rtc_create_data_channel(RTCPeerConnection * rtc,
     char* label,
     DataChannelOptions * options);
+
+#endif  // BATRACHIATC_PEER_CONNECTION_H_

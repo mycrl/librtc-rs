@@ -280,8 +280,7 @@ impl RTCConfiguration {
 
 impl Drop for RTCConfiguration {
     fn drop(&mut self) {
-        let raw_ptr = unsafe { *self.raw_ptr.get() };
-        if let Some(ptr) = raw_ptr {
+        if let Some(ptr) = unsafe { *self.raw_ptr.get() } {
             let _ = unsafe {
                 Box::from_raw(ptr as *mut RawRTCPeerConnectionConfigure)
             };

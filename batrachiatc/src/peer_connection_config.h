@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef BATRACHIATC_PEER_CONNECTION_CONFIG_H_
+#define BATRACHIATC_PEER_CONNECTION_CONFIG_H_
+#pragma once
 
 #include "api/peer_connection_interface.h"
 
@@ -143,3 +145,5 @@ std::vector<std::string> from_c(char** raw, int size);
 webrtc::PeerConnectionInterface::IceServer from_c(RTCIceServer raw);
 webrtc::PeerConnectionInterface::IceServers from_c(RTCIceServer* raw, int size);
 webrtc::PeerConnectionInterface::RTCConfiguration from_c(RTCPeerConnectionConfigure* raw);
+
+#endif  // BATRACHIATC_PEER_CONNECTION_CONFIG_H_

@@ -67,6 +67,7 @@ struct CreateDescriptionContext {
     callback: Box<dyn FnMut(Result<RTCSessionDescription>)>,
 }
 
+#[no_mangle]
 extern "C" fn create_description_callback(
     error: *const c_char,
     desc: *const RawRTCSessionDescription,

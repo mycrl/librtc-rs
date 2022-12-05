@@ -32,3 +32,6 @@ features = [ "sync" ]
 
 [build-dependencies]
 cc = "1.0"
+
+[build-dependencies.enver]
+path = "../enver"
