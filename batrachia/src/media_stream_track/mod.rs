@@ -71,6 +71,7 @@ impl MediaStreamTrack {
         }
     }
 
+    /// get raw media stream track ptr.
     pub(crate) fn get_raw(&self) -> *const RawMediaStreamTrack {
         match self {
             Self::Audio(track) => track.raw,

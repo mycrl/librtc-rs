@@ -42,7 +42,7 @@ unsafe impl Sync for VideoTrack {}
 
 impl VideoTrack {
     /// Create a new video track, may fail to create, such as
-    // insufficient memory.
+    /// insufficient memory.
     pub fn new(label: &str) -> Result<Arc<Self>> {
         let raw = unsafe { create_media_stream_video_track(to_c_str(label)?) };
         if raw.is_null() {
@@ -105,7 +105,6 @@ extern "C" fn on_video_frame_callback(
 ) {
     assert!(!ctx.is_null());
     assert!(!frame.is_null());
-    unsafe { &mut *ctx }
-        .sink
-        .on_data(VideoFrame::from_raw(frame));
+    let frame = VideoFrame::from_raw(frame);
+    unsafe { &mut *ctx }.sink.on_data(frame);
 }

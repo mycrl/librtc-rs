@@ -24,6 +24,7 @@ unsafe impl Send for AudioFrame {}
 unsafe impl Sync for AudioFrame {}
 
 impl AudioFrame {
+    /// crate AudiFrame from raw type.
     pub(crate) fn from_raw(raw_ptr: *const RawAudioFrame) -> Self {
         assert!(!raw_ptr.is_null());
         Self {

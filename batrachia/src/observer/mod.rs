@@ -188,6 +188,8 @@ pub enum IceConnectionState {
     Max,
 }
 
+/// PeerConnection callback interface, used for RTCPeerConnection events.
+/// Application should implement these methods.
 pub trait ObserverExt {
     /// A signalingstatechange event is sent to an RTCPeerConnection to notify
     /// it that its signaling state, as indicated by the signalingState
@@ -236,11 +238,13 @@ pub trait ObserverExt {
     fn on_data_channel(&mut self, _channel: RTCDataChannel) {}
 }
 
+/// wrapper observer trait impl.
 pub struct Observer {
     data: Box<dyn ObserverExt>,
 }
 
 impl<'a> Observer {
+    /// create observer trait impl wrapper.
     pub fn new<T: ObserverExt + 'static>(data: T) -> Self {
         Self {
             data: Box::new(data),
@@ -248,6 +252,7 @@ impl<'a> Observer {
     }
 }
 
+/// rtc peer connection observer events callback ref.
 #[repr(C)]
 #[rustfmt::skip]
 pub(crate) struct TEvents {
@@ -261,6 +266,7 @@ pub(crate) struct TEvents {
     on_connection_change: extern "C" fn(*mut Observer, PeerConnectionState),
 }
 
+/// events callback const ref.
 pub(crate) const EVENTS: TEvents = TEvents {
     on_signaling_change,
     on_datachannel,

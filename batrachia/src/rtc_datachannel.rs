@@ -200,7 +200,6 @@ extern "C" fn on_message_callback(
 ) {
     assert!(!ctx.is_null());
     assert!(!buf.is_null());
-    unsafe { &mut *ctx }
-        .sink
-        .on_data(unsafe { from_raw_parts(buf, size as usize) }.to_vec());
+    let array = unsafe { from_raw_parts(buf, size as usize) };
+    unsafe { &mut *ctx }.sink.on_data(array.to_vec());
 }

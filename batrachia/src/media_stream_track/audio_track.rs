@@ -76,7 +76,6 @@ extern "C" fn on_audio_frame_callback(
 ) {
     assert!(!ctx.is_null());
     assert!(!frame.is_null());
-    unsafe { &mut *ctx }
-        .sink
-        .on_data(AudioFrame::from_raw(frame));
+    let frame = AudioFrame::from_raw(frame);
+    unsafe { &mut *ctx }.sink.on_data(frame);
 }

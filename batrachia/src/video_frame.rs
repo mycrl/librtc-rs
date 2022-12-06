@@ -43,6 +43,7 @@ unsafe impl Send for VideoFrame {}
 unsafe impl Sync for VideoFrame {}
 
 impl VideoFrame {
+    /// create video frame from raw video frame type.
     pub(crate) fn from_raw(raw: *const RawVideoFrame) -> Self {
         assert!(!raw.is_null());
         Self {
