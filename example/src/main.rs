@@ -198,9 +198,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let (write, read) = ws_stream.split();
     let write = Arc::new(Mutex::new(write));
 
-    let mut observer = ObserverImpl::new(write.clone());
+    let observer = ObserverImpl::new(write.clone());
     let config = RTCConfiguration::default();
-    let pc = RTCPeerConnection::new(&config, &mut observer)?;
+    let pc = RTCPeerConnection::new(&config, observer)?;
 
     let stream = MediaStream::new("stream_id")?;
     let track = VideoTrack::new("video_track")?;

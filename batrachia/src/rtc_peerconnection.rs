@@ -15,6 +15,7 @@ use super::{
     rtc_icecandidate::*,
     rtc_peerconnection_configure::*,
     rtc_session_description::*,
+    abstracts::UintMemHeap,
 };
 
 #[rustfmt::skip]
@@ -87,6 +88,9 @@ pub(crate) type RawRTCPeerConnection = c_void;
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
     tracks: Mutex<Vec<(Arc<MediaStreamTrack>, Arc<MediaStream>)>>,
+
+    #[allow(dead_code)]
+    observer: UintMemHeap<Observer>,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -102,18 +106,24 @@ impl RTCPeerConnection {
     /// device and a remote peer.
     pub fn new(
         config: &RTCConfiguration,
-        observer: &mut Observer,
+        iobserver: Observer,
     ) -> Result<Arc<Self>> {
+        let observer = UintMemHeap::new();
         let raw = unsafe {
-            create_rtc_peer_connection(config.get_raw(), &EVENTS, observer)
+            create_rtc_peer_connection(
+                config.get_raw(), 
+                &EVENTS, 
+                observer.set(iobserver)
+            )
         };
 
         if raw.is_null() {
             Err(anyhow!("create peerconnection failed!"))
         } else {
             Ok(Arc::new(Self {
-                raw: unsafe { &*raw },
                 tracks: Mutex::new(Vec::with_capacity(10)),
+                raw: unsafe { &*raw },
+                observer,
             }))
         }
     }

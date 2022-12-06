@@ -1,8 +1,8 @@
-use super::base::*;
+use std::convert::*;
 use libc::*;
-use std::{
-    cell::UnsafeCell,
-    convert::*,
+use super::{
+    abstracts::UintMemHeap,
+    base::*,
 };
 
 /// How to handle negotiation of candidates when remote peer is not compatible
@@ -223,7 +223,7 @@ pub struct RTCConfiguration {
     pub ice_candidate_pool_size: Option<u8>,
 
     // box mannager
-    raw_ptr: UnsafeCell<Option<*const RawRTCPeerConnectionConfigure>>,
+    raw_ptr: UintMemHeap<RawRTCPeerConnectionConfigure>,
 }
 
 unsafe impl Send for RTCConfiguration {}
@@ -267,23 +267,9 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
 
 impl RTCConfiguration {
     pub(crate) fn get_raw(&self) -> *const RawRTCPeerConnectionConfigure {
-        let raw_ptr = unsafe { &mut *self.raw_ptr.get() };
-        if let Some(ptr) = raw_ptr {
-            return *ptr;
-        }
-
-        let raw = Box::into_raw(Box::new((self as &Self).into()));
-        let _ = raw_ptr.insert(raw);
-        raw
-    }
-}
-
-impl Drop for RTCConfiguration {
-    fn drop(&mut self) {
-        if let Some(ptr) = unsafe { *self.raw_ptr.get() } {
-            let _ = unsafe {
-                Box::from_raw(ptr as *mut RawRTCPeerConnectionConfigure)
-            };
+        match self.raw_ptr.get() {
+            None => self.raw_ptr.set(self.into()),
+            Some(ptr) => *ptr
         }
     }
 }

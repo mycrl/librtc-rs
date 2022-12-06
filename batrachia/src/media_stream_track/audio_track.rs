@@ -1,9 +1,6 @@
-use std::{
-    cell::UnsafeCell,
-    sync::Arc,
-};
-
+use std::sync::Arc;
 use crate::{
+    abstracts::UintMemHeap,
     audio_frame::*,
     stream_ext::*,
     base::*,
@@ -29,7 +26,7 @@ extern "C" {
 #[derive(Debug)]
 pub struct AudioTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sink: UnsafeCell<Option<*mut Sinker<AudioFrame>>>,
+    sink: UintMemHeap<Sinker<AudioFrame>>,
 }
 
 unsafe impl Send for AudioTrack {}
@@ -39,15 +36,11 @@ impl AudioTrack {
     /// Used to receive the remote audio stream, the audio frames of the
     /// remote audio track is pushed to the receiver through the channel.
     pub fn register_sink(&self, sink: Sinker<AudioFrame>) {
-        let sink = Box::into_raw(Box::new(sink));
-        let raw_ptr = unsafe { &mut *self.sink.get() };
-        let _ = raw_ptr.insert(sink);
-
         unsafe {
             media_stream_audio_track_on_frame(
                 self.raw,
                 on_audio_frame_callback,
-                sink,
+                self.sink.set(sink),
             )
         }
     }
@@ -55,7 +48,7 @@ impl AudioTrack {
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sink: UnsafeCell::new(None),
+            sink: UintMemHeap::new(),
             raw,
         })
     }
@@ -71,11 +64,7 @@ impl Drop for AudioTrack {
         if !raw.remote {
             free_cstring(raw.label);
         }
-
-        if let Some(sink) = unsafe { *self.sink.get() } {
-            let _ = unsafe { Box::from_raw(sink) };
-        }
-
+        
         unsafe { free_media_track(raw_ptr) }
     }
 }

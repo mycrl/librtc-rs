@@ -1,12 +1,8 @@
+use std::sync::Arc;
 use libc::*;
 use anyhow::{
     anyhow,
     Result,
-};
-
-use std::{
-    cell::UnsafeCell,
-    sync::Arc,
 };
 
 use super::{
@@ -15,8 +11,10 @@ use super::{
 };
 
 use crate::{
+    abstracts::UintMemHeap,
     video_frame::*,
     stream_ext::*,
+    base::*,
 };
 
 #[rustfmt::skip]
@@ -36,7 +34,7 @@ extern "C" {
 #[derive(Debug)]
 pub struct VideoTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sink: UnsafeCell<Option<*mut Sinker<VideoFrame>>>,
+    sink: UintMemHeap<Sinker<VideoFrame>>,
 }
 
 unsafe impl Send for VideoTrack {}
@@ -67,15 +65,11 @@ impl VideoTrack {
     /// Used to receive the remote video stream, the video frame of the
     /// remote video track is pushed to the receiver through the channel.
     pub fn register_sink(&self, sink: Sinker<VideoFrame>) {
-        let sink = Box::into_raw(Box::new(sink));
-        let raw_ptr = unsafe { &mut *self.sink.get() };
-        let _ = raw_ptr.insert(sink);
-
         unsafe {
             media_stream_video_track_on_frame(
                 self.raw,
                 on_video_frame_callback,
-                sink,
+                self.sink.set(sink),
             )
         }
     }
@@ -83,7 +77,7 @@ impl VideoTrack {
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sink: UnsafeCell::new(None),
+            sink: UintMemHeap::new(),
             raw,
         })
     }
@@ -99,11 +93,7 @@ impl Drop for VideoTrack {
         if !raw.remote {
             free_cstring(raw.label);
         }
-
-        if let Some(sink) = unsafe { *self.sink.get() } {
-            let _ = unsafe { Box::from_raw(sink) };
-        }
-
+        
         unsafe { free_media_track(raw_ptr) }
     }
 }
