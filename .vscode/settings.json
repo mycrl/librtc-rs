@@ -33,6 +33,8 @@
         "*.inc": "cpp",
         "__mutex_base": "cpp",
         "semaphore": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "typeinfo": "cpp",
+        "filesystem": "cpp"
     }
 }
