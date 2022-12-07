@@ -1,9 +1,14 @@
-use std::sync::Arc;
+use tokio::sync::RwLock;
+use std::{
+    collections::HashMap,
+    sync::Arc,
+};
+
 use crate::{
-    abstracts::UintMemHeap,
     audio_frame::*,
     stream_ext::*,
     base::*,
+    RUNTIME,
 };
 
 use super::{
@@ -16,17 +21,16 @@ use super::{
 extern "C" {
     fn media_stream_audio_track_on_frame(
         track: *const RawMediaStreamTrack,
-        handler: extern "C" fn(*mut Sinker<AudioFrame>, *const RawAudioFrame),
-        ctx: *mut Sinker<AudioFrame>,
+        handler: extern "C" fn(&AudioTrack, *const RawAudioFrame),
+        ctx: &AudioTrack,
     );
 }
 
 /// The AudioTrack interface represents a single audio track from
 /// a MediaStreamTrack.
-#[derive(Debug)]
 pub struct AudioTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sink: UintMemHeap<Sinker<AudioFrame>>,
+    sinks: Arc<RwLock<HashMap<u8, Sinker<Arc<AudioFrame>>>>>,
 }
 
 unsafe impl Send for AudioTrack {}
@@ -35,22 +39,40 @@ unsafe impl Sync for AudioTrack {}
 impl AudioTrack {
     /// Used to receive the remote audio stream, the audio frames of the
     /// remote audio track is pushed to the receiver through the channel.
-    pub fn register_sink(&self, sink: Sinker<AudioFrame>) {
-        unsafe {
-            media_stream_audio_track_on_frame(
-                self.raw,
-                on_audio_frame_callback,
-                self.sink.set(sink),
-            )
+    pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<AudioFrame>>) {
+        let mut sinks = self.sinks.write().await;
+        if sinks.is_empty() {
+            unsafe {
+                media_stream_audio_track_on_frame(
+                    self.raw,
+                    on_audio_frame,
+                    self,
+                )
+            }
         }
+
+        sinks.insert(id, sink);
+    }
+
+    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<AudioFrame>>> {
+        self.sinks.write().await.remove(&id)
     }
 
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sink: UintMemHeap::new(),
+            sinks: Arc::new(RwLock::new(HashMap::new())),
             raw,
         })
+    }
+
+    fn on_data(self: &Self, frame: Arc<AudioFrame>) {
+        let sinks = self.sinks.clone();
+        RUNTIME.spawn(async move {
+            for sinker in sinks.read().await.values() {
+                sinker.sink.on_data(frame.clone());
+            }
+        });
     }
 }
 
@@ -64,18 +86,14 @@ impl Drop for AudioTrack {
         if !raw.remote {
             free_cstring(raw.label);
         }
-        
+
         unsafe { free_media_track(raw_ptr) }
     }
 }
 
 #[no_mangle]
-extern "C" fn on_audio_frame_callback(
-    ctx: *mut Sinker<AudioFrame>,
-    frame: *const RawAudioFrame,
-) {
-    assert!(!ctx.is_null());
+extern "C" fn on_audio_frame(ctx: &AudioTrack, frame: *const RawAudioFrame) {
     assert!(!frame.is_null());
     let frame = AudioFrame::from_raw(frame);
-    unsafe { &mut *ctx }.sink.on_data(frame);
+    AudioTrack::on_data(ctx, frame);
 }

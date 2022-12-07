@@ -269,7 +269,7 @@ impl RTCConfiguration {
     pub(crate) fn get_raw(&self) -> *const RawRTCPeerConnectionConfigure {
         match self.raw_ptr.get() {
             None => self.raw_ptr.set(self.into()),
-            Some(ptr) => *ptr
+            Some(ptr) => *ptr,
         }
     }
 }

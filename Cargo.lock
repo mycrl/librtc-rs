@@ -29,6 +29,7 @@ dependencies = [
  "enver",
  "futures",
  "libc",
+ "once_cell",
  "tokio",
 ]
 

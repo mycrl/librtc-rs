@@ -1,12 +1,15 @@
+use tokio::sync::RwLock;
 use libc::*;
 use crate::{
     stream_ext::*,
     base::*,
+    RUNTIME,
 };
 
 use std::{
     slice::from_raw_parts,
-    cell::UnsafeCell,
+    collections::HashMap,
+    sync::Arc,
 };
 
 #[rustfmt::skip]
@@ -27,8 +30,8 @@ extern "C" {
 
     fn data_channel_on_message(
         channel: *const RawRTCDataChannel,
-        handler: extern "C" fn(*mut Sinker<Vec<u8>>, *const u8, u64),
-        ctx: *mut Sinker<Vec<u8>>,
+        handler: extern "C" fn(&DataChannel, *const u8, u64),
+        ctx: &DataChannel,
     );
 }
 
@@ -141,21 +144,22 @@ impl Into<RawDataChannelOptions> for &DataChannelOptions {
     }
 }
 
+pub type RTCDataChannel = Arc<DataChannel>;
+
 /// The RTCDataChannel interface represents a network channel which can be used
 /// for bidirectional peer-to-peer transfers of arbitrary data.
 ///
 /// Every data channel is associated with an RTCPeerConnection, and each peer
 /// connection can have up to a theoretical maximum of 65,534 data channels.
-#[derive(Debug)]
-pub struct RTCDataChannel {
+pub struct DataChannel {
     raw: *const RawRTCDataChannel,
-    sink: UnsafeCell<Option<*mut Sinker<Vec<u8>>>>,
+    sinks: Arc<RwLock<HashMap<u8, Sinker<Vec<u8>>>>>,
 }
 
-unsafe impl Send for RTCDataChannel {}
-unsafe impl Sync for RTCDataChannel {}
+unsafe impl Send for DataChannel {}
+unsafe impl Sync for DataChannel {}
 
-impl RTCDataChannel {
+impl DataChannel {
     /// Sends data across the data channel to the remote peer.
     pub fn send(&self, buf: &[u8]) {
         unsafe { data_channel_send(self.raw, buf.as_ptr(), buf.len() as c_int) }
@@ -169,37 +173,56 @@ impl RTCDataChannel {
 
     /// Used to receive the remote data channel, the channel data of the
     /// remote data channel is pushed to the receiver through the channel.
-    pub fn register_sink(&self, sink: Sinker<Vec<u8>>) {
-        let sink = Box::into_raw(Box::new(sink));
-        let raw_ptr = unsafe { &mut *self.sink.get() };
-        let _ = raw_ptr.insert(sink);
+    pub async fn register_sink(&self, id: u8, sink: Sinker<Vec<u8>>) {
+        let mut sinks = self.sinks.write().await;
+        if sinks.is_empty() {
+            unsafe { 
+                data_channel_on_message(
+                    self.raw, 
+                    on_message, 
+                    self
+                ) 
+            }
+        }
 
-        unsafe { data_channel_on_message(self.raw, on_message_callback, sink) }
+        sinks.insert(id, sink);
+    }
+    
+    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Vec<u8>>> {
+        self.sinks.write().await.remove(&id)
     }
 
-    pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Self {
+    pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Arc<Self> {
         assert!(!raw.is_null());
-        Self {
-            sink: UnsafeCell::new(None),
+        Arc::new(Self {
+            sinks: Arc::new(RwLock::new(HashMap::new())),
             raw,
-        }
+        })
+    }
+
+    fn on_data(self: &Self, data: Vec<u8>) {
+        let sinks = self.sinks.clone();
+        RUNTIME.spawn(async move {
+            for sinker in sinks.read().await.values() {
+                sinker.sink.on_data(data.clone());
+            }
+        });
     }
 }
 
-impl Drop for RTCDataChannel {
+impl Drop for DataChannel {
     fn drop(&mut self) {
         unsafe { free_data_channel(self.raw) }
     }
 }
 
 #[no_mangle]
-extern "C" fn on_message_callback(
-    ctx: *mut Sinker<Vec<u8>>,
+extern "C" fn on_message(
+    ctx: &DataChannel,
     buf: *const u8,
     size: u64,
 ) {
-    assert!(!ctx.is_null());
     assert!(!buf.is_null());
     let array = unsafe { from_raw_parts(buf, size as usize) };
-    unsafe { &mut *ctx }.sink.on_data(array.to_vec());
+    DataChannel::on_data(ctx, array.to_vec());
 }

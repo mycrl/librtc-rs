@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use libc::*;
 
 extern "C" {
@@ -15,7 +16,6 @@ pub struct RawAudioFrame {
 }
 
 /// A list of audio frames in pcm format, usually 10ms long.
-#[derive(Debug)]
 pub struct AudioFrame {
     raw_ptr: *const RawAudioFrame,
 }
@@ -25,11 +25,11 @@ unsafe impl Sync for AudioFrame {}
 
 impl AudioFrame {
     /// crate AudiFrame from raw type.
-    pub(crate) fn from_raw(raw_ptr: *const RawAudioFrame) -> Self {
+    pub(crate) fn from_raw(raw_ptr: *const RawAudioFrame) -> Arc<Self> {
         assert!(!raw_ptr.is_null());
-        Self {
+        Arc::new(Self {
             raw_ptr,
-        }
+        })
     }
 }
 

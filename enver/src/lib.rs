@@ -1,10 +1,10 @@
+use std::fs::File;
+use std::env;
 use std::io::{
     Result,
     BufRead,
     BufReader,
 };
-use std::fs::File;
-use std::env;
 
 pub fn init(is_debug: bool) -> Result<()> {
     let root_dir = env::var("CARGO_MANIFEST_DIR").unwrap();

@@ -1,5 +1,5 @@
-mod abstracts;
 mod base;
+mod abstracts;
 mod media_stream;
 mod media_stream_track;
 mod observer;
@@ -16,8 +16,8 @@ pub use media_stream::MediaStream;
 pub use media_stream_track::{
     MediaStreamTrack,
     MediaStreamTrackKind,
-    video_track::VideoTrack,
-    audio_track::AudioTrack,
+    VideoTrack,
+    AudioTrack,
 };
 
 pub use stream_ext::{
@@ -62,6 +62,13 @@ pub use observer::{
     SetDescriptionObserver,
     SignalingState,
 };
+
+use once_cell::sync::Lazy;
+use tokio::runtime::Runtime;
+
+static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    Runtime::new().unwrap()
+});
 
 /// By default, run() calls Thread::Current()->Run().
 /// To receive and dispatch messages, call ProcessMessages occasionally.

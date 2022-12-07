@@ -1,9 +1,11 @@
-pub(crate) mod audio_track;
-pub(crate) mod video_track;
+mod audio_track;
+mod video_track;
 
-use audio_track::*;
-use video_track::*;
+pub use audio_track::*;
+pub use video_track::*;
+
 use std::sync::Arc;
+use anyhow::Result;
 use libc::*;
 
 extern "C" {
@@ -46,15 +48,15 @@ pub(crate) struct RawMediaStreamTrack {
 ///
 /// these are audio or video tracks, but other track types may exist as
 /// well.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum MediaStreamTrack {
     Audio(Arc<AudioTrack>),
     Video(Arc<VideoTrack>),
 }
 
 impl MediaStreamTrack {
-    pub fn from_video(track: Arc<VideoTrack>) -> Arc<Self> {
-        Arc::new(Self::Video(track))
+    pub fn create_video_track(label: &str) -> Result<Self> {
+        Ok(Self::Video(VideoTrack::new(label)?))
     }
 
     /// Created through the original media stream track, video and audio

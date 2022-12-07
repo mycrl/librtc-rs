@@ -1,8 +1,13 @@
-use std::sync::Arc;
+use tokio::sync::RwLock;
 use libc::*;
 use anyhow::{
     anyhow,
     Result,
+};
+
+use std::{
+    collections::HashMap,
+    sync::Arc,
 };
 
 use super::{
@@ -11,10 +16,10 @@ use super::{
 };
 
 use crate::{
-    abstracts::UintMemHeap,
     video_frame::*,
     stream_ext::*,
     base::*,
+    RUNTIME,
 };
 
 #[rustfmt::skip]
@@ -24,17 +29,16 @@ extern "C" {
     fn media_stream_video_track_add_frame(track: *const RawMediaStreamTrack, frame: *const RawVideoFrame);
     fn media_stream_video_track_on_frame(
         track: *const RawMediaStreamTrack,
-        handler: extern "C" fn(*mut Sinker<VideoFrame>, *const RawVideoFrame),
-        ctx: *mut Sinker<VideoFrame>,
+        handler: extern "C" fn(&VideoTrack, *const RawVideoFrame),
+        ctx: &VideoTrack,
     );
 }
 
 /// The VideoTrack interface represents a single video track from
 /// a MediaStreamTrack.
-#[derive(Debug)]
 pub struct VideoTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sink: UintMemHeap<Sinker<VideoFrame>>,
+    sinks: Arc<RwLock<HashMap<u8, Sinker<Arc<VideoFrame>>>>>,
 }
 
 unsafe impl Send for VideoTrack {}
@@ -64,22 +68,40 @@ impl VideoTrack {
 
     /// Used to receive the remote video stream, the video frame of the
     /// remote video track is pushed to the receiver through the channel.
-    pub fn register_sink(&self, sink: Sinker<VideoFrame>) {
-        unsafe {
-            media_stream_video_track_on_frame(
-                self.raw,
-                on_video_frame_callback,
-                self.sink.set(sink),
-            )
+    pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<VideoFrame>>) {
+        let mut sinks = self.sinks.write().await;
+        if sinks.is_empty() {
+            unsafe {
+                media_stream_video_track_on_frame(
+                    self.raw,
+                    on_video_frame,
+                    self,
+                )
+            }
         }
+
+        sinks.insert(id, sink);
+    }
+    
+    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<VideoFrame>>> {
+       self.sinks.write().await.remove(&id)
     }
 
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sink: UintMemHeap::new(),
+            sinks: Arc::new(RwLock::new(HashMap::new())),
             raw,
         })
+    }
+
+    fn on_data(self: &Self, frame: Arc<VideoFrame>) {
+        let sinks = self.sinks.clone();
+        RUNTIME.spawn(async move {
+            for sinker in sinks.read().await.values() {
+                sinker.sink.on_data(frame.clone());
+            }
+        });
     }
 }
 
@@ -93,18 +115,14 @@ impl Drop for VideoTrack {
         if !raw.remote {
             free_cstring(raw.label);
         }
-        
+
         unsafe { free_media_track(raw_ptr) }
     }
 }
 
 #[no_mangle]
-extern "C" fn on_video_frame_callback(
-    ctx: *mut Sinker<VideoFrame>,
-    frame: *const RawVideoFrame,
-) {
-    assert!(!ctx.is_null());
+extern "C" fn on_video_frame(ctx: &VideoTrack, frame: *const RawVideoFrame) {
     assert!(!frame.is_null());
     let frame = VideoFrame::from_raw(frame);
-    unsafe { &mut *ctx }.sink.on_data(frame);
+    VideoTrack::on_data(ctx, frame);
 }

@@ -10,7 +10,6 @@ use super::{
 ///
 /// A stream consists of several tracks, such as video or audio tracks. Each
 /// track is specified as an instance of MediaStreamTrack.
-#[derive(Debug)]
 pub struct MediaStream {
     pub id: String,
     pub tracks: Vec<MediaStreamTrack>,

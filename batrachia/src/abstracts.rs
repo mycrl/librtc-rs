@@ -3,14 +3,16 @@ use std::cell::UnsafeCell;
 /// The type wrapper for interior mutability in rust.
 #[derive(Debug)]
 pub struct SafeCell<T> {
-    data: UnsafeCell<T>
+    data: UnsafeCell<T>,
 }
 
 impl<T> SafeCell<T> {
-    /// Constructs a new instance of UnsafeCell which will wrap the 
+    /// Constructs a new instance of UnsafeCell which will wrap the
     /// specified value.
     pub fn new(value: T) -> Self {
-        Self { data: UnsafeCell::new(value) }
+        Self {
+            data: UnsafeCell::new(value),
+        }
     }
 
     /// safe get mutability ref for inner value.
@@ -27,7 +29,7 @@ impl<T> SafeCell<T> {
 /// A wrapper type to construct uninitialized instances of T.
 /// inner manage auto drop.
 pub struct UintMemHeap<T> {
-    data: SafeCell<Option<*mut T>>
+    data: SafeCell<Option<*mut T>>,
 }
 
 impl<T> Default for UintMemHeap<T> {
@@ -45,15 +47,17 @@ impl<T> std::fmt::Debug for UintMemHeap<T> {
 impl<T> UintMemHeap<T> {
     /// Creates a new MaybeUninit<T> initialized with the given value.
     pub fn new() -> Self {
-        Self { data: SafeCell::new(None) }
+        Self {
+            data: SafeCell::new(None),
+        }
     }
 
     /// Sets the value of the UintMemHeap<T>.
     ///
-    /// This overwrites any previous value without dropping it, 
-    /// so be careful not to use this twice unless you want to skip 
-    /// running the destructor. For your convenience, this also 
-    /// returns a mutable reference to the (now safely initialized) 
+    /// This overwrites any previous value without dropping it,
+    /// so be careful not to use this twice unless you want to skip
+    /// running the destructor. For your convenience, this also
+    /// returns a mutable reference to the (now safely initialized)
     /// contents of self.
     pub fn set(&self, value: T) -> *mut T {
         let value = Box::into_raw(Box::new(value));

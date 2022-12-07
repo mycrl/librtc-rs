@@ -168,11 +168,7 @@ fn main() {
         .unwrap_or(true);
     enver::init(debug).unwrap();
 
-    for name in [
-        "WEBRTC_LIBRARY_PATH",
-        "SYS_LIBRARY_PATH",
-        "SYS_SOURCE_PATH",
-    ] {
+    for name in ["WEBRTC_LIBRARY_PATH", "SYS_LIBRARY_PATH", "SYS_SOURCE_PATH"] {
         println!("cargo:cargo:rerun-if-env-changed={}", name);
         if let Ok(path) = env::var(name) {
             println!("cargo:rerun-if-changed={}", path);

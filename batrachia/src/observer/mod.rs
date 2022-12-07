@@ -194,11 +194,11 @@ pub trait ObserverExt {
     /// A signalingstatechange event is sent to an RTCPeerConnection to notify
     /// it that its signaling state, as indicated by the signalingState
     /// property, has changed.
-    fn on_signaling_change(&mut self, _state: SignalingState) {}
+    fn on_signaling_change(&self, _state: SignalingState) {}
     /// The connectionstatechange event is sent to the onconnectionstatechange
     /// event handler on an RTCPeerConnection object after a new track has been
     /// added to an RTCRtpReceiver which is part of the connection.
-    fn on_connection_change(&mut self, _state: PeerConnectionState) {}
+    fn on_connection_change(&self, _state: PeerConnectionState) {}
     /// The icegatheringstatechange event is sent to the
     /// onicegatheringstatechange event handler on an RTCPeerConnection when
     /// the state of the ICE candidate gathering process changes. This
@@ -210,32 +210,32 @@ pub trait ObserverExt {
     /// collecting candidate configurations for the connection has begun. When
     /// the value changes to complete, all of the transports that make up the
     /// RTCPeerConnection have finished gathering ICE candidates.
-    fn on_ice_gathering_change(&mut self, _state: IceGatheringState) {}
+    fn on_ice_gathering_change(&self, _state: IceGatheringState) {}
     /// An icecandidate event is sent to an RTCPeerConnection when an
     /// RTCIceCandidate has been identified and added to the local peer by a
     /// call to RTCPeerConnection.setLocalDescription(). The event handler
     /// should transmit the candidate to the remote peer over the signaling
     /// channel so the remote peer can add it to its set of remote candidates.
-    fn on_ice_candidate(&mut self, _candidate: RTCIceCandidate) {}
+    fn on_ice_candidate(&self, _candidate: RTCIceCandidate) {}
     /// A negotiationneeded event is sent to the RTCPeerConnection when
     /// negotiation of the connection through the signaling channel is
     /// required. This occurs both during the initial setup of the connection
     /// as well as any time a change to the communication environment requires
     /// reconfiguring the connection.
-    fn on_renegotiation_needed(&mut self) {}
+    fn on_renegotiation_needed(&self) {}
     /// An iceconnectionstatechange event is sent to an RTCPeerConnection
     /// object each time the ICE connection state changes during the
     /// negotiation process. The new ICE connection state is available in the
     /// object's iceConnectionState property.
-    fn on_ice_connection_change(&mut self, _state: IceConnectionState) {}
+    fn on_ice_connection_change(&self, _state: IceConnectionState) {}
     /// The track event is sent to the ontrack event handler on
     /// RTCPeerConnections after a new track has been added to an
     /// RTCRtpReceiver which is part of the connection.
-    fn on_track(&mut self, _track: MediaStreamTrack) {}
+    fn on_track(&self, _track: MediaStreamTrack) {}
     /// A datachannel event is sent to an RTCPeerConnection instance when an
     /// RTCDataChannel has been added to the connection, as a result of the
     /// remote peer calling RTCPeerConnection.createDataChannel().
-    fn on_data_channel(&mut self, _channel: RTCDataChannel) {}
+    fn on_data_channel(&self, _channel: RTCDataChannel) {}
 }
 
 /// wrapper observer trait impl.
@@ -335,7 +335,7 @@ extern "C" fn on_datachannel(
 ) {
     assert!(!ctx.is_null());
     assert!(!channel.is_null());
-    let channel = RTCDataChannel::from_raw(channel);
+    let channel = DataChannel::from_raw(channel);
     unsafe { &mut *ctx }.data.on_data_channel(channel);
 }
 

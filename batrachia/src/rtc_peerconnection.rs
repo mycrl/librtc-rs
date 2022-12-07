@@ -87,7 +87,7 @@ pub(crate) type RawRTCPeerConnection = c_void;
 /// the connection, and close the connection once it's no longer needed.
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
-    tracks: Mutex<Vec<(Arc<MediaStreamTrack>, Arc<MediaStream>)>>,
+    tracks: Mutex<Vec<(MediaStreamTrack, Arc<MediaStream>)>>,
 
     #[allow(dead_code)]
     observer: UintMemHeap<Observer>,
@@ -111,9 +111,9 @@ impl RTCPeerConnection {
         let observer = UintMemHeap::new();
         let raw = unsafe {
             create_rtc_peer_connection(
-                config.get_raw(), 
-                &EVENTS, 
-                observer.set(iobserver)
+                config.get_raw(),
+                &EVENTS,
+                observer.set(iobserver),
             )
         };
 
@@ -213,7 +213,7 @@ impl RTCPeerConnection {
     /// set of tracks which will be transmitted to the other peer.
     pub async fn add_track(
         &self,
-        track: Arc<MediaStreamTrack>,
+        track: MediaStreamTrack,
         stream: Arc<MediaStream>,
     ) {
         unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
@@ -232,7 +232,7 @@ impl RTCPeerConnection {
         let opt: RawDataChannelOptions = opt.into();
         let raw = unsafe { rtc_create_data_channel(self.raw, c_label, &opt) };
         free_cstring(c_label);
-        RTCDataChannel::from_raw(raw)
+        DataChannel::from_raw(raw)
     }
 }
 

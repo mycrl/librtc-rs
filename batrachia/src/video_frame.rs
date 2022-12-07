@@ -1,4 +1,5 @@
 use std::slice::from_raw_parts;
+use std::sync::Arc;
 
 extern "C" {
     // free the i420 video frame allocated by c.
@@ -44,11 +45,11 @@ unsafe impl Sync for VideoFrame {}
 
 impl VideoFrame {
     /// create video frame from raw video frame type.
-    pub(crate) fn from_raw(raw: *const RawVideoFrame) -> Self {
+    pub(crate) fn from_raw(raw: *const RawVideoFrame) -> Arc<Self> {
         assert!(!raw.is_null());
-        Self {
+        Arc::new(Self {
             raw,
-        }
+        })
     }
 
     pub(crate) fn get_raw(&self) -> *const RawVideoFrame {
