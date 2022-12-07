@@ -2,6 +2,7 @@ use tokio::sync::RwLock;
 use libc::*;
 use crate::{
     stream_ext::*,
+    symbols::*,
     base::*,
     RUNTIME,
 };
@@ -11,29 +12,6 @@ use std::{
     collections::HashMap,
     sync::Arc,
 };
-
-#[rustfmt::skip]
-#[allow(improper_ctypes)]
-extern "C" {
-    fn free_data_channel(channel: *const RawRTCDataChannel);
-    
-    /// Returns a string which indicates the state of the data channel's
-    /// underlying data connection.
-    fn data_channel_get_state(channel: *const RawRTCDataChannel) -> DataChannelState;
-    
-    /// Sends data across the data channel to the remote peer.
-    fn data_channel_send(
-        channel: *const RawRTCDataChannel,
-        buf: *const u8,
-        size: c_int,
-    );
-
-    fn data_channel_on_message(
-        channel: *const RawRTCDataChannel,
-        handler: extern "C" fn(&DataChannel, *const u8, u64),
-        ctx: &DataChannel,
-    );
-}
 
 /// Indicates the state of the data channel connection.
 #[repr(i32)]
@@ -65,7 +43,6 @@ pub(crate) struct RawDataChannelOptions {
     protocol: *const c_char,
     negotiated: bool,
     id: c_int,
-    // Priority
     priority: c_int,
 }
 
@@ -132,13 +109,13 @@ impl Default for DataChannelOptions {
 impl Into<RawDataChannelOptions> for &DataChannelOptions {
     fn into(self) -> RawDataChannelOptions {
         RawDataChannelOptions {
+            id: self.id as c_int,
             reliable: self.reliable,
             ordered: self.ordered,
-            max_retransmit_time: self.max_retransmit_time.unwrap_or(0),
-            max_retransmits: self.max_retransmits.unwrap_or(0),
-            protocol: to_c_str(&self.protocol).unwrap(),
             negotiated: self.negotiated,
-            id: self.id as c_int,
+            protocol: to_c_str(&self.protocol).unwrap(),
+            max_retransmits: self.max_retransmits.unwrap_or(0),
+            max_retransmit_time: self.max_retransmit_time.unwrap_or(0),
             priority: self.priority.as_ref().map(|x| *x as c_int).unwrap_or(0),
         }
     }
@@ -171,27 +148,28 @@ impl DataChannel {
         unsafe { data_channel_get_state(self.raw) }
     }
 
-    /// Used to receive the remote data channel, the channel data of the
-    /// remote data channel is pushed to the receiver through the channel.
+    /// Register channel data sink, one channel can register multiple sinks.
+    /// The sink id cannot be repeated, otherwise the sink implementation will
+    /// be overwritten.
     pub async fn register_sink(&self, id: u8, sink: Sinker<Vec<u8>>) {
         let mut sinks = self.sinks.write().await;
+
+        // Register for the first time, register the callback function to
+        // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
-            unsafe { 
-                data_channel_on_message(
-                    self.raw, 
-                    on_message, 
-                    self
-                ) 
-            }
+            unsafe { data_channel_on_message(self.raw, on_message, self) }
         }
 
         sinks.insert(id, sink);
     }
-    
+
+    /// Delete the registered sink, if it exists, it will return the deleted
+    /// sink.
     pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Vec<u8>>> {
         self.sinks.write().await.remove(&id)
     }
 
+    /// Create data channel from raw type ptr.
     pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
@@ -217,11 +195,7 @@ impl Drop for DataChannel {
 }
 
 #[no_mangle]
-extern "C" fn on_message(
-    ctx: &DataChannel,
-    buf: *const u8,
-    size: u64,
-) {
+extern "C" fn on_message(ctx: &DataChannel, buf: *const u8, size: u64) {
     assert!(!buf.is_null());
     let array = unsafe { from_raw_parts(buf, size as usize) };
     DataChannel::on_data(ctx, array.to_vec());

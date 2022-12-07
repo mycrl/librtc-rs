@@ -6,7 +6,7 @@ use anyhow::{
     Result,
 };
 
-use super::{
+use crate::{
     base::*,
     media_stream::*,
     media_stream_track::*,
@@ -16,67 +16,8 @@ use super::{
     rtc_peerconnection_configure::*,
     rtc_session_description::*,
     abstracts::UintMemHeap,
+    symbols::*,
 };
-
-#[rustfmt::skip]
-#[allow(improper_ctypes)]
-extern "C" {
-    fn rtc_run();
-    fn rtc_close(peer: *const RawRTCPeerConnection);
-    
-    /// The RTCPeerConnection constructor returns a newly-created
-    /// RTCPeerConnection, which represents a connection between the local
-    /// device and a remote peer.
-    fn create_rtc_peer_connection(
-        config: *const RawRTCPeerConnectionConfigure,
-        events: *const TEvents,
-        observer: *mut Observer,
-    ) -> *const RawRTCPeerConnection;
-    
-    /// When a web site or app using RTCPeerConnection receives a new ICE
-    /// candidate from the remote peer over its signaling channel, it
-    /// delivers the newly-received candidate to the browser's ICE agent by
-    /// calling RTCPeerConnection.addIceCandidate(). This adds this new
-    /// remote candidate to the RTCPeerConnection's remote description,
-    /// which describes the state of the remote end of the connection.
-    ///
-    /// If the candidate parameter is missing or a value of null is given when
-    /// calling addIceCandidate(), the added ICE candidate is an
-    /// "end-of-candidates" indicator. The same is the case if the value of
-    /// the specified object's candidate is either missing or an empty
-    /// string (""), it signals that all remote candidates have been
-    /// delivered.
-    ///
-    /// The end-of-candidates notification is transmitted to the remote peer
-    /// using a candidate with an a-line value of end-of-candidates.
-    ///
-    /// During negotiation, your app will likely receive many candidates which
-    /// you'll deliver to the ICE agent in this way, allowing it to build up
-    /// a list of potential connection methods. This is covered in more
-    /// detail in the articles WebRTC connectivity and Signaling and video
-    /// calling.
-    fn rtc_add_ice_candidate(
-        peer: *const RawRTCPeerConnection, 
-        icecandidate: *const RawRTCIceCandidate
-    ) -> bool;
-    
-    /// The RTCPeerConnection method addTrack() adds a new media track to the
-    /// set of tracks which will be transmitted to the other peer.
-    fn rtc_add_track(
-        peer: *const RawRTCPeerConnection,
-        track: *const RawMediaStreamTrack,
-        id: *const c_char,
-    );
-
-    /// The createDataChannel() method on the RTCPeerConnection interface
-    /// creates a new channel linked with the remote peer, over which any kind
-    /// of data may be transmitted.
-    fn rtc_create_data_channel(
-        peer: *const RawRTCPeerConnection,
-        label: *const c_char,
-        options: *const RawDataChannelOptions,
-    ) -> *const RawRTCDataChannel;
-}
 
 pub(crate) type RawRTCPeerConnection = c_void;
 

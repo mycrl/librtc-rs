@@ -1,5 +1,4 @@
 use tokio::sync::RwLock;
-use libc::*;
 use anyhow::{
     anyhow,
     Result,
@@ -10,29 +9,14 @@ use std::{
     sync::Arc,
 };
 
-use super::{
-    RawMediaStreamTrack,
-    free_media_track,
-};
-
+use super::RawMediaStreamTrack;
 use crate::{
     video_frame::*,
     stream_ext::*,
+    symbols::*,
     base::*,
     RUNTIME,
 };
-
-#[rustfmt::skip]
-#[allow(improper_ctypes)]
-extern "C" {
-    fn create_media_stream_video_track(label: *const c_char) -> *const RawMediaStreamTrack;
-    fn media_stream_video_track_add_frame(track: *const RawMediaStreamTrack, frame: *const RawVideoFrame);
-    fn media_stream_video_track_on_frame(
-        track: *const RawMediaStreamTrack,
-        handler: extern "C" fn(&VideoTrack, *const RawVideoFrame),
-        ctx: &VideoTrack,
-    );
-}
 
 /// The VideoTrack interface represents a single video track from
 /// a MediaStreamTrack.
@@ -66,10 +50,14 @@ impl VideoTrack {
         }
     }
 
-    /// Used to receive the remote video stream, the video frame of the
-    /// remote video track is pushed to the receiver through the channel.
+    /// Register video track frame sink, one track can register multiple sinks.
+    /// The sink id cannot be repeated, otherwise the sink implementation will
+    /// be overwritten.
     pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<VideoFrame>>) {
         let mut sinks = self.sinks.write().await;
+
+        // Register for the first time, register the callback function to
+        // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
             unsafe {
                 media_stream_video_track_on_frame(
@@ -82,11 +70,14 @@ impl VideoTrack {
 
         sinks.insert(id, sink);
     }
-    
+
+    /// Delete the registered sink, if it exists, it will return the deleted
+    /// sink.
     pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<VideoFrame>>> {
-       self.sinks.write().await.remove(&id)
+        self.sinks.write().await.remove(&id)
     }
 
+    /// create video track from raw type ptr.
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
@@ -107,16 +98,13 @@ impl VideoTrack {
 
 impl Drop for VideoTrack {
     fn drop(&mut self) {
-        let raw_ptr = self.raw;
-        let raw = unsafe { &*raw_ptr };
-
         // If it is a track created locally, the label is allocated by rust
         // and needs to be freed by rust.
-        if !raw.remote {
-            free_cstring(raw.label);
+        if !unsafe { &*self.raw }.remote {
+            free_cstring(unsafe { &*self.raw }.label);
         }
 
-        unsafe { free_media_track(raw_ptr) }
+        unsafe { free_media_track(self.raw) }
     }
 }
 

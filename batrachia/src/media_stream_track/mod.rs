@@ -8,10 +8,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use libc::*;
 
-extern "C" {
-    pub(crate) fn free_media_track(track: *const RawMediaStreamTrack);
-}
-
 #[repr(i32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MediaStreamTrackKind {

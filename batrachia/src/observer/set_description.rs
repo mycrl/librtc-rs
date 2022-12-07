@@ -12,6 +12,7 @@ use super::{
 
 use crate::{
     base::*,
+    symbols::*,
     rtc_peerconnection::*,
     rtc_session_description::*,
 };
@@ -25,30 +26,6 @@ use std::sync::atomic::{
     AtomicPtr,
     Ordering,
 };
-
-extern "C" {
-    /// The RTCPeerConnection method setLocalDescription() changes the local
-    /// description associated with the connection. This description specifies
-    /// the properties of the local end of the connection, including the media
-    /// format.
-    fn rtc_set_local_description(
-        peer: *const RawRTCPeerConnection,
-        desc: *const RawRTCSessionDescription,
-        callback: extern "C" fn(*const c_char, *mut c_void),
-        ctx: *mut c_void,
-    );
-
-    /// The RTCPeerConnection method setRemoteDescription() sets the specified
-    /// session description as the remote peer's current offer or answer. The
-    /// description specifies the properties of the remote end of the
-    /// connection, including the media format.
-    fn rtc_set_remote_description(
-        peer: *const RawRTCPeerConnection,
-        desc: *const RawRTCSessionDescription,
-        callback: extern "C" fn(*const c_char, *mut c_void),
-        ctx: *mut c_void,
-    );
-}
 
 #[derive(PartialEq, Eq, PartialOrd)]
 pub(crate) enum SetDescriptionKind {

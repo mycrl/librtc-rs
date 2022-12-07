@@ -1,4 +1,5 @@
 mod base;
+mod symbols;
 mod abstracts;
 mod media_stream;
 mod media_stream_track;
@@ -66,12 +67,11 @@ pub use observer::{
 use once_cell::sync::Lazy;
 use tokio::runtime::Runtime;
 
-static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
-    Runtime::new().unwrap()
-});
+/// Global static tokio runtime.
+static RUNTIME: Lazy<Runtime> = Lazy::new(|| Runtime::new().unwrap());
 
 /// By default, run() calls Thread::Current()->Run().
-/// To receive and dispatch messages, call ProcessMessages occasionally.
+/// To receive and dispatch messages.
 pub fn run() {
     RTCPeerConnection::run()
 }

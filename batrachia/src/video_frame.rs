@@ -1,10 +1,6 @@
 use std::slice::from_raw_parts;
+use crate::symbols::*;
 use std::sync::Arc;
-
-extern "C" {
-    // free the i420 video frame allocated by c.
-    fn free_i420_frame(frame: *const RawVideoFrame);
-}
 
 #[repr(C)]
 #[derive(Debug)]

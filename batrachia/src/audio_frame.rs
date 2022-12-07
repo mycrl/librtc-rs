@@ -1,9 +1,6 @@
+use crate::symbols::*;
 use std::sync::Arc;
 use libc::*;
-
-extern "C" {
-    fn free_pcm_frames(frame: *const RawAudioFrame);
-}
 
 #[repr(C)]
 #[derive(Debug)]

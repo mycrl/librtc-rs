@@ -37,6 +37,7 @@ struct VideoSinkImpl;
 
 impl batrachia::SinkExt for VideoSinkImpl {
     type Item = Arc<VideoFrame>;
+
     fn on_data(&self, _value: Arc<VideoFrame>) {
         println!("on video frame");
     }
@@ -46,6 +47,7 @@ struct AudioSinkImpl;
 
 impl batrachia::SinkExt for AudioSinkImpl {
     type Item = Arc<AudioFrame>;
+
     fn on_data(&self, _value: Arc<AudioFrame>) {
         println!("on audio frame");
     }
@@ -55,6 +57,7 @@ struct ChannelSinkImpl;
 
 impl batrachia::SinkExt for ChannelSinkImpl {
     type Item = Vec<u8>;
+
     fn on_data(&self, value: Vec<u8>) {
         println!("on channel data: {:?}", value);
     }
@@ -98,7 +101,9 @@ impl ObserverExt for ObserverImpl {
     fn on_data_channel(&self, channel: RTCDataChannel) {
         let channels = self.channels.clone();
         tokio::spawn(async move {
-            channel.register_sink(0, Sinker::new(ChannelSinkImpl {})).await;
+            channel
+                .register_sink(0, Sinker::new(ChannelSinkImpl {}))
+                .await;
             channels.lock().await.push(channel);
         });
     }
@@ -114,7 +119,7 @@ impl ObserverExt for ObserverImpl {
                     track.register_sink(0, Sinker::new(AudioSinkImpl {})).await;
                 },
             }
-    
+
             tracks.lock().await.push(track);
         });
     }
@@ -187,7 +192,6 @@ struct Args {
     /// video yuv frames source file path
     #[arg(long)]
     video_input: String,
-
     // /// video yuv frames output file path
     // #[arg(long)]
     // video_output: String,
