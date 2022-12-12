@@ -1,15 +1,12 @@
-use tokio::sync::RwLock;
 use libc::*;
 use crate::{
     stream_ext::*,
     symbols::*,
     base::*,
-    RUNTIME,
 };
 
 use std::{
     slice::from_raw_parts,
-    collections::HashMap,
     sync::Arc,
 };
 
@@ -57,6 +54,7 @@ impl Drop for RawDataChannelOptions {
 pub(crate) struct RawRTCDataChannel {
     label: *const c_char,
     channel: *const c_void,
+    remote: bool,
 }
 
 pub struct DataChannelOptions {
@@ -130,7 +128,7 @@ pub type RTCDataChannel = Arc<DataChannel>;
 /// connection can have up to a theoretical maximum of 65,534 data channels.
 pub struct DataChannel {
     raw: *const RawRTCDataChannel,
-    sinks: Arc<RwLock<HashMap<u8, Sinker<Vec<u8>>>>>,
+    sinks: UnsafeVec<Sinker<Vec<u8>>>,
 }
 
 unsafe impl Send for DataChannel {}
@@ -139,6 +137,7 @@ unsafe impl Sync for DataChannel {}
 impl DataChannel {
     /// Sends data across the data channel to the remote peer.
     pub fn send(&self, buf: &[u8]) {
+        assert!(!unsafe { &*self.raw }.remote);
         unsafe { data_channel_send(self.raw, buf.as_ptr(), buf.len() as c_int) }
     }
 
@@ -151,40 +150,43 @@ impl DataChannel {
     /// Register channel data sink, one channel can register multiple sinks.
     /// The sink id cannot be repeated, otherwise the sink implementation will
     /// be overwritten.
-    pub async fn register_sink(&self, id: u8, sink: Sinker<Vec<u8>>) {
-        let mut sinks = self.sinks.write().await;
-
+    pub fn register_sink(&self, sink: Sinker<Vec<u8>>) -> usize {
+        assert!(unsafe { &*self.raw }.remote);
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
-        if sinks.is_empty() {
-            unsafe { data_channel_on_message(self.raw, on_message, self) }
+        if self.sinks.is_empty() {
+            unsafe { 
+                data_channel_on_message(
+                    self.raw, 
+                    on_channal_data, 
+                    self
+                )
+            }
         }
 
-        sinks.insert(id, sink);
+        self.sinks.push(sink)
     }
 
     /// Delete the registered sink, if it exists, it will return the deleted
     /// sink.
-    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Vec<u8>>> {
-        self.sinks.write().await.remove(&id)
+    pub fn remove_sink(&self, id: usize) -> Sinker<Vec<u8>> {
+        assert!(unsafe { &*self.raw }.remote);
+        self.sinks.remove(id)
     }
 
     /// Create data channel from raw type ptr.
     pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sinks: Arc::new(RwLock::new(HashMap::new())),
+            sinks: UnsafeVec::with_capacity(5),
             raw,
         })
     }
 
     fn on_data(self: &Self, data: Vec<u8>) {
-        let sinks = self.sinks.clone();
-        RUNTIME.spawn(async move {
-            for sinker in sinks.read().await.values() {
-                sinker.sink.on_data(data.clone());
-            }
-        });
+        for sinker in self.sinks.get_mut_slice() {
+            sinker.sink.on_data(data.clone());
+        }
     }
 }
 
@@ -195,7 +197,7 @@ impl Drop for DataChannel {
 }
 
 #[no_mangle]
-extern "C" fn on_message(ctx: &DataChannel, buf: *const u8, size: u64) {
+extern "C" fn on_channal_data(ctx: &DataChannel, buf: *const u8, size: u64) {
     assert!(!buf.is_null());
     let array = unsafe { from_raw_parts(buf, size as usize) };
     DataChannel::on_data(ctx, array.to_vec());

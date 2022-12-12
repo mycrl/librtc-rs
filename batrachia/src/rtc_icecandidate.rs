@@ -11,8 +11,8 @@ pub(crate) struct RawRTCIceCandidate {
 
 impl Drop for RawRTCIceCandidate {
     fn drop(&mut self) {
-        free_cstring(self.sdp_mid as *mut c_char);
-        free_cstring(self.candidate as *mut c_char);
+        free_cstring(self.sdp_mid.cast_mut());
+        free_cstring(self.candidate.cast_mut());
     }
 }
 

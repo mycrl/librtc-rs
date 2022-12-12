@@ -107,6 +107,7 @@ RTCDataChannel* create_data_channel(rtc::scoped_refptr<webrtc::DataChannelInterf
     strcpy(channel->label, label.c_str());
     channel->channel = IDataChannel::From(data_channel);
 
+    channel->remote = true;
     return channel;
 }
 

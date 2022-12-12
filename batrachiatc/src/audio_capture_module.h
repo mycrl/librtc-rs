@@ -3,6 +3,7 @@
 #pragma once
 
 #include "modules/audio_device/include/audio_device.h"
+#include "modules/audio_mixer/audio_mixer_impl.h"
 #include "api/peer_connection_interface.h"
 
 class AudioCaptureModule 
@@ -75,14 +76,15 @@ public:
     int32_t EnableBuiltInNS(bool enable);
 private:
     bool Initialize();
-
-    webrtc::AudioTransport* _audio_callback;
-    uint64_t _last_process_time_ms;
+    
+    int32_t _current_volume = 0;
+    uint64_t _last_process_time_ms = 0;
+    webrtc::AudioMixerImpl* _audio_mixer = NULL;
+    webrtc::AudioTransport* _audio_callback = NULL;
     bool _play_is_initialized = false;
     bool _rec_is_initialized = false;
     bool _playing = false;
     bool _recording = false;
-    int32_t _current_volume;
 };
 
 #endif  // BATRACHIATC_AUDIO_CAPTURE_MODULE_H_

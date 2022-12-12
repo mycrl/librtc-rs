@@ -1,28 +1,22 @@
-use tokio::sync::RwLock;
+use super::RawMediaStreamTrack;
+use std::sync::Arc;
 use anyhow::{
     anyhow,
     Result,
 };
 
-use std::{
-    collections::HashMap,
-    sync::Arc,
-};
-
-use super::RawMediaStreamTrack;
 use crate::{
     video_frame::*,
     stream_ext::*,
     symbols::*,
     base::*,
-    RUNTIME,
 };
 
 /// The VideoTrack interface represents a single video track from
 /// a MediaStreamTrack.
 pub struct VideoTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sinks: Arc<RwLock<HashMap<u8, Sinker<Arc<VideoFrame>>>>>,
+    sinks: UnsafeVec<Sinker<Arc<VideoFrame>>>,
 }
 
 unsafe impl Send for VideoTrack {}
@@ -45,20 +39,23 @@ impl VideoTrack {
     ///
     /// Only valid for local video streams.
     pub fn add_frame(&self, frame: &VideoFrame) {
+        assert!(!unsafe { &*self.raw }.remote);
         unsafe {
-            media_stream_video_track_add_frame(self.raw, frame.get_raw());
+            media_stream_video_track_add_frame(
+                self.raw, 
+                frame.get_raw()
+            );
         }
     }
 
     /// Register video track frame sink, one track can register multiple sinks.
     /// The sink id cannot be repeated, otherwise the sink implementation will
     /// be overwritten.
-    pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<VideoFrame>>) {
-        let mut sinks = self.sinks.write().await;
-
+    pub fn register_sink(&self, sink: Sinker<Arc<VideoFrame>>) -> usize {
+        assert!(unsafe { &*self.raw }.remote);
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
-        if sinks.is_empty() {
+        if self.sinks.is_empty() {
             unsafe {
                 media_stream_video_track_on_frame(
                     self.raw,
@@ -68,31 +65,29 @@ impl VideoTrack {
             }
         }
 
-        sinks.insert(id, sink);
+        self.sinks.push(sink)
     }
 
     /// Delete the registered sink, if it exists, it will return the deleted
     /// sink.
-    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<VideoFrame>>> {
-        self.sinks.write().await.remove(&id)
+    pub fn remove_sink(&self, id: usize) -> Sinker<Arc<VideoFrame>> {
+        assert!(unsafe { &*self.raw }.remote);
+        self.sinks.remove(id)
     }
 
     /// create video track from raw type ptr.
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sinks: Arc::new(RwLock::new(HashMap::new())),
+            sinks: UnsafeVec::with_capacity(5),
             raw,
         })
     }
 
     fn on_data(self: &Self, frame: Arc<VideoFrame>) {
-        let sinks = self.sinks.clone();
-        RUNTIME.spawn(async move {
-            for sinker in sinks.read().await.values() {
-                sinker.sink.on_data(frame.clone());
-            }
-        });
+        for sinker in self.sinks.get_mut_slice() {
+            sinker.sink.on_data(frame.clone());
+        }
     }
 }
 

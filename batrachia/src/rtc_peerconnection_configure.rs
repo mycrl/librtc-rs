@@ -82,16 +82,16 @@ pub(crate) struct RawRTCIceServer {
 
 impl Drop for RawRTCIceServer {
     fn drop(&mut self) {
-        free_cstring(self.credential as *mut c_char);
-        free_cstring(self.username as *mut c_char);
+        free_cstring(self.credential.cast_mut());
+        free_cstring(self.username.cast_mut());
         unsafe {
             if !self.urls.is_null() {
                 for url in Vec::from_raw_parts(
-                    self.urls as *mut *const c_char,
+                    self.urls.cast_mut(),
                     self.urls_size as usize,
                     self.urls_capacity as usize,
                 ) {
-                    free_cstring(url as *mut c_char);
+                    free_cstring(url.cast_mut());
                 }
             }
         }
@@ -114,10 +114,10 @@ pub(crate) struct RawRTCPeerConnectionConfigure {
 impl Drop for RawRTCPeerConnectionConfigure {
     fn drop(&mut self) {
         unsafe {
-            free_cstring(self.peer_identity as *mut c_char);
+            free_cstring(self.peer_identity.cast_mut());
             if !self.ice_servers.is_null() {
                 let _ = Vec::from_raw_parts(
-                    self.ice_servers as *mut RawRTCIceServer,
+                    self.ice_servers.cast_mut(),
                     self.ice_servers_size as usize,
                     self.ice_servers_capacity as usize,
                 );

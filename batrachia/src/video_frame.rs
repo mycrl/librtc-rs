@@ -1,24 +1,25 @@
-use std::slice::from_raw_parts;
 use crate::symbols::*;
-use std::sync::Arc;
+use anyhow::{
+    Result,
+    anyhow,
+};
+
+use std::{
+    slice::from_raw_parts,
+    sync::Arc,
+};
 
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct RawVideoFrame {
-    // frame size
+    buf: *const u8,
+    len: usize,
+
     width: u32,
     height: u32,
-
-    //  i420 frame layout
-    data_y: *const u8,
     stride_y: u32,
-    data_u: *const u8,
     stride_u: u32,
-    data_v: *const u8,
     stride_v: u32,
-
-    // Indicates who created this video frame,
-    // c created as true, rust created as false
     remote: bool,
 }
 
@@ -56,52 +57,49 @@ impl VideoFrame {
     ///
     /// The created frame is memory-safe and thread-safe, and can be
     /// transferred and copied in threads
+    /// 
+    /// ----> width
+    /// | Y0 | Y1 | Y2 | Y3
+    /// | U0 | U1 |
+    /// | V0 | V0 |
+    ///
+    /// y planar: width * height
+    /// y stride: width (Does not calculate memory alignment)
+    /// uv planar: (width / 2) * (height / 2)
+    /// uv stride: width / 2 (Does not calculate memory alignment)
     pub fn new(width: u32, height: u32, buf: &[u8]) -> Self {
-        // Check memory buffer compliance
-        let len = ((width * height) as f64 * 1.5) as usize;
-        assert!(buf.len() >= len);
-
-        // ----> width
-        // | Y0 | Y1 | Y2 | Y3
-        // | U0 | U1 |
-        // | V0 | V0 |
-
-        // y planar: width * height
-        // y stride: width (Does not calculate memory alignment)
-        let y_size = (width * height) as usize;
+        assert!(buf.len() >= ((width * height) as f64 * 1.5) as usize);
         let y_stride = width as u32;
-
-        // uv planar: (width / 2) * (height / 2)
-        // uv stride: width / 2 (Does not calculate memory alignment)
-        let uv_size = (width * height / 4) as usize;
         let uv_stride = (width / 2) as u32;
-
         Self {
             raw: Box::into_raw(Box::new(RawVideoFrame {
-                remote: false,
-
-                // frame size
-                width,
-                height,
-
-                //  yuv ptr
-                data_y: buf[..y_size].as_ptr(),
-                data_u: buf[y_size..y_size + uv_size].as_ptr(),
-                data_v: buf[y_size + uv_size..].as_ptr(),
-
-                // yuv stride
                 stride_y: y_stride,
                 stride_u: uv_stride,
                 stride_v: uv_stride,
+                buf: buf.as_ptr(),
+                len: buf.len(),
+                remote: false,
+                width,
+                height,
             })),
         }
+    }
+    
+    /// get video frame width.
+    pub fn width(&self) -> u32 {
+        unsafe { &*self.raw }.width
+    }
+    
+    /// get video frame height.
+    pub fn height(&self) -> u32 {
+        unsafe { &*self.raw }.height
     }
 
     /// get i420 frame y buffer
     pub fn data_y(&self) -> &[u8] {
         let raw = unsafe { &*self.raw };
-        let size = (raw.width * raw.height) as usize;
-        unsafe { from_raw_parts(raw.data_y, size) }
+        let size = (raw.stride_y * raw.height) as usize;
+        unsafe { from_raw_parts(raw.buf, size) }
     }
 
     /// get i420 frame y stride
@@ -113,8 +111,9 @@ impl VideoFrame {
     /// get i420 frame u buffer
     pub fn data_u(&self) -> &[u8] {
         let raw = unsafe { &*self.raw };
-        let size = (raw.width * raw.height / 4) as usize;
-        unsafe { from_raw_parts(raw.data_u, size) }
+        let y_size = (raw.stride_y * raw.height) as usize;
+        let size = (raw.stride_u * (raw.height / 2)) as usize;
+        unsafe { from_raw_parts(raw.buf.add(y_size), size) }
     }
 
     /// get i420 frame u stride
@@ -126,8 +125,9 @@ impl VideoFrame {
     /// get i420 frame v buffer
     pub fn data_v(&self) -> &[u8] {
         let raw = unsafe { &*self.raw };
-        let size = (raw.width * raw.height / 4) as usize;
-        unsafe { from_raw_parts(raw.data_v, size) }
+        let y_size = (raw.stride_y * raw.height) as usize;
+        let size = (raw.stride_u * (raw.height / 2)) as usize;
+        unsafe { from_raw_parts(raw.buf.add(y_size + size), size) }
     }
 
     /// get i420 frame v stride
@@ -135,19 +135,35 @@ impl VideoFrame {
         let raw = unsafe { &*self.raw };
         raw.stride_v as usize
     }
+
+    pub fn to_rgba(&self, dst: &mut [u8]) -> Result<()> {
+        let ret = unsafe { i420_to_rgba(self.raw, dst.as_mut_ptr()) };
+        if ret == 0 {
+            Ok(())
+        } else {
+            Err(anyhow!("i420 to rgba failed!"))
+        }
+    }
+}
+
+impl AsRef<[u8]> for VideoFrame {
+    fn as_ref(&self) -> &[u8] {
+        let raw = unsafe { &*self.raw };
+        unsafe { from_raw_parts(raw.buf, raw.len) }
+    }
 }
 
 impl Drop for VideoFrame {
     fn drop(&mut self) {
         let raw = unsafe { &*self.raw };
-        if raw.remote {
-            unsafe { free_i420_frame(self.raw) }
-        } else {
-            unsafe {
-                // If remote is false, it means the distribution is on the rust
-                // box.
-                let _ = Box::from_raw(self.raw as *mut RawVideoFrame);
-            }
+        unsafe {
+            // If remote is false, it means the distribution is 
+            // on the rust box.
+            if raw.remote {
+                free_video_frame(self.raw)
+            } else {
+                let _ = Box::from_raw(self.raw.cast_mut());
+            };
         }
     }
 }

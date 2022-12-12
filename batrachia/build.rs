@@ -31,7 +31,6 @@ fn get_lib_name(debug: bool, key: &str, long: bool) -> String {
     };
 
     let name = format!("{}-{}-{}-{}", key, os, arch, kind);
-
     if long {
         format!("{}{}.{}", flag, name, ext)
     } else {

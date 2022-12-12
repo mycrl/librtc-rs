@@ -7,35 +7,12 @@
 #include "api/video/video_frame_buffer.h"
 #include "media/base/video_adapter.h"
 #include "pc/video_track_source.h"
-#include "api/video/i420_buffer.h"
+#include "api/audio/audio_mixer.h"
+#include "frame.h"
 #include "base.h"
 
-typedef struct
-{
-    uint32_t width;
-    uint32_t height;
-
-    uint8_t* data_y;
-    uint32_t stride_y;
-    uint8_t* data_u;
-    uint32_t stride_u;
-    uint8_t* data_v;
-    uint32_t stride_v;
-    
-    bool remote;
-} I420Frame;
-
-typedef struct
-{
-    const uint8_t* buf;
-    int bits_per_sample;
-    int sample_rate;
-    int channels;
-    int frames;
-} PCMFrames;
-
 /*
-Video source
+video source
 */
 
 typedef struct
@@ -86,7 +63,7 @@ private:
 };
 
 /*
-Video Sink
+video Sink
 */
 
 class IVideoTrackSink
@@ -97,12 +74,47 @@ public:
     IVideoTrackSink(webrtc::VideoTrackInterface* track);
     static IVideoTrackSink* Create(webrtc::VideoTrackInterface* track);
     void OnFrame(const webrtc::VideoFrame& frame);
-    void SetOnFrame(void* ctx, void(*handler)(void* ctx, I420Frame* frame));
+    void SetOnFrame(void* ctx, void(*handler)(void* ctx, IVideoFrame* frame));
 private:
-    void(*_on_frame)(void* ctx, I420Frame* frame) = NULL;
+    void(*_on_frame)(void* ctx, IVideoFrame* frame) = NULL;
     webrtc::VideoTrackInterface* _track;
     rtc::VideoSinkWants _wants;
     void* _ctx;
+};
+
+/*
+audio source
+*/
+class IAudioTrackSource
+    : public webrtc::AudioMixer::Source
+    , public rtc::RefCountInterface
+{
+public:
+    IAudioTrackSource()
+    {
+
+    }
+
+    static IAudioTrackSource* Create()
+    {
+
+    }
+
+    AudioFrameInfo GetAudioFrameWithInfo(int sample_rate_hz,
+        webrtc::AudioFrame* frame)
+    {
+
+    }
+
+    int Ssrc() const
+    {
+
+    }
+
+    int PreferredSampleRate() const
+    {
+
+    }
 };
 
 /*
@@ -117,9 +129,9 @@ public:
     IAudioTrackSink(webrtc::AudioTrackInterface* track);
     static IAudioTrackSink* Create(webrtc::AudioTrackInterface* track);
     void OnData(const void* buf, int b, int s, size_t c, size_t f);
-    void SetOnFrame(void* ctx, void(*handler)(void* ctx, PCMFrames* frame));
+    void SetOnFrame(void* ctx, void(*handler)(void* ctx, IAudioFrame* frame));
 private:
-    void(*_handler)(void* ctx, PCMFrames* frame) = NULL;
+    void(*_handler)(void* ctx, IAudioFrame* frame) = NULL;
     webrtc::AudioTrackInterface* _track = NULL;
     void* _ctx = NULL;
 };
@@ -165,27 +177,25 @@ typedef struct {
     IVideoTrackSink* video_sink;
 
     /* --------------- audio --------------- */
+    IAudioTrackSource* audio_source;
     IAudioTrackSink* audio_sink;
 } MediaStreamTrack;
 
 extern "C" EXPORT void media_stream_video_track_on_frame(
     MediaStreamTrack * track,
-    void(handler)(void* ctx, I420Frame * frame),
+    void(handler)(void* ctx, IVideoFrame * frame),
     void* ctx);
+
 extern "C" EXPORT void media_stream_audio_track_on_frame(
     MediaStreamTrack* track,
-    void(handler)(void* ctx, PCMFrames* frame),
+    void(handler)(void* ctx, IAudioFrame* frame),
     void* ctx);
-extern "C" EXPORT void media_stream_video_track_add_frame(MediaStreamTrack * track, I420Frame* frame);
+
+extern "C" EXPORT void media_stream_video_track_add_frame(MediaStreamTrack * track, IVideoFrame* frame);
 extern "C" EXPORT MediaStreamTrack* create_media_stream_video_track(char* label);
 extern "C" EXPORT void free_media_track(MediaStreamTrack * track);
-extern "C" EXPORT void free_i420_frame(I420Frame* frame);
-extern "C" EXPORT void free_pcm_frames(PCMFrames* frame);
 
 MediaStreamTrack* media_stream_video_track_from(webrtc::VideoTrackInterface* track);
 MediaStreamTrack* media_stream_audio_track_from(webrtc::AudioTrackInterface* track);
-PCMFrames* into_c(const uint8_t* buf, int b, int r, size_t c, size_t f);
-I420Frame* into_c(webrtc::VideoFrame* frame);
-webrtc::VideoFrame from_c(I420Frame* frame);
 
 #endif  // BATRACHIATC_MEDIA_STREAM_TRACK_H_

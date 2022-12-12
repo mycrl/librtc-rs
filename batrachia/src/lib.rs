@@ -64,12 +64,6 @@ pub use observer::{
     SignalingState,
 };
 
-use once_cell::sync::Lazy;
-use tokio::runtime::Runtime;
-
-/// Global static tokio runtime.
-static RUNTIME: Lazy<Runtime> = Lazy::new(|| Runtime::new().unwrap());
-
 /// By default, run() calls Thread::Current()->Run().
 /// To receive and dispatch messages.
 pub fn run() {

@@ -2,15 +2,6 @@
 
 #include "api/video/i420_buffer.h"
 #include "media_stream_track.h"
-#include "base.h"
-
-void free_i420_frame(I420Frame* frame)
-{
-    free_incomplete_ptr(frame->data_y);
-    free_incomplete_ptr(frame->data_u);
-    free_incomplete_ptr(frame->data_v);
-    free_incomplete_ptr(frame);
-}
 
 void free_media_track(MediaStreamTrack* track)
 {
@@ -20,97 +11,6 @@ void free_media_track(MediaStreamTrack* track)
     }
 
     free_incomplete_ptr(track);
-}
-
-void free_pcm_frames(PCMFrames* frames)
-{
-    free_incomplete_ptr(frames);
-}
-
-I420Frame* into_c(webrtc::VideoFrame* frame)
-{
-    I420Frame* i420_frame = (I420Frame*)malloc(sizeof(I420Frame));
-    if (!i420_frame)
-    {
-        free_i420_frame(i420_frame);
-        return NULL;
-    }
-
-    auto video_frame_buf = frame->video_frame_buffer();
-    auto i420_buf = video_frame_buf->GetI420();
-    if (!i420_buf)
-    {
-        i420_buf = video_frame_buf->ToI420().get();
-    }
-
-    i420_frame->remote = true;
-
-    i420_frame->stride_y = i420_buf->StrideY();
-    i420_frame->stride_u = i420_buf->StrideU();
-    i420_frame->stride_v = i420_buf->StrideV();
-
-    i420_frame->width = i420_buf->width();
-    i420_frame->height = i420_buf->height();
-
-    int size_y = i420_frame->stride_y * i420_frame->height;
-    i420_frame->data_y = (uint8_t*)malloc(sizeof(uint8_t) * size_y);
-    if (!i420_frame->data_y)
-    {
-        free_i420_frame(i420_frame);
-        return NULL;
-    }
-
-    int size_u = i420_frame->stride_u * (i420_frame->height / 2);
-    i420_frame->data_u = (uint8_t*)malloc(sizeof(uint8_t) * size_u);
-    if (!i420_frame->data_u)
-    {
-        free_i420_frame(i420_frame);
-        return NULL;
-    }
-
-    int size_v = i420_frame->stride_v * (i420_frame->height / 2);
-    i420_frame->data_v = (uint8_t*)malloc(sizeof(uint8_t) * size_v);
-    if (!i420_frame->data_v)
-    {
-        free_i420_frame(i420_frame);
-        return NULL;
-    }
-
-    memcpy(i420_frame->data_y, i420_buf->DataY(), size_y);
-    memcpy(i420_frame->data_u, i420_buf->DataU(), size_u);
-    memcpy(i420_frame->data_v, i420_buf->DataV(), size_v);
-
-    return i420_frame;
-}
-
-webrtc::VideoFrame from_c(I420Frame* frame)
-{
-    auto i420_buf = webrtc::I420Buffer::Copy(
-        frame->width, frame->height,
-        frame->data_y, frame->stride_y,
-        frame->data_u, frame->stride_u,
-        frame->data_v, frame->stride_v);
-    return webrtc::VideoFrame(i420_buf, 0, 0, webrtc::kVideoRotation_0);
-}
-
-PCMFrames* into_c(const uint8_t* buf,
-    int bits_per_sample,
-    int sample_rate,
-    size_t channels,
-    size_t frames_)
-{
-    PCMFrames* frames = (PCMFrames*)malloc(sizeof(PCMFrames));
-    if (!frames)
-    {
-        return NULL;
-    }
-
-    frames->buf = buf;
-    frames->frames = frames_;
-    frames->channels = channels;
-    frames->sample_rate = sample_rate;
-    frames->bits_per_sample = bits_per_sample;
-    return frames;
 }
 
 /*
@@ -266,7 +166,7 @@ void IVideoTrackSink::OnFrame(const webrtc::VideoFrame& frame)
 }
 
 void IVideoTrackSink::SetOnFrame(void* ctx, 
-    void(*handler)(void* ctx, I420Frame* frame))
+    void(*handler)(void* ctx, IVideoFrame* frame))
 {
     _on_frame = handler;
     _ctx = ctx;
@@ -310,7 +210,7 @@ void IAudioTrackSink::OnData(const void* audio_data,
 }
 
 void IAudioTrackSink::SetOnFrame(void* ctx, 
-    void(*handler)(void* ctx, PCMFrames* frame))
+    void(*handler)(void* ctx, IAudioFrame* frame))
 {
     _handler = handler;
     _ctx = ctx;
@@ -320,7 +220,7 @@ void IAudioTrackSink::SetOnFrame(void* ctx,
 extern
 */
 
-void media_stream_video_track_add_frame(MediaStreamTrack* track, I420Frame* frame)
+void media_stream_video_track_add_frame(MediaStreamTrack* track, IVideoFrame* frame)
 {
     if (!track->video_source) {
         return;
@@ -331,7 +231,7 @@ void media_stream_video_track_add_frame(MediaStreamTrack* track, I420Frame* fram
 
 void media_stream_video_track_on_frame(
     MediaStreamTrack* track,
-    void(handler)(void* ctx, I420Frame* frame),
+    void(handler)(void* ctx, IVideoFrame* frame),
     void* ctx)
 {
     if (!track->video_sink) {
@@ -428,7 +328,7 @@ MediaStreamTrack* media_stream_audio_track_from(webrtc::AudioTrackInterface* itr
 
 void media_stream_audio_track_on_frame(
     MediaStreamTrack* track,
-    void(handler)(void* ctx, PCMFrames* frame),
+    void(handler)(void* ctx, IAudioFrame* frame),
     void* ctx)
 {
     track->audio_sink->SetOnFrame(ctx, handler);

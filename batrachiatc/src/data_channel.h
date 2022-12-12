@@ -80,6 +80,7 @@ channels (the actual limit may vary from browser to browser).
 typedef struct {
     char* label;
     IDataChannel* channel;
+    bool remote;
 } RTCDataChannel;
 
 extern "C" EXPORT void free_data_channel(RTCDataChannel* channel);

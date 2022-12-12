@@ -12,6 +12,8 @@ endif()
 add_library(batrachiatc STATIC
     src/base.h
     src/base.cpp
+    src/frame.h
+    src/frame.cpp
     src/media_stream_track.h
     src/media_stream_track.cpp
     src/observer.cpp

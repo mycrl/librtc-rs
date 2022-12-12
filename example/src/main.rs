@@ -1,45 +1,63 @@
 mod message;
+mod window;
 
+use clap::*;
 use batrachia::*;
-use futures_util::stream::*;
-use tokio_tungstenite::MaybeTlsStream;
-use tokio::net::TcpStream;
+use message::Payload;
 use futures_util::{
+    stream::*,
     StreamExt,
     SinkExt,
 };
 
-use clap::*;
-use message::Payload;
-use tokio_tungstenite::WebSocketStream;
-use std::io::SeekFrom;
-use std::sync::Arc;
+use tokio_tungstenite::{
+    tungstenite::protocol::Message,
+    WebSocketStream,
+    MaybeTlsStream,
+    connect_async,
+};
+
+use std::{
+    io::SeekFrom,
+    sync::Arc,
+};
+
 use tokio::io::{
     AsyncReadExt,
     AsyncSeekExt,
-    // AsyncWriteExt,
 };
-use tokio::fs;
 
-use tokio::sync::Mutex;
+use tokio::{
+    net::TcpStream,
+    sync::Mutex,
+    fs,
+};
+
 use tokio::time::{
     sleep,
     Duration,
 };
 
-use tokio_tungstenite::connect_async;
-use tokio_tungstenite::tungstenite::protocol::Message;
-
 type WsWriter = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
 type WsReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
-struct VideoSinkImpl;
+struct VideoSinkImpl {
+    app: window::MyApp,
+}
+
+impl VideoSinkImpl {
+    fn new() -> Sinker<Arc<VideoFrame>> {
+        Sinker::new(Self {
+            app: window::MyApp::new("WebRTC example"),
+        })
+    }
+}
 
 impl batrachia::SinkExt for VideoSinkImpl {
     type Item = Arc<VideoFrame>;
 
-    fn on_data(&self, _value: Arc<VideoFrame>) {
-        println!("on video frame");
+    fn on_data(&mut self, frame: Arc<VideoFrame>) {
+        self.app.push_frame(&frame);
     }
 }
 
@@ -48,9 +66,7 @@ struct AudioSinkImpl;
 impl batrachia::SinkExt for AudioSinkImpl {
     type Item = Arc<AudioFrame>;
 
-    fn on_data(&self, _value: Arc<AudioFrame>) {
-        println!("on audio frame");
-    }
+    fn on_data(&mut self, _value: Arc<AudioFrame>) {}
 }
 
 struct ChannelSinkImpl;
@@ -58,33 +74,33 @@ struct ChannelSinkImpl;
 impl batrachia::SinkExt for ChannelSinkImpl {
     type Item = Vec<u8>;
 
-    fn on_data(&self, value: Vec<u8>) {
+    fn on_data(&mut self, value: Vec<u8>) {
         println!("on channel data: {:?}", value);
     }
 }
 
 struct ObserverImpl {
-    tracks: Arc<Mutex<Vec<MediaStreamTrack>>>,
-    channels: Arc<Mutex<Vec<RTCDataChannel>>>,
+    tracks: Vec<MediaStreamTrack>,
+    channels: Vec<RTCDataChannel>,
     write: Arc<Mutex<WsWriter>>,
 }
 
 impl ObserverImpl {
     fn new(write: Arc<Mutex<WsWriter>>) -> Observer {
         Observer::new(Self {
-            tracks: Arc::new(Mutex::new(Vec::with_capacity(10))),
-            channels: Arc::new(Mutex::new(Vec::with_capacity(10))),
+            tracks: Vec::with_capacity(10),
+            channels: Vec::with_capacity(10),
             write,
         })
     }
 }
 
 impl ObserverExt for ObserverImpl {
-    fn on_connection_change(&self, state: PeerConnectionState) {
+    fn on_connection_change(&mut self, state: PeerConnectionState) {
         println!("signaling_change: {:?}", state);
     }
 
-    fn on_ice_candidate(&self, candidate: RTCIceCandidate) {
+    fn on_ice_candidate(&mut self, candidate: RTCIceCandidate) {
         let writer = self.write.clone();
         tokio::spawn(async move {
             writer
@@ -98,30 +114,22 @@ impl ObserverExt for ObserverImpl {
         });
     }
 
-    fn on_data_channel(&self, channel: RTCDataChannel) {
-        let channels = self.channels.clone();
-        tokio::spawn(async move {
-            channel
-                .register_sink(0, Sinker::new(ChannelSinkImpl {}))
-                .await;
-            channels.lock().await.push(channel);
-        });
+    fn on_data_channel(&mut self, channel: RTCDataChannel) {
+        channel.register_sink(Sinker::new(ChannelSinkImpl {}));
+        self.channels.push(channel);
     }
 
-    fn on_track(&self, mut track: MediaStreamTrack) {
-        let tracks = self.tracks.clone();
-        tokio::spawn(async move {
-            match &mut track {
-                MediaStreamTrack::Video(track) => {
-                    track.register_sink(0, Sinker::new(VideoSinkImpl {})).await;
-                },
-                MediaStreamTrack::Audio(track) => {
-                    track.register_sink(0, Sinker::new(AudioSinkImpl {})).await;
-                },
-            }
+    fn on_track(&mut self, mut track: MediaStreamTrack) {
+        match &mut track {
+            MediaStreamTrack::Video(track) => {
+                track.register_sink(VideoSinkImpl::new());
+            },
+            MediaStreamTrack::Audio(track) => {
+                track.register_sink(Sinker::new(AudioSinkImpl {}));
+            },
+        }
 
-            tracks.lock().await.push(track);
-        });
+        self.tracks.push(track);
     }
 }
 
@@ -163,8 +171,9 @@ async fn read_frame(
     track: MediaStreamTrack,
 ) -> anyhow::Result<()> {
     if let MediaStreamTrack::Video(track) = track {
-        let need_size = (1920 as f64 * 1080 as f64 * 1.5) as usize;
+        let need_size = (1920.0 * 1080.0 * 1.5) as usize;
         let mut buf = vec![0u8; need_size];
+
         loop {
             sleep(Duration::from_millis(1000 / 24)).await;
             match fs.read_exact(&mut buf).await {
@@ -192,9 +201,6 @@ struct Args {
     /// video yuv frames source file path
     #[arg(long)]
     video_input: String,
-    // /// video yuv frames output file path
-    // #[arg(long)]
-    // video_output: String,
 }
 
 #[tokio::main]
@@ -202,12 +208,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let (ws_stream, _) = connect_async(args.signaling).await?;
     let video_input = fs::File::open(args.video_input).await?;
-    // let video_output = fs::OpenOptions::new()
-    //     .read(true)
-    //     .write(true)
-    //     .create(true)
-    //     .open(args.video_output)
-    //     .await?;
 
     let (write, read) = ws_stream.split();
     let write = Arc::new(Mutex::new(write));

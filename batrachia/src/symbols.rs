@@ -94,8 +94,6 @@ extern "C" {
         ctx: *mut c_void,
     );
 
-    pub(crate) fn free_pcm_frames(frame: *const RawAudioFrame);
-
     pub(crate) fn free_data_channel(channel: *const RawRTCDataChannel);
 
     /// Returns a string which indicates the state of the data channel's
@@ -175,6 +173,10 @@ extern "C" {
         options: *const RawDataChannelOptions,
     ) -> *const RawRTCDataChannel;
 
+    pub(crate) fn free_audio_frame(frame: *const RawAudioFrame);
+    
     // free the i420 video frame allocated by c.
-    pub(crate) fn free_i420_frame(frame: *const RawVideoFrame);
+    pub(crate) fn free_video_frame(frame: *const RawVideoFrame);
+
+    pub(crate) fn i420_to_rgba(src: *const RawVideoFrame, dst: *mut u8) -> c_int;
 }
