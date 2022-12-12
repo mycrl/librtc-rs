@@ -25,8 +25,8 @@ impl MediaStream {
     /// that contains a specified list of tracks.
     pub fn new(id: &str) -> Result<Arc<Self>> {
         Ok(Arc::new(Self {
-            raw_id: to_c_str(&id)?,
             tracks: Vec::with_capacity(10),
+            raw_id: to_c_str(id)?,
             id: id.to_string(),
         }))
     }

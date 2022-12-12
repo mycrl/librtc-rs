@@ -1,8 +1,12 @@
 use super::RawMediaStreamTrack;
-use std::sync::Arc;
+use tokio::sync::Mutex;
+use std::{
+    collections::HashMap,
+    sync::Arc,
+};
+
 use crate::{
     frame::audio_frame::*,
-    abstracts::*,
     stream_ext::*,
     symbols::*,
     base::*,
@@ -12,7 +16,7 @@ use crate::{
 /// a MediaStreamTrack.
 pub struct AudioTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sinks: UnsafeVec<Sinker<Arc<AudioFrame>>>,
+    sinks: Mutex<HashMap<u8, Sinker<Arc<AudioFrame>>>>,
 }
 
 unsafe impl Send for AudioTrack {}
@@ -22,11 +26,13 @@ impl AudioTrack {
     /// Register audio track frame sink, one track can register multiple sinks.
     /// The sink id cannot be repeated, otherwise the sink implementation will
     /// be overwritten.
-    pub fn register_sink(&self, sink: Sinker<Arc<AudioFrame>>) -> usize {
+    pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<AudioFrame>>) {
         assert!(unsafe { &*self.raw }.remote);
+        let mut sinks = self.sinks.lock().await;
+
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
-        if self.sinks.is_empty() {
+        if sinks.is_empty() {
             unsafe {
                 media_stream_audio_track_on_frame(
                     self.raw,
@@ -36,28 +42,35 @@ impl AudioTrack {
             }
         }
 
-        self.sinks.push(sink)
+        sinks.insert(id, sink);
     }
 
-    /// Delete the registered sink, if it exists, it will return the deleted
-    /// sink.
-    pub fn remove_sink(&self, id: usize) -> Sinker<Arc<AudioFrame>> {
+    /// Delete the registered sink, if it exists, it will return the deleted sink.
+    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<AudioFrame>>> {
         assert!(unsafe { &*self.raw }.remote);
-        self.sinks.remove(id)
+        let mut sinks = self.sinks.lock().await;
+        let value = sinks.remove(&id);
+        if sinks.is_empty() {
+            unsafe { media_stream_track_stop_on_frame(self.raw) }
+        }
+
+        value
     }
 
     /// create audio track from raw type ptr.
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sinks: UnsafeVec::with_capacity(5),
+            sinks: Mutex::new(HashMap::new()),
             raw,
         })
     }
 
-    fn on_data(self: &Self, frame: Arc<AudioFrame>) {
-        for sinker in self.sinks.get_mut_slice() {
-            sinker.sink.on_data(frame.clone());
+    fn on_data(this: &Self, frame: Arc<AudioFrame>) {
+        if let Ok(mut sinks) = this.sinks.try_lock() {
+            for sinker in sinks.values_mut() {
+                sinker.sink.on_data(frame.clone());
+            }
         }
     }
 }

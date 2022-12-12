@@ -1,8 +1,6 @@
-use std::mem::ManuallyDrop;
-use std::cell::UnsafeCell;
-use std::sync::atomic::{
-    AtomicUsize,
-    Ordering,
+use std::{
+    mem::ManuallyDrop,
+    cell::UnsafeCell,
 };
 
 /// The type wrapper for interior mutability in rust.
@@ -81,43 +79,6 @@ impl<T> Drop for UintMemHeap<T> {
         if let Some(ref_value) = self.data.get() {
             let _ = unsafe { Box::from_raw(*ref_value) };
         }
-    }
-}
-
-pub struct UnsafeVec<T> {
-    size: AtomicUsize,
-    data: UnsafeCell<Vec<T>>,
-}
-
-impl<T> UnsafeVec<T> {
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            size: AtomicUsize::new(0),
-            data: UnsafeCell::new(Vec::with_capacity(capacity)),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.size.load(Ordering::SeqCst) == 0
-    }
-
-    pub fn push(&self, value: T) -> usize {
-        let index = self.size.fetch_add(1, Ordering::SeqCst);
-        unsafe { &mut *self.data.get() }.push(value);
-        index + 1
-    }
-
-    pub fn get_mut_slice(&self) -> &mut [T] {
-        let len = self.size.load(Ordering::SeqCst);
-        (unsafe { &mut *self.data.get() })[..len].as_mut()
-    }
-
-    pub fn remove(&self, index: usize) -> T {
-        assert!(index < self.size.load(Ordering::SeqCst));
-        let data = unsafe { &mut *self.data.get() };
-        let value = data.swap_remove(index);
-        self.size.fetch_sub(1, Ordering::SeqCst);
-        value
     }
 }
 

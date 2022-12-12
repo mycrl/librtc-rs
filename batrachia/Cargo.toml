@@ -25,7 +25,6 @@ categories = [
 libc = "0.2.121"
 anyhow = "1.0.52"
 futures = "0.3"
-crossbeam = "0.8.2"
 
 [dependencies.tokio]
 version = "1.20.0"

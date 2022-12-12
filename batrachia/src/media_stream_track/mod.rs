@@ -59,7 +59,7 @@ impl MediaStreamTrack {
     /// are processed separately.
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Self {
         assert!(!raw.is_null());
-        match unsafe { (&*raw).kind } {
+        match unsafe { (*raw).kind } {
             MediaStreamTrackKind::Audio => {
                 Self::Audio(AudioTrack::from_raw(raw))
             },

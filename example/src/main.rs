@@ -80,16 +80,16 @@ impl batrachia::SinkExt for ChannelSinkImpl {
 }
 
 struct ObserverImpl {
-    tracks: Vec<MediaStreamTrack>,
-    channels: Vec<RTCDataChannel>,
+    tracks: Arc<Mutex<Vec<MediaStreamTrack>>>,
+    channels: Arc<Mutex<Vec<RTCDataChannel>>>,
     write: Arc<Mutex<WsWriter>>,
 }
 
 impl ObserverImpl {
     fn new(write: Arc<Mutex<WsWriter>>) -> Observer {
         Observer::new(Self {
-            tracks: Vec::with_capacity(10),
-            channels: Vec::with_capacity(10),
+            tracks: Arc::new(Mutex::new(Vec::with_capacity(10))),
+            channels: Arc::new(Mutex::new(Vec::with_capacity(10))),
             write,
         })
     }
@@ -115,21 +115,27 @@ impl ObserverExt for ObserverImpl {
     }
 
     fn on_data_channel(&mut self, channel: RTCDataChannel) {
-        channel.register_sink(Sinker::new(ChannelSinkImpl {}));
-        self.channels.push(channel);
+        let channels = self.channels.clone();
+        tokio::spawn(async move {
+            channel.register_sink(0, Sinker::new(ChannelSinkImpl {})).await;
+            channels.lock().await.push(channel);
+        });
     }
 
     fn on_track(&mut self, mut track: MediaStreamTrack) {
-        match &mut track {
-            MediaStreamTrack::Video(track) => {
-                track.register_sink(VideoSinkImpl::new());
-            },
-            MediaStreamTrack::Audio(track) => {
-                track.register_sink(Sinker::new(AudioSinkImpl {}));
-            },
-        }
-
-        self.tracks.push(track);
+        let tracks = self.tracks.clone();
+        tokio::spawn(async move {
+            match &mut track {
+                MediaStreamTrack::Video(track) => {
+                    track.register_sink(0, VideoSinkImpl::new()).await;
+                },
+                MediaStreamTrack::Audio(track) => {
+                    track.register_sink(0, Sinker::new(AudioSinkImpl {})).await;
+                },
+            }
+    
+            tracks.lock().await.push(track);
+        });
     }
 }
 

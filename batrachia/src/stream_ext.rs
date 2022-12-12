@@ -1,5 +1,5 @@
 /// A Sink is a value into which other values can be sent.
-pub trait SinkExt {
+pub trait SinkExt: Send {
     type Item;
 
     /// on data for sink push.

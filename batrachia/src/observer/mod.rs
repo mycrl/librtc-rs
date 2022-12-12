@@ -243,7 +243,7 @@ pub struct Observer {
     data: Box<dyn ObserverExt>,
 }
 
-impl<'a> Observer {
+impl Observer {
     /// create observer trait impl wrapper.
     pub fn new<T: ObserverExt + 'static>(data: T) -> Self {
         Self {
