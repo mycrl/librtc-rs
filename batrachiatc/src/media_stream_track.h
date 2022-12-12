@@ -75,8 +75,9 @@ public:
     static IVideoTrackSink* Create(webrtc::VideoTrackInterface* track);
     void OnFrame(const webrtc::VideoFrame& frame);
     void SetOnFrame(void* ctx, void(*handler)(void* ctx, IVideoFrame* frame));
+    void RemoveOnFrame();
 private:
-    void(*_on_frame)(void* ctx, IVideoFrame* frame) = NULL;
+    void(*_handler)(void* ctx, IVideoFrame* frame) = NULL;
     webrtc::VideoTrackInterface* _track;
     rtc::VideoSinkWants _wants;
     void* _ctx;
@@ -130,6 +131,7 @@ public:
     static IAudioTrackSink* Create(webrtc::AudioTrackInterface* track);
     void OnData(const void* buf, int b, int s, size_t c, size_t f);
     void SetOnFrame(void* ctx, void(*handler)(void* ctx, IAudioFrame* frame));
+    void RemoveOnFrame();
 private:
     void(*_handler)(void* ctx, IAudioFrame* frame) = NULL;
     webrtc::AudioTrackInterface* _track = NULL;
@@ -191,7 +193,13 @@ extern "C" EXPORT void media_stream_audio_track_on_frame(
     void(handler)(void* ctx, IAudioFrame* frame),
     void* ctx);
 
-extern "C" EXPORT void media_stream_video_track_add_frame(MediaStreamTrack * track, IVideoFrame* frame);
+extern "C" EXPORT void media_stream_video_track_add_frame(
+    MediaStreamTrack * track, 
+    IVideoFrame* frame);
+
+extern "C" EXPORT void media_stream_track_stop_on_frame(
+    MediaStreamTrack * track);
+
 extern "C" EXPORT MediaStreamTrack* create_media_stream_video_track(char* label);
 extern "C" EXPORT void free_media_track(MediaStreamTrack * track);
 

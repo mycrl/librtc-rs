@@ -1,6 +1,9 @@
 use crate::symbols::*;
-use std::sync::Arc;
 use libc::*;
+use std::{
+    slice::from_raw_parts,
+    sync::Arc,
+};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -30,6 +33,13 @@ impl AudioFrame {
         Arc::new(Self {
             raw,
         })
+    }
+}
+
+impl AsRef<[u8]> for AudioFrame {
+    fn as_ref(&self) -> &[u8] {
+        let raw = unsafe { &*self.raw };
+        unsafe { from_raw_parts(raw.buf, raw.len) }
     }
 }
 

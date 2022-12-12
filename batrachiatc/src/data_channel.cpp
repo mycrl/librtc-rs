@@ -13,7 +13,6 @@ IDataChannel::IDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data
     _handler = NULL;
     _channel = data_channel;
     state = DataState::DataStateConnecting;
-    data_channel->RegisterObserver(this);
 }
 
 IDataChannel* IDataChannel::From(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
@@ -31,13 +30,6 @@ void IDataChannel::Send(uint8_t* buf, int size)
     }
 
     _channel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(buf, size), true));
-}
-
-void IDataChannel::OnDataMessage(void* ctx, 
-    void(*handler)(void* _ctx, uint8_t* buf, uint64_t size))
-{
-    _handler = handler;
-    _ctx = ctx;
 }
 
 void IDataChannel::OnStateChange()
@@ -60,6 +52,21 @@ void IDataChannel::OnMessage(const webrtc::DataBuffer& buffer)
     }
 
     _handler(_ctx, (uint8_t*)data, size);
+}
+
+void IDataChannel::OnDataMessage(void* ctx,
+    void(*handler)(void* _ctx, uint8_t* buf, uint64_t size))
+{
+    _channel->RegisterObserver(this);
+    _handler = handler;
+    _ctx = ctx;
+}
+
+void IDataChannel::RemoveOnMessage()
+{
+    _channel->UnregisterObserver();
+    _handler = NULL;
+    _ctx = NULL;
 }
 
 webrtc::DataChannelInit* from_c(DataChannelOptions* options)
@@ -126,4 +133,10 @@ void data_channel_on_message(RTCDataChannel* channel,
 DataState data_channel_get_state(RTCDataChannel* channel)
 {
     return channel->channel->state;
+}
+
+void data_channel_stop_on_message(
+    RTCDataChannel* channel)
+{
+    channel->channel->RemoveOnMessage();
 }

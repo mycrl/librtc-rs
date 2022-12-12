@@ -1,6 +1,7 @@
 use libc::*;
 use crate::{
     stream_ext::*,
+    abstracts::*,
     symbols::*,
     base::*,
 };
@@ -119,13 +120,6 @@ impl Into<RawDataChannelOptions> for &DataChannelOptions {
     }
 }
 
-pub type RTCDataChannel = Arc<DataChannel>;
-
-/// The RTCDataChannel interface represents a network channel which can be used
-/// for bidirectional peer-to-peer transfers of arbitrary data.
-///
-/// Every data channel is associated with an RTCPeerConnection, and each peer
-/// connection can have up to a theoretical maximum of 65,534 data channels.
 pub struct DataChannel {
     raw: *const RawRTCDataChannel,
     sinks: UnsafeVec<Sinker<Vec<u8>>>,
@@ -133,6 +127,13 @@ pub struct DataChannel {
 
 unsafe impl Send for DataChannel {}
 unsafe impl Sync for DataChannel {}
+
+/// The RTCDataChannel interface represents a network channel which can be used
+/// for bidirectional peer-to-peer transfers of arbitrary data.
+///
+/// Every data channel is associated with an RTCPeerConnection, and each peer
+/// connection can have up to a theoretical maximum of 65,534 data channels.
+pub type RTCDataChannel = Arc<DataChannel>;
 
 impl DataChannel {
     /// Sends data across the data channel to the remote peer.

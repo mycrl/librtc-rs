@@ -138,7 +138,6 @@ IVideoTrackSink::IVideoTrackSink(webrtc::VideoTrackInterface* track)
 {
     _ctx = NULL;
     _track = track;
-    _track->AddOrUpdateSink(this, _wants);
     _track->AddRef();
 }
 
@@ -151,7 +150,7 @@ IVideoTrackSink* IVideoTrackSink::Create(webrtc::VideoTrackInterface* track)
 
 void IVideoTrackSink::OnFrame(const webrtc::VideoFrame& frame)
 {
-    if (!_on_frame)
+    if (!_handler)
     {
         return;
     }
@@ -162,14 +161,22 @@ void IVideoTrackSink::OnFrame(const webrtc::VideoFrame& frame)
         return;
     }
 
-    _on_frame(_ctx, i420_frame);
+    _handler(_ctx, i420_frame);
 }
 
 void IVideoTrackSink::SetOnFrame(void* ctx, 
     void(*handler)(void* ctx, IVideoFrame* frame))
 {
-    _on_frame = handler;
+    _track->AddOrUpdateSink(this, _wants);
+    _handler = handler;
     _ctx = ctx;
+}
+
+void IVideoTrackSink::RemoveOnFrame()
+{
+    _track->RemoveSink(this);
+    _handler = NULL;
+    _ctx = NULL;
 }
 
 /*
@@ -179,7 +186,6 @@ IAudioTrackSink
 IAudioTrackSink::IAudioTrackSink(webrtc::AudioTrackInterface* track)
 {
     _track = track;
-    _track->AddSink(this);
     _track->AddRef();
 }
 
@@ -212,8 +218,16 @@ void IAudioTrackSink::OnData(const void* audio_data,
 void IAudioTrackSink::SetOnFrame(void* ctx, 
     void(*handler)(void* ctx, IAudioFrame* frame))
 {
+    _track->AddSink(this);
     _handler = handler;
     _ctx = ctx;
+}
+
+void IAudioTrackSink::RemoveOnFrame()
+{
+    _track->RemoveSink(this);
+    _handler = NULL;
+    _ctx = NULL;
 }
 
 /*
@@ -266,8 +280,7 @@ MediaStreamTrack* media_stream_video_track_from(webrtc::VideoTrackInterface* itr
 {
     MediaStreamTrack* track = (MediaStreamTrack*)malloc(sizeof(MediaStreamTrack));
     if (!track)
-    {
-        free_media_track(track);
+    { 
         return NULL;
     }
 
@@ -332,4 +345,18 @@ void media_stream_audio_track_on_frame(
     void* ctx)
 {
     track->audio_sink->SetOnFrame(ctx, handler);
+}
+
+void media_stream_track_stop_on_frame(
+    MediaStreamTrack* track)
+{
+    if (track->video_sink)
+    {
+        track->video_sink->RemoveOnFrame();
+    }
+
+    if (track->audio_sink)
+    {
+        track->audio_sink->RemoveOnFrame();
+    }
 }

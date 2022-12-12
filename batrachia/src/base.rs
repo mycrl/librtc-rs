@@ -5,16 +5,6 @@ use std::ffi::{
     CStr,
 };
 
-use std::{
-    mem::ManuallyDrop,
-    cell::UnsafeCell,
-};
-
-use std::sync::atomic::{
-    AtomicUsize,
-    Ordering,
-};
-
 /// ```no_run
 /// let c_str = to_c_str("test").unwrap();
 /// assert!(!c_str.is_null());
@@ -72,60 +62,5 @@ pub(crate) fn from_raw_mut_ptr<T>(ptr: *mut T) -> Option<*mut T> {
         None
     } else {
         Some(ptr)
-    }
-}
-
-/// ```no_run
-/// let vec = vec![0u8; 10];
-/// let (ptr, size, capacity) = vec.into_c_layout();
-/// assert!(ptr.is_null());
-/// assert_eq!(capacity, 10);
-/// assert_eq!(size, 10);
-/// ```
-pub(crate) trait VectorLayout<T> {
-    fn into_c_layout(self) -> (*mut T, usize, usize);
-}
-
-impl<T> VectorLayout<T> for Vec<T> {
-    fn into_c_layout(self) -> (*mut T, usize, usize) {
-        let mut me = ManuallyDrop::new(self);
-        (me.as_mut_ptr(), me.len(), me.capacity())
-    }
-}
-
-pub struct UnsafeVec<T> {
-    size: AtomicUsize,
-    data: UnsafeCell<Vec<T>>,
-}
-
-impl<T> UnsafeVec<T> {
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            size: AtomicUsize::new(0),
-            data: UnsafeCell::new(Vec::with_capacity(capacity)),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.size.load(Ordering::SeqCst) == 0
-    }
-
-    pub fn push(&self, value: T) -> usize {
-        let index = self.size.fetch_add(1, Ordering::SeqCst);
-        unsafe { &mut *self.data.get() }.push(value);
-        index + 1
-    }
-
-    pub fn get_mut_slice(&self) -> &mut [T] {
-        let len = self.size.load(Ordering::SeqCst);
-        (unsafe { &mut *self.data.get() })[..len].as_mut()
-    }
-
-    pub fn remove(&self, index: usize) -> T {
-        assert!(index < self.size.load(Ordering::SeqCst));
-        let data = unsafe { &mut *self.data.get() };
-        let value = data.swap_remove(index);
-        self.size.fetch_sub(1, Ordering::SeqCst);
-        value
     }
 }

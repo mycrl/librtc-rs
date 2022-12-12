@@ -6,8 +6,9 @@ use anyhow::{
 };
 
 use crate::{
-    video_frame::*,
+    frame::video_frame::*,
     stream_ext::*,
+    abstracts::*,
     symbols::*,
     base::*,
 };

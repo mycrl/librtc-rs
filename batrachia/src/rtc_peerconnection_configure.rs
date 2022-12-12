@@ -1,7 +1,7 @@
 use std::convert::*;
 use libc::*;
 use super::{
-    abstracts::UintMemHeap,
+    abstracts::*,
     base::*,
 };
 

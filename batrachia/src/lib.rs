@@ -1,4 +1,5 @@
 mod base;
+mod frame;
 mod symbols;
 mod abstracts;
 mod media_stream;
@@ -9,8 +10,6 @@ mod rtc_icecandidate;
 mod rtc_peerconnection;
 mod rtc_peerconnection_configure;
 mod rtc_session_description;
-mod video_frame;
-mod audio_frame;
 mod stream_ext;
 
 pub use media_stream::MediaStream;
@@ -28,8 +27,10 @@ pub use stream_ext::{
 
 pub use rtc_icecandidate::RTCIceCandidate;
 pub use rtc_peerconnection::RTCPeerConnection;
-pub use audio_frame::AudioFrame;
-pub use video_frame::VideoFrame;
+pub use frame::{
+    AudioFrame,
+    VideoFrame,
+};
 
 pub use rtc_datachannel::{
     DataChannelOptions,
