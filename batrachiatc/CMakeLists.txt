@@ -29,7 +29,9 @@ add_library(batrachiatc STATIC
     src/data_channel.h
     src/data_channel.cpp
     src/audio_capture_module.h
-    src/audio_capture_module.cpp)
+    src/audio_capture_module.cpp
+    src/video_encoder.h
+    src/video_encoder.cpp)
     
 include_directories(
     third_party/webrtc/src/third_party/libyuv/include

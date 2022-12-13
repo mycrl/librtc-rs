@@ -202,7 +202,7 @@ void IAudioTrackSink::OnData(const void* audio_data,
     size_t number_of_channels,
     size_t number_of_frames)
 {
-    if (!_handler)
+    if (!_handler || !audio_data)
     {
         return;
     }
@@ -347,8 +347,7 @@ void media_stream_audio_track_on_frame(
     track->audio_sink->SetOnFrame(ctx, handler);
 }
 
-void media_stream_track_stop_on_frame(
-    MediaStreamTrack* track)
+void media_stream_track_stop_on_frame(MediaStreamTrack* track)
 {
     if (track->video_sink)
     {

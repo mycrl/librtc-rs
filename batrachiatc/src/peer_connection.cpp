@@ -14,8 +14,9 @@ void rtc_run()
 
 void rtc_close(RTCPeerConnection* peer)
 {
-    delete peer;
+    peer->pc->Close();
     rtc::CleanupSSL();
+    delete peer;
 }
 
 RTCPeerConnection* create_rtc_peer_connection(RTCPeerConnectionConfigure* c_config, 
@@ -98,10 +99,6 @@ void rtc_add_track(RTCPeerConnection* rtc, MediaStreamTrack* track, char* stream
     {
         auto video_track = rtc->pc_factory->CreateVideoTrack(track->label, track->video_source);
         rtc->pc->AddTrack(video_track, { stream_id });
-    }
-    else
-    {
-        // rtc->pc_factory->CreateAudioSource();
     }
 }
 
