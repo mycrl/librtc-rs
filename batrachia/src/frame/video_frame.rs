@@ -1,9 +1,4 @@
 use crate::symbols::*;
-use anyhow::{
-    Result,
-    anyhow,
-};
-
 use std::{
     slice::from_raw_parts,
     sync::Arc,
@@ -134,15 +129,6 @@ impl VideoFrame {
     pub fn stride_v(&self) -> usize {
         let raw = unsafe { &*self.raw };
         raw.stride_v as usize
-    }
-
-    pub fn to_rgba(&self, dst: &mut [u8]) -> Result<()> {
-        let ret = unsafe { i420_to_rgba(self.raw, dst.as_mut_ptr()) };
-        if ret == 0 {
-            Ok(())
-        } else {
-            Err(anyhow!("i420 to rgba failed!"))
-        }
     }
 }
 

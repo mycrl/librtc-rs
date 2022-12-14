@@ -158,8 +158,6 @@ extern "C" {
     
     // free the i420 video frame allocated by c.
     pub(crate) fn free_video_frame(frame: *const RawVideoFrame);
-
-    pub(crate) fn i420_to_rgba(src: *const RawVideoFrame, dst: *mut u8) -> c_int;
     
     pub(crate) fn free_media_track(track: *const RawMediaStreamTrack);
 

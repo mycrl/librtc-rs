@@ -1,12 +1,12 @@
+use std::time::Duration;
 use minifb::{
-    Key,
     Window,
     WindowOptions,
 };
 
 pub struct MyApp {
     window: Option<Window>,
-    buf: Vec<u8>,
+    buf: Vec<u32>,
     name: String,
 }
 
@@ -35,25 +35,40 @@ impl MyApp {
             )
             .unwrap();
 
-            win.limit_update_rate(Some(std::time::Duration::from_millis(
+            win.limit_update_rate(Some(Duration::from_millis(
                 1000 / 24,
             )));
+            
             let _ = self.window.insert(win);
         }
 
         if self.buf.capacity() == 0 {
-            self.buf = vec![0u8; width * height * 4];
+            self.buf = vec![0u32; width * height];
         }
 
         if let Some(window) = &mut self.window {
-            if !window.is_open() || window.is_key_down(Key::Escape) {
+            if !window.is_open() {
                 return;
             }
 
-            frame.to_rgba(&mut self.buf[..]).unwrap();
+            unsafe { 
+                libyuv::i420_to_argb(
+                    frame.data_y().as_ptr(),
+                    frame.stride_y() as i32,
+                    frame.data_u().as_ptr(),
+                    frame.stride_u() as i32,
+                    frame.data_v().as_ptr(),
+                    frame.stride_v() as i32,
+                    self.buf.as_ptr() as *const u8,
+                    (frame.width() * 4) as i32,
+                    frame.width() as i32,
+                    frame.height() as i32
+                );
+            }
+  
             window
                 .update_with_buffer(
-                    unsafe { std::mem::transmute(&self.buf[..]) },
+                    &self.buf[..],
                     width,
                     height,
                 )

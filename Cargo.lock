@@ -206,6 +206,7 @@ dependencies = [
  "batrachia",
  "clap",
  "futures-util",
+ "libyuv",
  "minifb",
  "serde",
  "serde_json",
@@ -467,6 +468,14 @@ checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
 dependencies = [
  "cfg-if",
  "winapi",
+]
+
+[[package]]
+name = "libyuv"
+version = "0.1.0"
+dependencies = [
+ "enver",
+ "libc",
 ]
 
 [[package]]

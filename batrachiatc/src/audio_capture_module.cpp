@@ -14,6 +14,7 @@ AudioCaptureModule* AudioCaptureModule::Create()
 
 int32_t AudioCaptureModule::ActiveAudioLayer(AudioLayer* audioLayer) const
 {
+    *audioLayer = AudioDeviceModule::kDummyAudio;
     return 0;
 }
 
