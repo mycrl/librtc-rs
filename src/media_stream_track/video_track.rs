@@ -113,6 +113,7 @@ impl Drop for VideoTrack {
             free_cstring(unsafe { &*self.raw }.label);
         }
 
+        unsafe { media_stream_track_stop_on_frame(self.raw) }
         unsafe { free_media_track(self.raw) }
     }
 }

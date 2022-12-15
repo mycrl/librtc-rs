@@ -209,6 +209,7 @@ impl DataChannel {
 
 impl Drop for DataChannel {
     fn drop(&mut self) {
+        unsafe { data_channel_stop_on_message(self.raw) }
         unsafe { free_data_channel(self.raw) }
     }
 }
