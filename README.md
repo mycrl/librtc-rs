@@ -33,11 +33,11 @@ There are simple example in the [example](https://github.com/colourful-rtc/examp
 
 ### Building
 
-##### Automatic
+#### Automatic
 
 The batrachia crate will automatically find the precompiled static library files in the git batrachiatc repo release.
 
-##### Manual
+#### Manual
 
 A set of environment variables can be used to point batrachia towards. They will override the automatic detection logic.
 
