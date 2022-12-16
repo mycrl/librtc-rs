@@ -41,9 +41,7 @@ The batrachia crate will automatically find the precompiled static library files
 
 A set of environment variables can be used to point batrachia towards. They will override the automatic detection logic.
 
-* `WEBRTC_SOURCE_PATH` - The source code directory of Google webrtc native, generally used in conjunction with `SYS_SOURCE_PATH`.
 * `WEBRTC_LIBRARY_PATH` - webrtc static library path, this will skip downloading and use your static library.
-* `SYS_SOURCE_PATH` - The batrachiatc source file directory, used in conjunction with `WEBRTC_SOURCE_PATH`, if specified, will compile the batrachiatc static library locally.
 * `SYS_LIBRARY_PATH` - batrachiatc static library path, this will skip downloading and use your static library.
 
 
