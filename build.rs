@@ -33,7 +33,7 @@ fn get_lib_name(key: &str, long: bool) -> String {
 }
 
 fn download(name: &str) -> (String, String) {
-    let repository = env::var("CARGO_PKG_REPOSITORY").unwrap();
+    let repository = "https://github.com/colourful-rtc/batrachiatc";
     let version = env::var("CARGO_PKG_VERSION").unwrap();
     let output = env::var("OUT_DIR").unwrap();
 
