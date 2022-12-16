@@ -14,9 +14,9 @@ keywords = [
 ]
 
 categories = [
-    "webrtc",
-    "video",
-    "audio",
+    "multimedia",
+    "api-bindings",
+    "asynchronous",
     "media"
 ]
 
