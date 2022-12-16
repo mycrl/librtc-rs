@@ -77,10 +77,7 @@ fn link() {
 }
 
 fn main() {
-    let debug = env::var("DEBUG")
-        .map(|label| label == "true")
-        .unwrap_or(true);
-    enver::init(debug).unwrap();
+    dotenv::dotenv().unwrap();
 
     for name in ["WEBRTC_LIBRARY_PATH", "SYS_LIBRARY_PATH"] {
         println!("cargo:cargo:rerun-if-env-changed={}", name);

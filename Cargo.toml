@@ -33,6 +33,5 @@ features = [
     "rt" 
 ]
 
-[build-dependencies.enver]
-path = "../enver"
-version = "0.1.0"
+[build-dependencies]
+dotenv = "0.15.0"
