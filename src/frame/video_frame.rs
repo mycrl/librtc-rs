@@ -27,6 +27,18 @@ pub(crate) struct RawVideoFrame {
 /// The U an V planes are sub-sampled horizontally and vertically
 /// by a factor of 2 compared to the Y plane. Each sample in this
 /// format is 8 bits.
+/// 
+/// ```
+/// ----> width
+/// | Y0 | Y1 | Y2 | Y3
+/// | U0 | U1 |
+/// | V0 | V0 |
+/// ```
+///
+/// * y planar: width * height
+/// * y stride: width (Does not calculate memory alignment)
+/// * uv planar: (width / 2) * (height / 2)
+/// * uv stride: width / 2 (Does not calculate memory alignment)
 #[derive(Debug)]
 pub struct VideoFrame {
     raw: *const RawVideoFrame,
@@ -51,17 +63,7 @@ impl VideoFrame {
     /// Create i420 frame structure from memory buffer.
     ///
     /// The created frame is memory-safe and thread-safe, and can be
-    /// transferred and copied in threads
-    /// 
-    /// ----> width
-    /// | Y0 | Y1 | Y2 | Y3
-    /// | U0 | U1 |
-    /// | V0 | V0 |
-    ///
-    /// y planar: width * height
-    /// y stride: width (Does not calculate memory alignment)
-    /// uv planar: (width / 2) * (height / 2)
-    /// uv stride: width / 2 (Does not calculate memory alignment)
+    /// transferred and copied in threads.
     pub fn new(width: u32, height: u32, buf: &[u8]) -> Self {
         assert!(buf.len() >= ((width * height) as f64 * 1.5) as usize);
         let y_stride = width as u32;

@@ -59,34 +59,35 @@ pub(crate) struct RawRTCDataChannel {
     remote: bool,
 }
 
+/// An object providing configuration options for the data channel.
 pub struct DataChannelOptions {
-    // Deprecated. Reliability is assumed, and channel will be unreliable if
-    // maxRetransmitTime or MaxRetransmits is set.
+    /// Reliability is assumed, and channel will be unreliable if
+    /// maxRetransmitTime or MaxRetransmits is set.
     pub reliable: bool, // = false
-    // True if ordered delivery is required.
+    /// True if ordered delivery is required.
     pub ordered: bool, // = true
-    // The max period of time in milliseconds in which retransmissions will be
-    // sent. After this time, no more retransmissions will be sent.
-    //
-    // Cannot be set along with `maxRetransmits`.
-    // This is called `maxPacketLifeTime` in the WebRTC JS API.
-    // Negative values are ignored, and positive values are clamped to
-    // [0-65535]
+    /// The max period of time in milliseconds in which retransmissions will be
+    /// sent. After this time, no more retransmissions will be sent.
+    ///
+    /// Cannot be set along with `maxRetransmits`.
+    /// This is called `maxPacketLifeTime` in the WebRTC JS API.
+    /// Negative values are ignored, and positive values are clamped to
+    /// [0-65535]
     pub max_retransmit_time: Option<u64>,
-    // The max number of retransmissions.
-    //
-    // Cannot be set along with `maxRetransmitTime`.
-    // Negative values are ignored, and positive values are clamped to
-    // [0-65535]
+    /// The max number of retransmissions.
+    ///
+    /// Cannot be set along with `maxRetransmitTime`.
+    /// Negative values are ignored, and positive values are clamped to
+    /// [0-65535]
     pub max_retransmits: Option<u64>,
-    // This is set by the application and opaque to the WebRTC implementation.
+    /// This is set by the application and opaque to the WebRTC implementation.
     pub protocol: String, // = ""
-    // True if the channel has been externally negotiated and we do not send an
-    // in-band signalling in the form of an "open" message. If this is true,
-    // `id` below must be set; otherwise it should be unset and will be
-    // negotiated in-band.
+    /// True if the channel has been externally negotiated and we do not send an
+    /// in-band signalling in the form of an "open" message. If this is true,
+    /// `id` below must be set; otherwise it should be unset and will be
+    /// negotiated in-band.
     pub negotiated: bool, // = false
-    // The stream id, or SID, for SCTP data channels. -1 if unset (see above).
+    /// The stream id, or SID, for SCTP data channels. -1 if unset (see above).
     pub id: i8,
     pub priority: Option<DataChannelPriority>,
 }
@@ -121,6 +122,11 @@ impl Into<RawDataChannelOptions> for &DataChannelOptions {
     }
 }
 
+/// The RTCDataChannel interface represents a network channel which can be used
+/// for bidirectional peer-to-peer transfers of arbitrary data.
+///
+/// Every data channel is associated with an RTCPeerConnection, and each peer
+/// connection can have up to a theoretical maximum of 65,534 data channels.
 pub struct DataChannel {
     raw: *const RawRTCDataChannel,
     sinks: Mutex<HashMap<u8, Sinker<Vec<u8>>>>,
@@ -129,11 +135,7 @@ pub struct DataChannel {
 unsafe impl Send for DataChannel {}
 unsafe impl Sync for DataChannel {}
 
-/// The RTCDataChannel interface represents a network channel which can be used
-/// for bidirectional peer-to-peer transfers of arbitrary data.
-///
-/// Every data channel is associated with an RTCPeerConnection, and each peer
-/// connection can have up to a theoretical maximum of 65,534 data channels.
+/// Arc DataChannel.
 pub type RTCDataChannel = Arc<DataChannel>;
 
 impl DataChannel {
