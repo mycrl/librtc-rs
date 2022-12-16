@@ -5,8 +5,8 @@ edition = "2021"
 authors = [ "Mr.Panda <xivistudios@gmail.com>" ]
 description = "Facilitating high-level interactions between Rust and WebRTC"
 readme = "./README.md"
-homepage = "https://github.com/mycrl/batrachia"
-repository = "https://github.com/mycrl/batrachia"
+homepage = "https://github.com/colourful-rtc/batrachia"
+repository = "https://github.com/colourful-rtc/batrachia"
 license = "GPL-2.0-or-later"
 keywords = [
     "webrtc",
