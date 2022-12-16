@@ -10,7 +10,6 @@ repository = "https://github.com/mycrl/batrachia"
 license = "GPL-2.0-or-later"
 keywords = [
     "webrtc",
-    "google webrtc",
     "ffi"
 ]
 
