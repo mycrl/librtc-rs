@@ -26,7 +26,7 @@ The rust high-level abstraction binding of Google WebRTC [M99](https://groups.go
 Add the following to your Cargo.toml:
 
 ```toml
-batrachia = "0.1.0"
+batrachia = "0.1"
 ```
 
 There are simple example in the [example](https://github.com/colourful-rtc/example) repo.
