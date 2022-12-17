@@ -56,8 +56,6 @@ fn download(name: &str) -> (String, String) {
 }
 
 fn main() {
-    dotenv::dotenv().ok();
-
     for name in ["WEBRTC_LIBRARY_PATH", "SYS_LIBRARY_PATH"] {
         println!("cargo:cargo:rerun-if-env-changed={}", name);
         if let Ok(path) = env::var(name) {
