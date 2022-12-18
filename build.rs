@@ -41,6 +41,7 @@ fn download(name: &str) -> (String, String) {
     let path = join(&output, &lib_name);
     if !path.exists() {
         Command::new("curl")
+            .arg("-f")
             .arg("-L")
             .arg("-o")
             .arg(path.to_str().unwrap())
@@ -49,7 +50,9 @@ fn download(name: &str) -> (String, String) {
                 repository, version, lib_name
             ))
             .output()
-            .unwrap();
+            .expect("There is no precompiled binary library file in git \
+                releases, please try to compile it yourself according to the \
+                README, see https://github.com/colourful-rtc/batrachiatc");
     }
 
     split(&path)
