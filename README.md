@@ -8,7 +8,6 @@
 </div>
 </br>
 <div align="center">
-    <img src="https://img.shields.io/github/workflow/status/colourful-rtc/batrachia/tests"/>
     <img src="https://img.shields.io/github/languages/top/colourful-rtc/batrachia"/>
     <img src="https://img.shields.io/github/license/colourful-rtc/batrachia"/>
     <img src="https://img.shields.io/github/issues/colourful-rtc/batrachia"/>
