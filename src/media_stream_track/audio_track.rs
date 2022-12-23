@@ -15,7 +15,7 @@ use crate::{
 /// a MediaStreamTrack.
 pub struct AudioTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sinks: Mutex<HashMap<u8, Sinker<Arc<AudioFrame>>>>,
+    sinks:          Mutex<HashMap<u8, Sinker<Arc<AudioFrame>>>>,
 }
 
 unsafe impl Send for AudioTrack {}

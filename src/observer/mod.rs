@@ -32,7 +32,7 @@ where
 {
     waker: Arc<AtomicWaker>,
     begin: bool,
-    ext: T,
+    ext:   T,
 }
 
 impl<T> Future for ObserverPromisify<T>

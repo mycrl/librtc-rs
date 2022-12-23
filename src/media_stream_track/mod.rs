@@ -20,20 +20,20 @@ pub(crate) struct RawMediaStreamTrack {
     /// Returns a string set to "audio" if the track is an audio track and to
     /// "video", if it is a video track. It doesn't change if the track is
     /// disassociated from its source.
-    pub kind: MediaStreamTrackKind,
+    pub kind:   MediaStreamTrackKind,
     /// Returns a string containing a user agent-assigned label that identifies
     /// the track source, as in "internal microphone". The string may be
     /// left empty and is empty as long as no source has been connected.
     /// When the track is disassociated from its source, the label is not
     /// changed.
-    pub label: *const c_char,
+    pub label:  *const c_char,
     /// Returns a Boolean with a value of true if the track is sourced by a
     /// RTCPeerConnection, false otherwise.
     pub remote: bool,
 
     // video
     video_source: *const c_void,
-    video_sink: *const c_void,
+    video_sink:   *const c_void,
 
     // audio
     audio_sink: *const c_void,

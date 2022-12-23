@@ -7,14 +7,14 @@ use crate::{
 
 #[repr(C)]
 struct RawParameter {
-    key: *const c_char,
+    key:   *const c_char,
     value: *const c_char,
 }
 
 impl From<(&str, &str)> for RawParameter {
     fn from(value: (&str, &str)) -> Self {
         Self {
-            key: to_c_str(value.0).unwrap(),
+            key:   to_c_str(value.0).unwrap(),
             value: to_c_str(value.1).unwrap(),
         }
     }
@@ -22,10 +22,10 @@ impl From<(&str, &str)> for RawParameter {
 
 #[repr(C)]
 struct RawCodec {
-    name: *const c_char,
-    pars: *const *const RawParameter,
+    name:     *const c_char,
+    pars:     *const *const RawParameter,
     capacity: usize,
-    len: usize,
+    len:      usize,
 }
 
 impl From<&VideoEncoder> for RawCodec {
@@ -52,9 +52,9 @@ impl From<&VideoEncoder> for RawCodec {
 
 #[repr(C)]
 struct RawCodecs {
-    codecs: *const *const RawCodec,
+    codecs:   *const *const RawCodec,
     capacity: usize,
-    len: usize,
+    len:      usize,
 }
 
 impl From<&[VideoEncoder]> for RawCodecs {
@@ -75,7 +75,7 @@ impl From<&[VideoEncoder]> for RawCodecs {
 }
 
 pub struct VideoEncoder {
-    name: String,
+    name:       String,
     parameters: HashMap<String, String>,
 }
 

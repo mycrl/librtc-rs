@@ -27,7 +27,7 @@ pub(crate) type RawRTCPeerConnection = c_void;
 /// It provides methods to connect to a remote peer, maintain and monitor
 /// the connection, and close the connection once it's no longer needed.
 pub struct RTCPeerConnection {
-    raw: *const RawRTCPeerConnection,
+    raw:    *const RawRTCPeerConnection,
     tracks: Mutex<Vec<(MediaStreamTrack, Arc<MediaStream>)>>,
 
     #[allow(dead_code)]
@@ -164,7 +164,7 @@ impl RTCPeerConnection {
                 stream.get_id(),
             )
         }
-        
+
         self.tracks.lock().await.push((track, stream));
     }
 

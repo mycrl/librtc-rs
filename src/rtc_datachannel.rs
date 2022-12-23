@@ -35,14 +35,14 @@ pub enum DataChannelPriority {
 
 #[repr(C)]
 pub(crate) struct RawDataChannelOptions {
-    reliable: bool,
-    ordered: bool,
+    reliable:            bool,
+    ordered:             bool,
     max_retransmit_time: u64,
-    max_retransmits: u64,
-    protocol: *const c_char,
-    negotiated: bool,
-    id: c_int,
-    priority: c_int,
+    max_retransmits:     u64,
+    protocol:            *const c_char,
+    negotiated:          bool,
+    id:                  c_int,
+    priority:            c_int,
 }
 
 impl Drop for RawDataChannelOptions {
@@ -54,18 +54,18 @@ impl Drop for RawDataChannelOptions {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct RawRTCDataChannel {
-    label: *const c_char,
+    label:   *const c_char,
     channel: *const c_void,
-    remote: bool,
+    remote:  bool,
 }
 
 /// An object providing configuration options for the data channel.
 pub struct DataChannelOptions {
     /// Reliability is assumed, and channel will be unreliable if
     /// maxRetransmitTime or MaxRetransmits is set.
-    pub reliable: bool, // = false
+    pub reliable:            bool, // = false
     /// True if ordered delivery is required.
-    pub ordered: bool, // = true
+    pub ordered:             bool, // = true
     /// The max period of time in milliseconds in which retransmissions will be
     /// sent. After this time, no more retransmissions will be sent.
     ///
@@ -79,30 +79,30 @@ pub struct DataChannelOptions {
     /// Cannot be set along with `maxRetransmitTime`.
     /// Negative values are ignored, and positive values are clamped to
     /// [0-65535]
-    pub max_retransmits: Option<u64>,
+    pub max_retransmits:     Option<u64>,
     /// This is set by the application and opaque to the WebRTC implementation.
-    pub protocol: String, // = ""
+    pub protocol:            String, // = ""
     /// True if the channel has been externally negotiated and we do not send
     /// an in-band signalling in the form of an "open" message. If this is
     /// true, `id` below must be set; otherwise it should be unset and will
     /// be negotiated in-band.
-    pub negotiated: bool, // = false
+    pub negotiated:          bool, // = false
     /// The stream id, or SID, for SCTP data channels. -1 if unset (see above).
-    pub id: i8,
-    pub priority: Option<DataChannelPriority>,
+    pub id:                  i8,
+    pub priority:            Option<DataChannelPriority>,
 }
 
 impl Default for DataChannelOptions {
     fn default() -> Self {
         Self {
-            reliable: false,
-            ordered: true,
+            reliable:            false,
+            ordered:             true,
             max_retransmit_time: None,
-            max_retransmits: None,
-            protocol: "".to_string(),
-            negotiated: false,
-            id: 0,
-            priority: None,
+            max_retransmits:     None,
+            protocol:            "".to_string(),
+            negotiated:          false,
+            id:                  0,
+            priority:            None,
         }
     }
 }
@@ -110,14 +110,18 @@ impl Default for DataChannelOptions {
 impl Into<RawDataChannelOptions> for &DataChannelOptions {
     fn into(self) -> RawDataChannelOptions {
         RawDataChannelOptions {
-            id: self.id as c_int,
-            reliable: self.reliable,
-            ordered: self.ordered,
-            negotiated: self.negotiated,
-            protocol: to_c_str(&self.protocol).unwrap(),
-            max_retransmits: self.max_retransmits.unwrap_or(0),
+            id:                  self.id as c_int,
+            reliable:            self.reliable,
+            ordered:             self.ordered,
+            negotiated:          self.negotiated,
+            protocol:            to_c_str(&self.protocol).unwrap(),
+            max_retransmits:     self.max_retransmits.unwrap_or(0),
             max_retransmit_time: self.max_retransmit_time.unwrap_or(0),
-            priority: self.priority.as_ref().map(|x| *x as c_int).unwrap_or(0),
+            priority:            self
+                .priority
+                .as_ref()
+                .map(|x| *x as c_int)
+                .unwrap_or(0),
         }
     }
 }
@@ -128,7 +132,7 @@ impl Into<RawDataChannelOptions> for &DataChannelOptions {
 /// Every data channel is associated with an RTCPeerConnection, and each peer
 /// connection can have up to a theoretical maximum of 65,534 data channels.
 pub struct DataChannel {
-    raw: *const RawRTCDataChannel,
+    raw:   *const RawRTCDataChannel,
     sinks: Mutex<HashMap<u8, Sinker<Vec<u8>>>>,
 }
 

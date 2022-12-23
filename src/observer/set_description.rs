@@ -54,8 +54,8 @@ extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
 pub struct SetDescriptionObserver<'a> {
     kind: SetDescriptionKind,
     desc: &'a RTCSessionDescription,
-    pc: *const RawRTCPeerConnection,
-    ret: Arc<AtomicPtr<Result<()>>>,
+    pc:   *const RawRTCPeerConnection,
+    ret:  Arc<AtomicPtr<Result<()>>>,
 }
 
 unsafe impl Send for SetDescriptionObserver<'_> {}
@@ -114,7 +114,7 @@ impl<'a> SetDescriptionFuture<'a> {
         Self {
             begin: false,
             waker: Arc::new(AtomicWaker::new()),
-            ext: SetDescriptionObserver {
+            ext:   SetDescriptionObserver {
                 ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
                 desc,
                 kind,

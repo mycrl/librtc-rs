@@ -7,15 +7,14 @@ use std::{
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct RawVideoFrame {
-    buf: *const u8,
-    len: usize,
-
-    width: u32,
-    height: u32,
+    buf:      *const u8,
+    len:      usize,
+    width:    u32,
+    height:   u32,
     stride_y: u32,
     stride_u: u32,
     stride_v: u32,
-    remote: bool,
+    remote:   bool,
 }
 
 /// VideoFrame represents the frame of the video,

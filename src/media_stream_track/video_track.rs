@@ -21,7 +21,7 @@ use crate::{
 /// a MediaStreamTrack.
 pub struct VideoTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sinks: Mutex<HashMap<u8, Sinker<Arc<VideoFrame>>>>,
+    sinks:          Mutex<HashMap<u8, Sinker<Arc<VideoFrame>>>>,
 }
 
 unsafe impl Send for VideoTrack {}
@@ -31,13 +31,13 @@ impl VideoTrack {
     /// Create a new video track, may fail to create, such as
     /// insufficient memory.
     pub fn new(label: &str) -> Result<Arc<Self>> {
-        let raw = unsafe { 
+        let raw = unsafe {
             let c_label = to_c_str(label)?;
             let ptr = rtc_create_video_track(c_label);
             free_cstring(c_label);
             ptr
         };
-        
+
         if raw.is_null() {
             Err(anyhow!("create media stream track failed!"))
         } else {

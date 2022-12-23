@@ -8,14 +8,13 @@ use std::{
 #[repr(C)]
 #[derive(Debug)]
 pub struct RawAudioFrame {
-    buf: *const u8,
-    len: usize,
-
+    buf:             *const u8,
+    len:             usize,
     bits_per_sample: c_int,
-    sample_rate: c_int,
-    channels: c_int,
-    frames: c_int,
-    remote: bool,
+    sample_rate:     c_int,
+    channels:        c_int,
+    frames:          c_int,
+    remote:          bool,
 }
 
 /// A list of audio frames in pcm format, usually 10ms long.

@@ -60,8 +60,8 @@ extern "C" fn create_description_callback(
 
 pub struct CreateDescriptionObserver {
     kind: CreateDescriptionKind,
-    pc: *const RawRTCPeerConnection,
-    ret: Arc<AtomicPtr<Result<RTCSessionDescription>>>,
+    pc:   *const RawRTCPeerConnection,
+    ret:  Arc<AtomicPtr<Result<RTCSessionDescription>>>,
 }
 
 unsafe impl Send for CreateDescriptionObserver {}
@@ -107,7 +107,7 @@ impl CreateDescriptionFuture {
         Self {
             begin: false,
             waker: Arc::new(AtomicWaker::new()),
-            ext: CreateDescriptionObserver {
+            ext:   CreateDescriptionObserver {
                 ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
                 kind,
                 pc,
