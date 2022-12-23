@@ -31,7 +31,13 @@ impl VideoTrack {
     /// Create a new video track, may fail to create, such as
     /// insufficient memory.
     pub fn new(label: &str) -> Result<Arc<Self>> {
-        let raw = unsafe { create_media_stream_video_track(to_c_str(label)?) };
+        let raw = unsafe { 
+            let c_label = to_c_str(label)?;
+            let ptr = rtc_create_video_track(c_label);
+            free_cstring(c_label);
+            ptr
+        };
+        
         if raw.is_null() {
             Err(anyhow!("create media stream track failed!"))
         } else {
@@ -46,10 +52,7 @@ impl VideoTrack {
     pub fn add_frame(&self, frame: &VideoFrame) {
         assert!(!unsafe { &*self.raw }.remote);
         unsafe {
-            media_stream_video_track_add_frame(
-                self.raw, 
-                frame.get_raw()
-            );
+            rtc_add_video_track_frame(self.raw, frame.get_raw());
         }
     }
 
@@ -64,24 +67,21 @@ impl VideoTrack {
         // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
             unsafe {
-                media_stream_video_track_on_frame(
-                    self.raw,
-                    on_video_frame,
-                    self,
-                )
+                rtc_set_video_track_frame_h(self.raw, on_video_frame, self)
             }
         }
 
         sinks.insert(id, sink);
     }
 
-    /// Delete the registered sink, if it exists, it will return the deleted sink.
+    /// Delete the registered sink, if it exists, it will return the deleted
+    /// sink.
     pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<VideoFrame>>> {
         assert!(unsafe { &*self.raw }.remote);
         let mut sinks = self.sinks.lock().await;
         let value = sinks.remove(&id);
         if sinks.is_empty() {
-            unsafe { media_stream_track_stop_on_frame(self.raw) }
+            unsafe { rtc_remove_media_stream_track_frame_h(self.raw) }
         }
 
         value
@@ -107,14 +107,8 @@ impl VideoTrack {
 
 impl Drop for VideoTrack {
     fn drop(&mut self) {
-        // If it is a track created locally, the label is allocated by rust
-        // and needs to be freed by rust.
-        if !unsafe { &*self.raw }.remote {
-            free_cstring(unsafe { &*self.raw }.label);
-        }
-
-        unsafe { media_stream_track_stop_on_frame(self.raw) }
-        unsafe { free_media_track(self.raw) }
+        unsafe { rtc_remove_media_stream_track_frame_h(self.raw) }
+        unsafe { rtc_free_media_stream_track(self.raw) }
     }
 }
 

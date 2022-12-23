@@ -27,7 +27,7 @@ pub(crate) struct RawVideoFrame {
 /// The U an V planes are sub-sampled horizontally and vertically
 /// by a factor of 2 compared to the Y plane. Each sample in this
 /// format is 8 bits.
-/// 
+///
 /// ```
 /// ----> width
 /// | Y0 | Y1 | Y2 | Y3
@@ -81,12 +81,12 @@ impl VideoFrame {
             })),
         }
     }
-    
+
     /// get video frame width.
     pub fn width(&self) -> u32 {
         unsafe { &*self.raw }.width
     }
-    
+
     /// get video frame height.
     pub fn height(&self) -> u32 {
         unsafe { &*self.raw }.height
@@ -145,10 +145,10 @@ impl Drop for VideoFrame {
     fn drop(&mut self) {
         let raw = unsafe { &*self.raw };
         unsafe {
-            // If remote is false, it means the distribution is 
+            // If remote is false, it means the distribution is
             // on the rust box.
             if raw.remote {
-                free_video_frame(self.raw)
+                rtc_free_video_frame(self.raw)
             } else {
                 let _ = Box::from_raw(self.raw.cast_mut());
             };

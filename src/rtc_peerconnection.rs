@@ -51,7 +51,7 @@ impl RTCPeerConnection {
     ) -> Result<Arc<Self>> {
         let observer = UintMemHeap::new();
         let raw = unsafe {
-            create_rtc_peer_connection(
+            rtc_create_peer_connection(
                 config.get_raw(),
                 &EVENTS,
                 observer.set(iobserver),
@@ -157,7 +157,14 @@ impl RTCPeerConnection {
         track: MediaStreamTrack,
         stream: Arc<MediaStream>,
     ) {
-        unsafe { rtc_add_track(self.raw, track.get_raw(), stream.get_id()) }
+        unsafe {
+            rtc_add_media_stream_track(
+                self.raw,
+                track.get_raw(),
+                stream.get_id(),
+            )
+        }
+        
         self.tracks.lock().await.push((track, stream));
     }
 

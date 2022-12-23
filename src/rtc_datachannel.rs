@@ -82,10 +82,10 @@ pub struct DataChannelOptions {
     pub max_retransmits: Option<u64>,
     /// This is set by the application and opaque to the WebRTC implementation.
     pub protocol: String, // = ""
-    /// True if the channel has been externally negotiated and we do not send an
-    /// in-band signalling in the form of an "open" message. If this is true,
-    /// `id` below must be set; otherwise it should be unset and will be
-    /// negotiated in-band.
+    /// True if the channel has been externally negotiated and we do not send
+    /// an in-band signalling in the form of an "open" message. If this is
+    /// true, `id` below must be set; otherwise it should be unset and will
+    /// be negotiated in-band.
     pub negotiated: bool, // = false
     /// The stream id, or SID, for SCTP data channels. -1 if unset (see above).
     pub id: i8,
@@ -142,19 +142,19 @@ impl DataChannel {
     /// Sends data across the data channel to the remote peer.
     pub fn send(&self, buf: &[u8]) {
         assert!(!unsafe { &*self.raw }.remote);
-        unsafe { 
-            data_channel_send(
-                self.raw, 
-                buf.as_ptr(), 
-                buf.len() as c_int
-            ) 
+        unsafe {
+            rtc_send_data_channel_msg(
+                self.raw,
+                buf.as_ptr(),
+                buf.len() as c_int,
+            )
         }
     }
 
     /// Returns a string which indicates the state of the data channel's
     /// underlying data connection.
     pub fn get_state(&self) -> DataChannelState {
-        unsafe { data_channel_get_state(self.raw) }
+        unsafe { rtc_get_data_channel_state(self.raw) }
     }
 
     /// Register channel data sink, one channel can register multiple sinks.
@@ -167,25 +167,22 @@ impl DataChannel {
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
-            unsafe { 
-                data_channel_on_message(
-                    self.raw, 
-                    on_channal_data, 
-                    self
-                )
+            unsafe {
+                rtc_set_data_channel_msg_h(self.raw, on_channal_data, self)
             }
         }
 
         sinks.insert(id, sink);
     }
 
-    /// Delete the registered sink, if it exists, it will return the deleted sink.
+    /// Delete the registered sink, if it exists, it will return the deleted
+    /// sink.
     pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Vec<u8>>> {
         assert!(unsafe { &*self.raw }.remote);
         let mut sinks = self.sinks.lock().await;
         let value = sinks.remove(&id);
         if sinks.is_empty() {
-            unsafe { data_channel_stop_on_message(self.raw) }
+            unsafe { rtc_remove_data_channel_msg_h(self.raw) }
         }
 
         value
@@ -211,8 +208,8 @@ impl DataChannel {
 
 impl Drop for DataChannel {
     fn drop(&mut self) {
-        unsafe { data_channel_stop_on_message(self.raw) }
-        unsafe { free_data_channel(self.raw) }
+        unsafe { rtc_remove_data_channel_msg_h(self.raw) }
+        unsafe { rtc_free_data_channel(self.raw) }
     }
 }
 

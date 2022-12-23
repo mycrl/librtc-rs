@@ -1,6 +1,6 @@
 [package]
 name = "batrachia"
-version = "0.1.1"
+version = "0.2.1"
 edition = "2021"
 authors = [ "Mr.Panda <xivistudios@gmail.com>" ]
 description = "Facilitating high-level interactions between Rust and WebRTC"

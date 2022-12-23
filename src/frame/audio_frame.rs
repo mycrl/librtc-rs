@@ -10,7 +10,7 @@ use std::{
 pub struct RawAudioFrame {
     buf: *const u8,
     len: usize,
-    
+
     bits_per_sample: c_int,
     sample_rate: c_int,
     channels: c_int,
@@ -45,6 +45,6 @@ impl AsRef<[u8]> for AudioFrame {
 
 impl Drop for AudioFrame {
     fn drop(&mut self) {
-        unsafe { free_audio_frame(self.raw) }
+        unsafe { rtc_free_audio_frame(self.raw) }
     }
 }

@@ -16,7 +16,7 @@ extern "C" {
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
     #[allow(improper_ctypes)]
-    pub(crate) fn create_rtc_peer_connection(
+    pub(crate) fn rtc_create_peer_connection(
         config: *const RawRTCPeerConnectionConfigure,
         events: *const TEvents,
         observer: *mut Observer,
@@ -51,7 +51,7 @@ extern "C" {
 
     /// The RTCPeerConnection method addTrack() adds a new media track to the
     /// set of tracks which will be transmitted to the other peer.
-    pub(crate) fn rtc_add_track(
+    pub(crate) fn rtc_add_media_stream_track(
         peer: *const RawRTCPeerConnection,
         track: *const RawMediaStreamTrack,
         id: *const c_char,
@@ -65,11 +65,11 @@ extern "C" {
         label: *const c_char,
         options: *const RawDataChannelOptions,
     ) -> *const RawRTCDataChannel;
-    
+
     pub(crate) fn rtc_run();
-    
+
     pub(crate) fn rtc_close(peer: *const RawRTCPeerConnection);
-    
+
     /// The create_answer() method on the RTCPeerConnection interface creates an
     /// SDP answer to an offer received from a remote peer during the
     /// offer/answer negotiation of a WebRTC connection. The answer contains
@@ -127,63 +127,66 @@ extern "C" {
         callback: extern "C" fn(*const c_char, *mut c_void),
         ctx: *mut c_void,
     );
-    
+
     #[allow(improper_ctypes)]
-    pub(crate) fn media_stream_audio_track_on_frame(
+    pub(crate) fn rtc_set_audio_track_frame_h(
         track: *const RawMediaStreamTrack,
         handler: extern "C" fn(&AudioTrack, *const RawAudioFrame),
         ctx: &AudioTrack,
     );
 
-    pub(crate) fn create_media_stream_video_track(
+    pub(crate) fn rtc_create_video_track(
         label: *const c_char,
     ) -> *const RawMediaStreamTrack;
-    pub(crate) fn media_stream_video_track_add_frame(
+
+    pub(crate) fn rtc_add_video_track_frame(
         track: *const RawMediaStreamTrack,
         frame: *const RawVideoFrame,
     );
 
     #[allow(improper_ctypes)]
-    pub(crate) fn media_stream_video_track_on_frame(
+    pub(crate) fn rtc_set_video_track_frame_h(
         track: *const RawMediaStreamTrack,
         handler: extern "C" fn(&VideoTrack, *const RawVideoFrame),
         ctx: &VideoTrack,
     );
-    
-    pub(crate) fn media_stream_track_stop_on_frame(
+
+    pub(crate) fn rtc_remove_media_stream_track_frame_h(
         track: *const RawMediaStreamTrack,
     );
-    
-    pub(crate) fn free_audio_frame(frame: *const RawAudioFrame);
-    
+
+    pub(crate) fn rtc_free_media_stream_track(
+        track: *const RawMediaStreamTrack,
+    );
+
+    pub(crate) fn rtc_free_audio_frame(frame: *const RawAudioFrame);
+
     // free the i420 video frame allocated by c.
-    pub(crate) fn free_video_frame(frame: *const RawVideoFrame);
-    
-    pub(crate) fn free_media_track(track: *const RawMediaStreamTrack);
+    pub(crate) fn rtc_free_video_frame(frame: *const RawVideoFrame);
 
     /// Returns a string which indicates the state of the data channel's
     /// underlying data connection.
-    pub(crate) fn data_channel_get_state(
+    pub(crate) fn rtc_get_data_channel_state(
         channel: *const RawRTCDataChannel,
     ) -> DataChannelState;
 
     /// Sends data across the data channel to the remote peer.
-    pub(crate) fn data_channel_send(
+    pub(crate) fn rtc_send_data_channel_msg(
         channel: *const RawRTCDataChannel,
         buf: *const u8,
         size: c_int,
     );
 
     #[allow(improper_ctypes)]
-    pub(crate) fn data_channel_on_message(
+    pub(crate) fn rtc_set_data_channel_msg_h(
         channel: *const RawRTCDataChannel,
         handler: extern "C" fn(&DataChannel, *const u8, u64),
         ctx: &DataChannel,
     );
-    
-    pub(crate) fn data_channel_stop_on_message(
+
+    pub(crate) fn rtc_remove_data_channel_msg_h(
         channel: *const RawRTCDataChannel,
     );
-    
-    pub(crate) fn free_data_channel(channel: *const RawRTCDataChannel);
+
+    pub(crate) fn rtc_free_data_channel(channel: *const RawRTCDataChannel);
 }

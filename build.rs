@@ -78,7 +78,7 @@ fn main() {
     println!("cargo:rustc-link-search=all={}", webrtc_lib_path);
     println!("cargo:rustc-link-lib=static={}", sys_lib_name);
     println!("cargo:rustc-link-search=all={}", sys_lib_path);
-    
+
     if cfg!(windows) {
         println!("cargo:rustc-link-lib=winmm");
         println!("cargo:rustc-link-lib=secur32");

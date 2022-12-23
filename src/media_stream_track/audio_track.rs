@@ -9,7 +9,6 @@ use crate::{
     frame::audio_frame::*,
     stream_ext::*,
     symbols::*,
-    base::*,
 };
 
 /// The AudioTrack interface represents a single audio track from
@@ -34,24 +33,21 @@ impl AudioTrack {
         // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
             unsafe {
-                media_stream_audio_track_on_frame(
-                    self.raw,
-                    on_audio_frame,
-                    self,
-                )
+                rtc_set_audio_track_frame_h(self.raw, on_audio_frame, self)
             }
         }
 
         sinks.insert(id, sink);
     }
 
-    /// Delete the registered sink, if it exists, it will return the deleted sink.
+    /// Delete the registered sink, if it exists, it will return the deleted
+    /// sink.
     pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<AudioFrame>>> {
         assert!(unsafe { &*self.raw }.remote);
         let mut sinks = self.sinks.lock().await;
         let value = sinks.remove(&id);
         if sinks.is_empty() {
-            unsafe { media_stream_track_stop_on_frame(self.raw) }
+            unsafe { rtc_remove_media_stream_track_frame_h(self.raw) }
         }
 
         value
@@ -77,14 +73,8 @@ impl AudioTrack {
 
 impl Drop for AudioTrack {
     fn drop(&mut self) {
-        // If it is a track created locally, the label is allocated by rust
-        // and needs to be freed by rust.
-        if !unsafe { &*self.raw }.remote {
-            free_cstring(unsafe { &*self.raw }.label);
-        }
-
-        unsafe { media_stream_track_stop_on_frame(self.raw) }
-        unsafe { free_media_track(self.raw) }
+        unsafe { rtc_remove_media_stream_track_frame_h(self.raw) }
+        unsafe { rtc_free_media_stream_track(self.raw) }
     }
 }
 
