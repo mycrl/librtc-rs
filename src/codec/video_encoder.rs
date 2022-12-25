@@ -74,9 +74,23 @@ impl From<&[VideoEncoder]> for RawCodecs {
     }
 }
 
+pub struct VideoEncoderAdapter {
+
+}
+
+pub trait VideoEncoderExt {
+    fn encode(&mut self, adapter: &mut VideoEncoderAdapter);
+}
+
 pub struct VideoEncoder {
     name:       String,
     parameters: HashMap<String, String>,
+}
+
+impl VideoEncoder {
+    pub fn new(name: &str, pars: &[(&str, &str)]) -> Self {
+        
+    }
 }
 
 pub struct VideoEncoderFactory {
