@@ -50,7 +50,6 @@ impl VideoTrack {
     ///
     /// Only valid for local video streams.
     pub fn add_frame(&self, frame: &VideoFrame) {
-        assert!(!unsafe { &*self.raw }.remote);
         unsafe {
             rtc_add_video_track_frame(self.raw, frame.get_raw());
         }
@@ -60,7 +59,6 @@ impl VideoTrack {
     /// The sink id cannot be repeated, otherwise the sink implementation will
     /// be overwritten.
     pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<VideoFrame>>) {
-        assert!(unsafe { &*self.raw }.remote);
         let mut sinks = self.sinks.lock().await;
 
         // Register for the first time, register the callback function to
@@ -77,7 +75,6 @@ impl VideoTrack {
     /// Delete the registered sink, if it exists, it will return the deleted
     /// sink.
     pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<VideoFrame>>> {
-        assert!(unsafe { &*self.raw }.remote);
         let mut sinks = self.sinks.lock().await;
         let value = sinks.remove(&id);
         if sinks.is_empty() {

@@ -27,14 +27,9 @@ pub(crate) struct RawMediaStreamTrack {
     /// When the track is disassociated from its source, the label is not
     /// changed.
     pub label:  *const c_char,
-    /// Returns a Boolean with a value of true if the track is sourced by a
-    /// RTCPeerConnection, false otherwise.
-    pub remote: bool,
-
     // video
     video_source: *const c_void,
     video_sink:   *const c_void,
-
     // audio
     audio_sink: *const c_void,
 }

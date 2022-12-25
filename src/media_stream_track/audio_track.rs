@@ -26,7 +26,6 @@ impl AudioTrack {
     /// The sink id cannot be repeated, otherwise the sink implementation will
     /// be overwritten.
     pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<AudioFrame>>) {
-        assert!(unsafe { &*self.raw }.remote);
         let mut sinks = self.sinks.lock().await;
 
         // Register for the first time, register the callback function to
@@ -43,7 +42,6 @@ impl AudioTrack {
     /// Delete the registered sink, if it exists, it will return the deleted
     /// sink.
     pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<AudioFrame>>> {
-        assert!(unsafe { &*self.raw }.remote);
         let mut sinks = self.sinks.lock().await;
         let value = sinks.remove(&id);
         if sinks.is_empty() {
