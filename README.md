@@ -40,8 +40,9 @@ The batrachia crate will automatically find the precompiled static library files
 
 A set of environment variables can be used to point batrachia towards. They will override the automatic detection logic.
 
-| WEBRTC_LIBRARY_PATH | webrtc static library path, this will skip downloading and use your static library.      |
+| key                 | description                                                                              |
 |---------------------|------------------------------------------------------------------------------------------|
+| WEBRTC_LIBRARY_PATH | webrtc static library path, this will skip downloading and use your static library.      |
 | SYS_LIBRARY_PATH    | batrachiatc static library path, this will skip downloading and use your static library. |
 
 

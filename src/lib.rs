@@ -34,6 +34,9 @@ pub use media_stream_track::{
 pub use codec::video_encoder::{
     VideoEncoderFactory,
     VideoEncoder,
+    VideoFrameType,
+    VideoEncoderAdapter,
+    VideoEncoderExt,
 };
 
 pub use stream_ext::{
