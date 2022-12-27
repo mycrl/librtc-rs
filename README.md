@@ -8,10 +8,10 @@
 </div>
 </br>
 <div align="center">
-    <img src="https://img.shields.io/github/languages/top/colourful-rtc/batrachia"/>
-    <img src="https://img.shields.io/github/license/colourful-rtc/batrachia"/>
-    <img src="https://img.shields.io/github/issues/colourful-rtc/batrachia"/>
-    <img src="https://img.shields.io/github/stars/colourful-rtc/batrachia"/>
+    <img src="https://img.shields.io/github/languages/top/colourful-rtc/batrachia-rs"/>
+    <img src="https://img.shields.io/github/license/colourful-rtc/batrachia-rs"/>
+    <img src="https://img.shields.io/github/issues/colourful-rtc/batrachia-rs"/>
+    <img src="https://img.shields.io/github/stars/colourful-rtc/batrachia-rs"/>
 </div>
 <br/>
 <br/>
