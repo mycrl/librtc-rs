@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img src="./logo.png" width="200px">
+    batrachia-rs
 </h1>
 <div align="center">
     <strong>Rust ❤️ WebRTC</strong>
