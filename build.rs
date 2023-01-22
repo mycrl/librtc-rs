@@ -72,7 +72,7 @@ fn main() {
 
     let (sys_lib_path, sys_lib_name) = env::var("SYS_LIBRARY_PATH")
         .map(|path| split(Path::new(&path)))
-        .unwrap_or_else(|_| download("batrachiatc"));
+        .unwrap_or_else(|_| download("libwebrtc"));
 
     println!("cargo:rustc-link-lib=static={}", webrtc_lib_name);
     println!("cargo:rustc-link-search=all={}", webrtc_lib_path);
