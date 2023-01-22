@@ -1,5 +1,5 @@
 <h1 align="center">
-    batrachia-rs
+    libwebrtc-rs
 </h1>
 <div align="center">
     <strong>Rust ❤️ WebRTC</strong>
@@ -8,10 +8,10 @@
 </div>
 </br>
 <div align="center">
-    <img src="https://img.shields.io/github/languages/top/colourful-rtc/batrachia-rs"/>
-    <img src="https://img.shields.io/github/license/colourful-rtc/batrachia-rs"/>
-    <img src="https://img.shields.io/github/issues/colourful-rtc/batrachia-rs"/>
-    <img src="https://img.shields.io/github/stars/colourful-rtc/batrachia-rs"/>
+    <img src="https://img.shields.io/github/languages/top/mycrl/libwebrtc-rs"/>
+    <img src="https://img.shields.io/github/license/mycrl/libwebrtc-rs"/>
+    <img src="https://img.shields.io/github/issues/mycrl/libwebrtc-rs"/>
+    <img src="https://img.shields.io/github/stars/mycrl/libwebrtc-rs"/>
 </div>
 <br/>
 <br/>
@@ -28,13 +28,13 @@ Add the following to your Cargo.toml:
 batrachia = "0.1"
 ```
 
-There are simple example in the [example](https://github.com/colourful-rtc/example) repo.
+There are simple example in the [example](https://github.com/mycrl/webrtc-rs-example) repo.
 
 ### Building
 
 #### Automatic
 
-The batrachia crate will automatically find the precompiled static library files in the git batrachiatc repo release.
+The batrachia crate will automatically find the precompiled static library files in the git libwebrtc-rs repo release.
 
 #### Manual
 
