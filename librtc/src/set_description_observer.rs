@@ -6,8 +6,8 @@ use anyhow::{
 };
 
 use super::{
-    ObserverPromisify,
-    ObserverPromisifyExt,
+    Promisify,
+    PromisifyExt,
 };
 
 use crate::{
@@ -54,14 +54,14 @@ extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
 pub struct SetDescriptionObserver<'a> {
     kind: SetDescriptionKind,
     desc: &'a RTCSessionDescription,
-    pc:   *const RawRTCPeerConnection,
-    ret:  Arc<AtomicPtr<Result<()>>>,
+    pc: *const RawRTCPeerConnection,
+    ret: Arc<AtomicPtr<Result<()>>>,
 }
 
 unsafe impl Send for SetDescriptionObserver<'_> {}
 unsafe impl Sync for SetDescriptionObserver<'_> {}
 
-impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
+impl<'a> PromisifyExt for SetDescriptionObserver<'a> {
     type Output = ();
 
     fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()> {
@@ -103,8 +103,7 @@ impl<'a> ObserverPromisifyExt for SetDescriptionObserver<'a> {
     }
 }
 
-pub type SetDescriptionFuture<'a> =
-    ObserverPromisify<SetDescriptionObserver<'a>>;
+pub type SetDescriptionFuture<'a> = Promisify<SetDescriptionObserver<'a>>;
 impl<'a> SetDescriptionFuture<'a> {
     pub(crate) fn new(
         pc: *const RawRTCPeerConnection,
@@ -114,7 +113,7 @@ impl<'a> SetDescriptionFuture<'a> {
         Self {
             begin: false,
             waker: Arc::new(AtomicWaker::new()),
-            ext:   SetDescriptionObserver {
+            ext: SetDescriptionObserver {
                 ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
                 desc,
                 kind,

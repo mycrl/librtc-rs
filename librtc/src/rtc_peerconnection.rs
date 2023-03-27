@@ -13,9 +13,11 @@ use crate::{
     observer::*,
     rtc_datachannel::*,
     rtc_icecandidate::*,
+    abstracts::HeapPointer,
     rtc_peerconnection_configure::*,
     rtc_session_description::*,
-    abstracts::UintMemHeap,
+    create_description_observer::*,
+    set_description_observer::*,
     symbols::*,
 };
 
@@ -27,11 +29,11 @@ pub(crate) type RawRTCPeerConnection = c_void;
 /// It provides methods to connect to a remote peer, maintain and monitor
 /// the connection, and close the connection once it's no longer needed.
 pub struct RTCPeerConnection {
-    raw:    *const RawRTCPeerConnection,
+    raw: *const RawRTCPeerConnection,
     tracks: Mutex<Vec<(MediaStreamTrack, Arc<MediaStream>)>>,
 
     #[allow(dead_code)]
-    observer: UintMemHeap<Observer>,
+    observer: HeapPointer<Observer>,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -49,7 +51,7 @@ impl RTCPeerConnection {
         config: &RTCConfiguration,
         iobserver: Observer,
     ) -> Result<Arc<Self>> {
-        let observer = UintMemHeap::new();
+        let observer = HeapPointer::new();
         let raw = unsafe {
             rtc_create_peer_connection(
                 config.get_raw(),

@@ -36,7 +36,7 @@ impl Default for RTCSessionDescriptionType {
 #[derive(Debug)]
 pub(crate) struct RawRTCSessionDescription {
     r#type: RTCSessionDescriptionType,
-    sdp:    *const c_char,
+    sdp: *const c_char,
 }
 
 impl Drop for RawRTCSessionDescription {
@@ -55,7 +55,7 @@ impl Drop for RawRTCSessionDescription {
 pub struct RTCSessionDescription {
     pub kind: RTCSessionDescriptionType,
     /// A string containing the SDP describing the session.
-    pub sdp:  String,
+    pub sdp: String,
 }
 
 unsafe impl Send for RTCSessionDescription {}
@@ -66,7 +66,7 @@ impl TryInto<RawRTCSessionDescription> for &RTCSessionDescription {
 
     fn try_into(self) -> Result<RawRTCSessionDescription, Self::Error> {
         Ok(RawRTCSessionDescription {
-            sdp:    to_c_str(&self.sdp)?,
+            sdp: to_c_str(&self.sdp)?,
             r#type: self.kind,
         })
     }
@@ -77,7 +77,7 @@ impl TryFrom<&RawRTCSessionDescription> for RTCSessionDescription {
 
     fn try_from(value: &RawRTCSessionDescription) -> Result<Self, Self::Error> {
         Ok(RTCSessionDescription {
-            sdp:  from_c_str(value.sdp)?,
+            sdp: from_c_str(value.sdp)?,
             kind: value.r#type,
         })
     }

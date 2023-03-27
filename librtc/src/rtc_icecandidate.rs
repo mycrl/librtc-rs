@@ -4,8 +4,8 @@ use libc::*;
 
 #[repr(C)]
 pub(crate) struct RawRTCIceCandidate {
-    pub candidate:       *const c_char,
-    pub sdp_mid:         *const c_char,
+    pub candidate: *const c_char,
+    pub sdp_mid: *const c_char,
     pub sdp_mline_index: c_int,
 }
 
@@ -40,11 +40,11 @@ pub struct RTCIceCandidate {
     /// candidate is an empty string (""), the end of the candidate list
     /// has been reached; this candidate is known as the
     /// "end-of-candidates" marker.
-    pub candidate:       String,
+    pub candidate: String,
     /// A string containing the identification tag of the media stream with
     /// which the candidate is associated, or null if there is no
     /// associated media stream. The default is null.
-    pub sdp_mid:         String,
+    pub sdp_mid: String,
     /// TA number property containing the zero-based index of the m-line with
     /// which Tthe candidate is associated, within the SDP of the media
     /// description, or Tnull if no such associated exists. The default is
@@ -58,8 +58,8 @@ impl TryInto<RawRTCIceCandidate> for &RTCIceCandidate {
     fn try_into(self) -> Result<RawRTCIceCandidate, Self::Error> {
         Ok(RawRTCIceCandidate {
             sdp_mline_index: self.sdp_mline_index as c_int,
-            sdp_mid:         to_c_str(&self.sdp_mid)?,
-            candidate:       to_c_str(&self.candidate)?,
+            sdp_mid: to_c_str(&self.sdp_mid)?,
+            candidate: to_c_str(&self.candidate)?,
         })
     }
 }
@@ -70,8 +70,8 @@ impl TryFrom<&RawRTCIceCandidate> for RTCIceCandidate {
     fn try_from(value: &RawRTCIceCandidate) -> Result<Self, Self::Error> {
         Ok(RTCIceCandidate {
             sdp_mline_index: value.sdp_mline_index as u8,
-            sdp_mid:         from_c_str(value.sdp_mid)?,
-            candidate:       from_c_str(value.candidate)?,
+            sdp_mid: from_c_str(value.sdp_mid)?,
+            candidate: from_c_str(value.candidate)?,
         })
     }
 }

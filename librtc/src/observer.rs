@@ -1,11 +1,5 @@
-mod create_description;
-mod set_description;
-
-pub use create_description::*;
-pub use set_description::*;
-
-use anyhow::Result;
 use futures::task::AtomicWaker;
+use anyhow::Result;
 use std::{
     future::Future,
     pin::Pin,
@@ -20,24 +14,24 @@ use super::{
     rtc_icecandidate::*,
 };
 
-pub trait ObserverPromisifyExt {
+pub trait PromisifyExt {
     type Output;
     fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()>;
     fn wake(&self) -> Option<Result<Self::Output>>;
 }
 
-pub struct ObserverPromisify<T>
+pub struct Promisify<T>
 where
-    T: ObserverPromisifyExt,
+    T: PromisifyExt,
 {
-    waker: Arc<AtomicWaker>,
-    begin: bool,
-    ext:   T,
+    pub(crate) waker: Arc<AtomicWaker>,
+    pub(crate) begin: bool,
+    pub(crate) ext: T,
 }
 
-impl<T> Future for ObserverPromisify<T>
+impl<T> Future for Promisify<T>
 where
-    T: ObserverPromisifyExt + Unpin,
+    T: PromisifyExt + Unpin,
 {
     type Output = anyhow::Result<T::Output>;
 

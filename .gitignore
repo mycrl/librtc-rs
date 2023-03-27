@@ -16,3 +16,5 @@ out*/
 
 /target
 *.env
+Cargo.lock
+package-lock.json

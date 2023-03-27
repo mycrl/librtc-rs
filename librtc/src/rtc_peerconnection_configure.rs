@@ -73,11 +73,11 @@ pub enum RtcpMuxPolicy {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct RawRTCIceServer {
-    credential:    *const c_char,
-    urls:          *const *const c_char,
-    urls_size:     c_int,
+    credential: *const c_char,
+    urls: *const *const c_char,
+    urls_size: c_int,
     urls_capacity: c_int,
-    username:      *const c_char,
+    username: *const c_char,
 }
 
 impl Drop for RawRTCIceServer {
@@ -101,13 +101,13 @@ impl Drop for RawRTCIceServer {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct RawRTCPeerConnectionConfigure {
-    bundle_policy:           c_int, // BundlePolicy
-    ice_transport_policy:    c_int, // IceTransportPolicy
-    peer_identity:           *const c_char,
-    rtcp_mux_policy:         c_int, // RtcpMuxPolicy
-    ice_servers:             *const RawRTCIceServer,
-    ice_servers_size:        c_int,
-    ice_servers_capacity:    c_int,
+    bundle_policy: c_int,        // BundlePolicy
+    ice_transport_policy: c_int, // IceTransportPolicy
+    peer_identity: *const c_char,
+    rtcp_mux_policy: c_int, // RtcpMuxPolicy
+    ice_servers: *const RawRTCIceServer,
+    ice_servers_size: c_int,
+    ice_servers_capacity: c_int,
     ice_candidate_pool_size: c_int,
 }
 
@@ -140,11 +140,11 @@ pub struct RTCIceServer {
     pub credential: Option<String>,
     /// If the RTCIceServer is a TURN server, then this is the username to use
     /// during the authentication process.
-    pub username:   Option<String>,
+    pub username: Option<String>,
     /// This required property is either a single string or an array of
     /// strings, each specifying a URL which can be used to connect to the
     /// server.
-    pub urls:       Option<Vec<String>>,
+    pub urls: Option<Vec<String>>,
 }
 
 impl Into<RawRTCIceServer> for &RTCIceServer {
@@ -194,25 +194,25 @@ pub struct RTCConfiguration {
     /// across a single 5-tuple;
     /// that is, from a single IP and port on one peer to a single IP and port
     /// on the other peer, using the same transport protocol.
-    pub bundle_policy:           Option<BundlePolicy>,
+    pub bundle_policy: Option<BundlePolicy>,
     /// The current ICE transport policy; if the policy isn't specified, all is
     /// assumed by default, allowing all candidates to be considered
-    pub ice_transport_policy:    Option<IceTransportPolicy>,
+    pub ice_transport_policy: Option<IceTransportPolicy>,
     /// A string which specifies the target peer identity for the
     /// RTCPeerConnection.
     /// If this value is set (it defaults to null), the RTCPeerConnection will
     /// not connect to a remote peer unless it can successfully authenticate
     /// with the given name.
-    pub peer_identity:           Option<String>,
+    pub peer_identity: Option<String>,
     /// The RTCP mux policy to use when gathering ICE candidates, in order to
     /// support non-multiplexed RTCP.
-    pub rtcp_mux_policy:         Option<RtcpMuxPolicy>,
+    pub rtcp_mux_policy: Option<RtcpMuxPolicy>,
     /// An array of RTCIceServer objects, each describing one server which may
     /// be used by the ICE agent; these are typically STUN and/or TURN servers.
     /// If this isn't specified, the connection attempt will be made with no
     /// STUN or TURN server available, which limits the connection to local
     /// peers.
-    pub ice_servers:             Option<Vec<RTCIceServer>>,
+    pub ice_servers: Option<Vec<RTCIceServer>>,
     /// An unsigned 16-bit integer value which specifies the size of the
     /// prefetched ICE candidate pool.
     /// The default value is 0 (meaning no candidate prefetching will occur).
@@ -223,7 +223,7 @@ pub struct RTCConfiguration {
     pub ice_candidate_pool_size: Option<u8>,
 
     // box mannager
-    raw_ptr: UintMemHeap<RawRTCPeerConnectionConfigure>,
+    raw_ptr: HeapPointer<RawRTCPeerConnectionConfigure>,
 }
 
 unsafe impl Send for RTCConfiguration {}

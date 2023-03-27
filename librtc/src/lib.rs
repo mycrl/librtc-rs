@@ -9,13 +9,17 @@
 //! developers to build powerful voice- and video-communication solutions.
 
 mod base;
-mod frame;
-mod codec;
 mod symbols;
 mod abstracts;
+mod audio_frame;
+mod video_frame;
 mod media_stream;
 mod media_stream_track;
+mod audio_track;
+mod video_track;
 mod observer;
+mod create_description_observer;
+mod set_description_observer;
 mod rtc_datachannel;
 mod rtc_icecandidate;
 mod rtc_peerconnection;
@@ -23,20 +27,12 @@ mod rtc_peerconnection_configure;
 mod rtc_session_description;
 mod stream_ext;
 
+pub use video_track::VideoTrack;
+pub use audio_track::AudioTrack;
 pub use media_stream::MediaStream;
 pub use media_stream_track::{
     MediaStreamTrack,
     MediaStreamTrackKind,
-    VideoTrack,
-    AudioTrack,
-};
-
-pub use codec::video_encoder::{
-    VideoEncoderFactory,
-    VideoEncoder,
-    VideoFrameType,
-    VideoEncoderAdapter,
-    VideoEncoderExt,
 };
 
 pub use stream_ext::{
@@ -46,10 +42,8 @@ pub use stream_ext::{
 
 pub use rtc_icecandidate::RTCIceCandidate;
 pub use rtc_peerconnection::RTCPeerConnection;
-pub use frame::{
-    AudioFrame,
-    VideoFrame,
-};
+pub use audio_frame::AudioFrame;
+pub use video_frame::VideoFrame;
 
 pub use rtc_datachannel::{
     DataChannelOptions,
@@ -72,16 +66,16 @@ pub use rtc_session_description::{
     RTCSessionDescriptionType,
 };
 
+pub use create_description_observer::CreateDescriptionObserver;
+pub use set_description_observer::SetDescriptionObserver;
 pub use observer::{
-    CreateDescriptionObserver,
     IceConnectionState,
     IceGatheringState,
     ObserverExt,
     Observer,
-    ObserverPromisify,
-    ObserverPromisifyExt,
+    Promisify,
+    PromisifyExt,
     PeerConnectionState,
-    SetDescriptionObserver,
     SignalingState,
 };
 

@@ -6,8 +6,8 @@ use anyhow::{
 };
 
 use super::{
-    ObserverPromisify,
-    ObserverPromisifyExt,
+    Promisify,
+    PromisifyExt,
 };
 
 use crate::{
@@ -60,14 +60,14 @@ extern "C" fn create_description_callback(
 
 pub struct CreateDescriptionObserver {
     kind: CreateDescriptionKind,
-    pc:   *const RawRTCPeerConnection,
-    ret:  Arc<AtomicPtr<Result<RTCSessionDescription>>>,
+    pc: *const RawRTCPeerConnection,
+    ret: Arc<AtomicPtr<Result<RTCSessionDescription>>>,
 }
 
 unsafe impl Send for CreateDescriptionObserver {}
 unsafe impl Sync for CreateDescriptionObserver {}
 
-impl ObserverPromisifyExt for CreateDescriptionObserver {
+impl PromisifyExt for CreateDescriptionObserver {
     type Output = RTCSessionDescription;
 
     fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()> {
@@ -98,7 +98,7 @@ impl ObserverPromisifyExt for CreateDescriptionObserver {
     }
 }
 
-pub type CreateDescriptionFuture = ObserverPromisify<CreateDescriptionObserver>;
+pub type CreateDescriptionFuture = Promisify<CreateDescriptionObserver>;
 impl CreateDescriptionFuture {
     pub(crate) fn new(
         pc: *const RawRTCPeerConnection,
@@ -107,7 +107,7 @@ impl CreateDescriptionFuture {
         Self {
             begin: false,
             waker: Arc::new(AtomicWaker::new()),
-            ext:   CreateDescriptionObserver {
+            ext: CreateDescriptionObserver {
                 ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
                 kind,
                 pc,

@@ -11,8 +11,8 @@ use super::{
 /// A stream consists of several tracks, such as video or audio tracks. Each
 /// track is specified as an instance of MediaStreamTrack.
 pub struct MediaStream {
-    pub id:            String,
-    pub tracks:        Vec<MediaStreamTrack>,
+    pub id: String,
+    pub tracks: Vec<MediaStreamTrack>,
     pub(crate) raw_id: *const c_char,
 }
 
@@ -27,7 +27,7 @@ impl MediaStream {
         Ok(Arc::new(Self {
             tracks: Vec::with_capacity(10),
             raw_id: to_c_str(id)?,
-            id:     id.to_string(),
+            id: id.to_string(),
         }))
     }
 

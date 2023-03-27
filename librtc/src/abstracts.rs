@@ -5,11 +5,11 @@ use std::{
 
 /// The type wrapper for interior mutability in rust.
 #[derive(Debug)]
-pub struct SafeCell<T> {
+pub struct PointerCell<T> {
     data: UnsafeCell<T>,
 }
 
-impl<T> SafeCell<T> {
+impl<T> PointerCell<T> {
     /// Constructs a new instance of UnsafeCell which will wrap the
     /// specified value.
     pub fn new(value: T) -> Self {
@@ -31,31 +31,31 @@ impl<T> SafeCell<T> {
 
 /// A wrapper type to construct uninitialized instances of T.
 /// inner manage auto drop.
-pub struct UintMemHeap<T> {
-    data: SafeCell<Option<*mut T>>,
+pub struct HeapPointer<T> {
+    data: PointerCell<Option<*mut T>>,
 }
 
-impl<T> Default for UintMemHeap<T> {
+impl<T> Default for HeapPointer<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> std::fmt::Debug for UintMemHeap<T> {
+impl<T> std::fmt::Debug for HeapPointer<T> {
     fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }
 }
 
-impl<T> UintMemHeap<T> {
+impl<T> HeapPointer<T> {
     /// Creates a new MaybeUninit<T> initialized with the given value.
     pub fn new() -> Self {
         Self {
-            data: SafeCell::new(None),
+            data: PointerCell::new(None),
         }
     }
 
-    /// Sets the value of the UintMemHeap<T>.
+    /// Sets the value of the HeapPointer<T>.
     ///
     /// This overwrites any previous value without dropping it,
     /// so be careful not to use this twice unless you want to skip
@@ -74,7 +74,7 @@ impl<T> UintMemHeap<T> {
     }
 }
 
-impl<T> Drop for UintMemHeap<T> {
+impl<T> Drop for HeapPointer<T> {
     fn drop(&mut self) {
         if let Some(ref_value) = self.data.get() {
             let _ = unsafe { Box::from_raw(*ref_value) };
@@ -82,11 +82,11 @@ impl<T> Drop for UintMemHeap<T> {
     }
 }
 
-pub(crate) trait VectorLayout<T> {
+pub(crate) trait ArrayExt<T> {
     fn into_c_layout(self) -> (*mut T, usize, usize);
 }
 
-impl<T> VectorLayout<T> for Vec<T> {
+impl<T> ArrayExt<T> for Vec<T> {
     /// ```no_run
     /// let vec = vec![0u8; 10];
     /// let (ptr, size, capacity) = vec.into_c_layout();
