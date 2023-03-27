@@ -1,5 +1,5 @@
 <h1 align="center">
-    libwebrtc-rs
+    libRTC-rs
 </h1>
 <div align="center">
     <strong>Rust ❤️ WebRTC</strong>
