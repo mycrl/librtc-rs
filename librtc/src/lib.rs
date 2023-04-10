@@ -82,9 +82,9 @@ pub use observer::{
 /// By default, run() calls Thread::Current()->Run().
 /// To receive and dispatch messages.
 pub fn run() {
-    unsafe { stream_ext::rtc_run() }
+    unsafe { symbols::rtc_run() }
 }
 
 pub fn exit() {
-    unsafe { stream_ext::rtc_exit() }
+    unsafe { symbols::rtc_exit() }
 }
