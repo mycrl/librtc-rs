@@ -40,10 +40,6 @@ unsafe impl Send for RTCPeerConnection {}
 unsafe impl Sync for RTCPeerConnection {}
 
 impl RTCPeerConnection {
-    pub(crate) fn run() {
-        unsafe { rtc_run() }
-    }
-
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.

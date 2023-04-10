@@ -20,11 +20,12 @@ type RDC = crate::DataChannel;
 #[rustfmt::skip]
 #[allow(improper_ctypes)]
 extern "C" {
+    pub(crate) fn rtc_run();
+    pub(crate) fn rtc_exit();
     pub(crate) fn rtc_create_peer_connection(config: PCC, events: EV, observer: OS) -> PC;
     pub(crate) fn rtc_add_ice_candidate(peer: PC, icecandidate: IC) -> bool;
     pub(crate) fn rtc_add_media_stream_track(peer: PC, track: MT, id: *const c_char,);
     pub(crate) fn rtc_create_data_channel(peer: PC, label: *const c_char, options: DTC) -> DT;
-    pub(crate) fn rtc_run();
     pub(crate) fn rtc_close(peer: PC);
     pub(crate) fn rtc_create_answer(pc: PC, cb: extern "C" fn(*const c_char, SD, *mut c_void), ctx: *mut c_void);
     pub(crate) fn rtc_create_offer(pc: PC, cb: extern "C" fn(*const c_char, SD, *mut c_void), ctx: *mut c_void);
