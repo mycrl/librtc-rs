@@ -6,6 +6,6 @@
         "ws": "^8.11.0"
     },
     "scripts": {
-        "signaling": "node ./signaling.js"
+        "serve": "node ./server.js"
     }
 }

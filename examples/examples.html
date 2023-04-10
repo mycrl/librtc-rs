@@ -1,0 +1,87 @@
+<html>
+    <html>
+        <title>WebRTC Demo</title>
+    </html>
+    <body>
+        <video autoplay controls style="
+                background-color: #000;
+                width: 100%;
+                height: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+            "></video>
+    </body>
+    <script>
+        const stream = new MediaStream();
+        const socket = new WebSocket('ws://localhost');
+        const pc = new RTCPeerConnection({
+            sdpSemantics: 'unified-plan',
+        });
+
+        const channel = pc.createDataChannel('channel');
+        setInterval(function() {
+            if (channel.readyState == 'open') {
+                let buf = new Uint8Array(2);
+
+                buf[0] = 1;
+                buf[1] = 2;
+
+                channel.send(buf);
+            }
+        }, 2000);
+
+        pc.addEventListener('track', function({track}) {
+            stream.addTrack(track, stream);
+        });
+
+        socket.onopen = async function() {
+            document.querySelector('video').srcObject = stream;
+            pc.addEventListener('icecandidate', ({candidate})=>{
+                candidate && socket.send(JSON.stringify({
+                    kind: 'candidate',
+                    sdpMLineIndex: candidate.sdpMLineIndex,
+                    candidate: candidate.candidate,
+                    sdpMid: candidate.sdpMid,
+                }));
+            }
+            );
+        }
+        ;
+
+        socket.onmessage = async function({data}) {
+            const {kind, ...payload} = JSON.parse(data);
+            if (kind == 'answer') {
+                await pc.setRemoteDescription({
+                    type: 'answer',
+                    sdp: payload.sdp,
+                });
+            } else if (kind == 'candidate') {
+                await pc.addIceCandidate({
+                    sdpMLineIndex: payload.sdpMLineIndex,
+                    candidate: payload.candidate,
+                    sdpMid: payload.sdpMid,
+                });
+            }
+        }
+        ;
+
+        document.querySelector('video').addEventListener('click', async function() {
+            const ds = await navigator.mediaDevices.getDisplayMedia({
+                audio: true,
+                video: true,
+            });
+
+            ds.getTracks().forEach(function(track) {
+                pc.addTrack(track, ds);
+            });
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.send(JSON.stringify({
+                kind: 'offer',
+                sdp: offer.sdp
+            }));
+        });
+    </script>
+</html>

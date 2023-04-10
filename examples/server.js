@@ -7,11 +7,10 @@ const app = express()
 const server = createServer(app)
 
 app.get('/', (_, res) => {
-    res.sendFile(__dirname + '/index.html')
+    res.sendFile(__dirname + '/examples.html')
 })
 
 let sockets = {}
-
 new WebSocketServer({ server })
     .on('connection', (socket, req) => {
         const id = String(req.socket.remotePort)
@@ -32,7 +31,7 @@ new WebSocketServer({ server })
 server.listen(80, () => {
     console.log('\r\n\r\n')
     console.log('signaling server starting...')
-    console.log('   example: http://localhost')
-    console.log('   signaling: ws://localhost')
+    console.log('web page: http://localhost')
+    console.log('signaling: ws://localhost')
     console.log('\r\n\r\n')
 })
