@@ -48,7 +48,7 @@
                 let buf = new Uint8Array(3);
                 buf[0] = new Date().getHours();
                 buf[1] = new Date().getMinutes();
-                buf[1] = new Date().getSeconds();
+                buf[2] = new Date().getSeconds();
                 channel.send(buf);
             }
         }, 2000);
