@@ -26,4 +26,4 @@ The rust high-level abstraction binding of Google WebRTC M110. With WebRTC, you 
 
 
 ### License
-[GPL](./LICENSE) Copyright (c) 2022 Mr.Panda.
+[MIT](./LICENSE) Copyright (c) 2022 Mr.Panda.
