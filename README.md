@@ -22,5 +22,7 @@ The rust high-level abstraction binding of Google WebRTC M110. With WebRTC, you 
 
 ---
 
+this rust library needs to depend on [librtc](https://github.com/mycrl/librtc), a dynamic link library.
+
 ### License
 [GPL](./LICENSE) Copyright (c) 2022 Mr.Panda.
