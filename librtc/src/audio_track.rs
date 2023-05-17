@@ -12,10 +12,30 @@ use std::{
 use crate::{
     media_stream_track::*,
     audio_frame::*,
-    stream_ext::*,
-    symbols::*,
-    base::*,
+    sink::*,
+    cstr::*,
 };
+
+#[allow(improper_ctypes)]
+extern "C" {
+    pub(crate) fn rtc_create_audio_track(
+        label: *const libc::c_char,
+    ) -> *const crate::media_stream_track::RawMediaStreamTrack;
+    
+    pub(crate) fn rtc_add_audio_track_frame(
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+        frame: *const crate::audio_frame::RawAudioFrame,
+    );
+
+    pub(crate) fn rtc_set_audio_track_frame_h(
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+        handler: extern "C" fn(
+            &crate::audio_track::AudioTrack,
+            *const crate::audio_frame::RawAudioFrame,
+        ),
+        ctx: &crate::audio_track::AudioTrack,
+    );
+}
 
 /// The AudioTrack interface represents a single audio track from
 /// a MediaStreamTrack.

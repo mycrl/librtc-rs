@@ -8,9 +8,8 @@
 //! video, voice, and generic data to be sent between peers, allowing
 //! developers to build powerful voice- and video-communication solutions.
 
-mod base;
-mod symbols;
-mod abstracts;
+mod cstr;
+mod auto_ptr;
 mod audio_frame;
 mod video_frame;
 mod media_stream;
@@ -25,7 +24,8 @@ mod rtc_icecandidate;
 mod rtc_peerconnection;
 mod rtc_peerconnection_configure;
 mod rtc_session_description;
-mod stream_ext;
+mod promisify;
+mod sink;
 
 pub use video_track::VideoTrack;
 pub use audio_track::AudioTrack;
@@ -35,7 +35,7 @@ pub use media_stream_track::{
     MediaStreamTrackKind,
 };
 
-pub use stream_ext::{
+pub use sink::{
     Sinker,
     SinkExt,
 };
@@ -73,18 +73,27 @@ pub use observer::{
     IceGatheringState,
     ObserverExt,
     Observer,
-    Promisify,
-    PromisifyExt,
     PeerConnectionState,
     SignalingState,
 };
 
+pub use promisify::{
+    Promisify,
+    PromisifyExt,
+    SpawnBlocking,
+};
+
+extern "C" {
+    pub(crate) fn rtc_run();
+    pub(crate) fn rtc_exit();
+}
+
 /// By default, run() calls Thread::Current()->Run().
 /// To receive and dispatch messages.
-pub fn run() {
-    unsafe { symbols::rtc_run() }
+pub async fn run() {
+    SpawnBlocking::new(|| unsafe { rtc_run() }).await
 }
 
 pub fn exit() {
-    unsafe { symbols::rtc_exit() }
+    unsafe { rtc_exit() }
 }

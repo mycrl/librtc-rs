@@ -3,6 +3,17 @@ use anyhow::Result;
 use crate::*;
 use libc::*;
 
+extern "C" {
+    pub(crate) fn rtc_free_frame(frame: *const c_void);
+    pub(crate) fn rtc_remove_media_stream_track_frame_h(
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+    );
+    
+    pub(crate) fn rtc_free_media_stream_track(
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+    );
+}
+
 #[repr(i32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MediaStreamTrackKind {

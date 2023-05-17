@@ -1,9 +1,8 @@
 use tokio::sync::Mutex;
 use libc::*;
 use crate::{
-    stream_ext::*,
-    symbols::*,
-    base::*,
+    sink::*,
+    cstr::*,
 };
 
 use std::{
@@ -11,6 +10,33 @@ use std::{
     slice::from_raw_parts,
     sync::Arc,
 };
+
+#[allow(improper_ctypes)]
+extern "C" {
+    pub(crate) fn rtc_get_data_channel_state(
+        channel: *const crate::rtc_datachannel::RawRTCDataChannel,
+    ) -> crate::rtc_datachannel::DataChannelState;
+
+    pub(crate) fn rtc_send_data_channel_msg(
+        channel: *const crate::rtc_datachannel::RawRTCDataChannel,
+        buf: *const u8,
+        size: c_int,
+    );
+
+    pub(crate) fn rtc_set_data_channel_msg_h(
+        channel: *const crate::rtc_datachannel::RawRTCDataChannel,
+        handler: extern "C" fn(&crate::DataChannel, *const u8, u64),
+        ctx: &crate::DataChannel,
+    );
+
+    pub(crate) fn rtc_remove_data_channel_msg_h(
+        channel: *const crate::rtc_datachannel::RawRTCDataChannel,
+    );
+
+    pub(crate) fn rtc_free_data_channel(
+        channel: *const crate::rtc_datachannel::RawRTCDataChannel,
+    );
+}
 
 /// Indicates the state of the data channel connection.
 #[repr(i32)]

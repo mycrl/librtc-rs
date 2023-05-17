@@ -70,7 +70,9 @@ impl librtc_rs::SinkExt for ChannelSinkImpl {
 
 // peerconnection event handler, handle peerconnection event callback.
 struct ObserverImpl {
-    ws_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    ws_writer: Arc<
+        Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>,
+    >,
     video_track: MediaStreamTrack,
     audio_track: MediaStreamTrack,
 }
@@ -229,6 +231,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Drive the webrtc main thread and block the current site until the webrtc
     // thread exits.
-    librtc_rs::run();
+    librtc_rs::run().await;
     Ok(())
 }

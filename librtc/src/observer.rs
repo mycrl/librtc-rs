@@ -1,63 +1,9 @@
-use futures::task::AtomicWaker;
-use anyhow::Result;
-use std::{
-    future::Future,
-    pin::Pin,
-    sync::Arc,
-    task::*,
-    fmt::Debug,
-};
-
+use std::fmt::Debug;
 use super::{
     media_stream_track::*,
     rtc_datachannel::*,
     rtc_icecandidate::*,
 };
-
-pub trait PromisifyExt {
-    type Output;
-    fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()>;
-    fn wake(&self) -> Option<Result<Self::Output>>;
-}
-
-pub struct Promisify<T>
-where
-    T: PromisifyExt,
-{
-    pub(crate) waker: Arc<AtomicWaker>,
-    pub(crate) begin: bool,
-    pub(crate) ext: T,
-}
-
-impl<T> Future for Promisify<T>
-where
-    T: PromisifyExt + Unpin,
-{
-    type Output = anyhow::Result<T::Output>;
-
-    #[rustfmt::skip]
-    fn poll(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Self::Output> {
-        let mut this = self.as_mut();
-        this.waker.register(cx.waker());
-        if !this.begin {
-            match this.ext.handle(this.waker.clone()) {
-                Err(e) => Poll::Ready(Err(e)),
-                Ok(_) => {
-                    this.begin = true;
-                    Poll::Pending
-                },
-            }
-        } else {
-            this.ext
-                .wake()
-                .map(Poll::Ready)
-                .unwrap_or(Poll::Pending)
-        }
-    }
-}
 
 /// This state essentially represents the aggregate state of all ICE
 /// transports (which are of type RTCIceTransport or RTCDtlsTransport)

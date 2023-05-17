@@ -12,10 +12,30 @@ use std::{
 use crate::{
     media_stream_track::*,
     video_frame::*,
-    stream_ext::*,
-    symbols::*,
-    base::*,
+    sink::*,
+    cstr::*,
 };
+
+#[allow(improper_ctypes)]
+extern "C" {
+    pub(crate) fn rtc_create_video_track(
+        label: *const libc::c_char,
+    ) -> *const crate::media_stream_track::RawMediaStreamTrack;
+
+    pub(crate) fn rtc_add_video_track_frame(
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+        frame: *const crate::video_frame::RawVideoFrame,
+    );
+
+    pub(crate) fn rtc_set_video_track_frame_h(
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+        handler: extern "C" fn(
+            &crate::video_track::VideoTrack,
+            *const crate::video_frame::RawVideoFrame,
+        ),
+        ctx: &crate::video_track::VideoTrack,
+    );
+}
 
 /// The VideoTrack interface represents a single video track from
 /// a MediaStreamTrack.

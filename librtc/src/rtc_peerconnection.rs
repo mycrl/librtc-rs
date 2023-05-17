@@ -7,19 +7,48 @@ use anyhow::{
 };
 
 use crate::{
-    base::*,
+    cstr::*,
     media_stream::*,
     media_stream_track::*,
     observer::*,
     rtc_datachannel::*,
     rtc_icecandidate::*,
-    abstracts::HeapPointer,
+    auto_ptr::HeapPointer,
     rtc_peerconnection_configure::*,
     rtc_session_description::*,
     create_description_observer::*,
     set_description_observer::*,
-    symbols::*,
 };
+
+#[allow(improper_ctypes)]
+extern "C" {
+    pub(crate) fn rtc_create_peer_connection(
+        config: *const crate::rtc_peerconnection_configure::RawRTCPeerConnectionConfigure,
+        events: *const crate::observer::TEvents,
+        observer: *mut crate::observer::Observer,
+    ) -> *const crate::rtc_peerconnection::RawRTCPeerConnection;
+
+    pub(crate) fn rtc_add_ice_candidate(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+        icecandidate: *const crate::rtc_icecandidate::RawRTCIceCandidate,
+    ) -> bool;
+
+    pub(crate) fn rtc_add_media_stream_track(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+        id: *const c_char,
+    );
+
+    pub(crate) fn rtc_create_data_channel(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+        label: *const c_char,
+        options: *const crate::rtc_datachannel::RawDataChannelOptions,
+    ) -> *const crate::rtc_datachannel::RawRTCDataChannel;
+
+    pub(crate) fn rtc_close(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+    );
+}
 
 pub(crate) type RawRTCPeerConnection = c_void;
 
@@ -76,7 +105,7 @@ impl RTCPeerConnection {
     /// signaling channel to a potential peer to request a connection or to
     /// update the configuration of an existing connection.
     pub fn create_offer(&self) -> CreateDescriptionFuture {
-        CreateDescriptionFuture::new(self.raw, CreateDescriptionKind::Offer)
+        CreateDescriptionFuture::create(self.raw, CreateDescriptionKind::Offer)
     }
 
     /// The create_answer() method on the RTCPeerConnection interface creates an
@@ -88,7 +117,7 @@ impl RTCPeerConnection {
     /// then be sent to the source of the offer to continue the negotiation
     /// process.
     pub fn create_answer(&self) -> CreateDescriptionFuture {
-        CreateDescriptionFuture::new(self.raw, CreateDescriptionKind::Answer)
+        CreateDescriptionFuture::create(self.raw, CreateDescriptionKind::Answer)
     }
 
     /// The RTCPeerConnection method setLocalDescription() changes the local
@@ -99,7 +128,7 @@ impl RTCPeerConnection {
         &'b self,
         desc: &'b RTCSessionDescription,
     ) -> SetDescriptionFuture<'b> {
-        SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Local)
+        SetDescriptionFuture::create(self.raw, desc, SetDescriptionKind::Local)
     }
 
     /// The RTCPeerConnection method setRemoteDescription() sets the specified
@@ -110,7 +139,7 @@ impl RTCPeerConnection {
         &'b self,
         desc: &'b RTCSessionDescription,
     ) -> SetDescriptionFuture<'b> {
-        SetDescriptionFuture::new(self.raw, desc, SetDescriptionKind::Remote)
+        SetDescriptionFuture::create(self.raw, desc, SetDescriptionKind::Remote)
     }
 
     /// When a web site or app using RTCPeerConnection receives a new ICE

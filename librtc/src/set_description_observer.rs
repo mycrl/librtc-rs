@@ -11,8 +11,7 @@ use super::{
 };
 
 use crate::{
-    base::*,
-    symbols::*,
+    cstr::*,
     rtc_peerconnection::*,
     rtc_session_description::*,
 };
@@ -26,6 +25,22 @@ use std::sync::atomic::{
     AtomicPtr,
     Ordering,
 };
+
+extern "C" {
+    pub(crate) fn rtc_set_local_description(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+        desc: *const crate::rtc_session_description::RawRTCSessionDescription,
+        callback: extern "C" fn(*const c_char, *mut c_void),
+        ctx: *mut c_void,
+    );
+
+    pub(crate) fn rtc_set_remote_description(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+        desc: *const crate::rtc_session_description::RawRTCSessionDescription,
+        callback: extern "C" fn(*const c_char, *mut c_void),
+        ctx: *mut c_void,
+    );
+}
 
 #[derive(PartialEq, Eq, PartialOrd)]
 pub(crate) enum SetDescriptionKind {
@@ -41,7 +56,7 @@ struct SetDescriptionContext {
 extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
     let mut ctx = unsafe { Box::from_raw(ctx as *mut SetDescriptionContext) };
     (ctx.callback)(
-        from_raw_ptr(error)
+        unsafe { error.as_ref() }
             .map(|_| {
                 from_c_str(error)
                     .map_err(|e| anyhow!(e.to_string()))
@@ -62,6 +77,7 @@ unsafe impl Send for SetDescriptionObserver<'_> {}
 unsafe impl Sync for SetDescriptionObserver<'_> {}
 
 impl<'a> PromisifyExt for SetDescriptionObserver<'a> {
+    type Err = anyhow::Error;
     type Output = ();
 
     fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()> {
@@ -98,27 +114,23 @@ impl<'a> PromisifyExt for SetDescriptionObserver<'a> {
     }
 
     fn wake(&self) -> Option<Result<Self::Output>> {
-        from_raw_mut_ptr(self.ret.swap(std::ptr::null_mut(), Ordering::Relaxed))
+        unsafe { self.ret.swap(std::ptr::null_mut(), Ordering::Relaxed).as_mut() }
             .map(|ptr| unsafe { *Box::from_raw(ptr) })
     }
 }
 
 pub type SetDescriptionFuture<'a> = Promisify<SetDescriptionObserver<'a>>;
 impl<'a> SetDescriptionFuture<'a> {
-    pub(crate) fn new(
+    pub(crate) fn create(
         pc: *const RawRTCPeerConnection,
         desc: &'a RTCSessionDescription,
         kind: SetDescriptionKind,
     ) -> Self {
-        Self {
-            begin: false,
-            waker: Arc::new(AtomicWaker::new()),
-            ext: SetDescriptionObserver {
-                ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
-                desc,
-                kind,
-                pc,
-            },
-        }
+        Promisify::new(SetDescriptionObserver {
+            ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
+            desc,
+            kind,
+            pc,
+        })
     }
 }

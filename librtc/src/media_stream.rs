@@ -3,7 +3,7 @@ use std::sync::Arc;
 use libc::*;
 use super::{
     media_stream_track::*,
-    base::*,
+    cstr::*,
 };
 
 /// The MediaStream interface represents a stream of media content.

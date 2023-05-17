@@ -34,33 +34,3 @@ pub(crate) fn free_cstring(str: *const c_char) {
     assert!(!str.is_null());
     drop(unsafe { CString::from_raw(str as *mut c_char) })
 }
-
-/// ```no_run
-/// let c_str = to_c_str("test").unwrap();
-/// assert!(!c_str.is_null());
-///
-/// let raw = from_raw_ptr(c_str);
-/// assert!(raw.is_some());
-/// ```
-pub(crate) fn from_raw_ptr<T>(ptr: *const T) -> Option<*const T> {
-    if ptr.is_null() {
-        None
-    } else {
-        Some(ptr)
-    }
-}
-
-/// ```no_run
-/// let c_str = to_c_str("test").unwrap();
-/// assert!(!c_str.is_null());
-///
-/// let raw_mut = from_raw_mut_ptr(c_str);
-/// assert!(raw.is_some());
-/// ```
-pub(crate) fn from_raw_mut_ptr<T>(ptr: *mut T) -> Option<*mut T> {
-    if ptr.is_null() {
-        None
-    } else {
-        Some(ptr)
-    }
-}

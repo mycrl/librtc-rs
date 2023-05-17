@@ -1,4 +1,4 @@
-use crate::symbols::*;
+use crate::media_stream_track::*;
 use libc::*;
 use std::{
     slice::from_raw_parts,

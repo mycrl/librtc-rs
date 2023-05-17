@@ -1,8 +1,8 @@
 use std::convert::*;
 use libc::*;
 use super::{
-    abstracts::*,
-    base::*,
+    auto_ptr::*,
+    cstr::*,
 };
 
 /// How to handle negotiation of candidates when remote peer is not compatible
