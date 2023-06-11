@@ -1,7 +1,4 @@
-use std::{
-    mem::ManuallyDrop,
-    cell::UnsafeCell,
-};
+use std::{cell::UnsafeCell, mem::ManuallyDrop};
 
 /// The type wrapper for interior mutability in rust.
 #[derive(Debug)]

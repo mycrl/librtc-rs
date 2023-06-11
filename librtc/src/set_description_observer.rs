@@ -1,29 +1,18 @@
-use futures::task::AtomicWaker;
-use libc::*;
-use anyhow::{
-    anyhow,
-    Result,
+use std::{
+    ffi::{c_char, c_void},
+    sync::{
+        atomic::{AtomicPtr, Ordering},
+        Arc,
+    },
 };
 
-use super::{
-    Promisify,
-    PromisifyExt,
-};
+use anyhow::{anyhow, Result};
+use futures::task::AtomicWaker;
 
 use crate::{
-    cstr::*,
-    rtc_peerconnection::*,
-    rtc_session_description::*,
-};
-
-use std::{
-    convert::TryInto,
-    sync::Arc,
-};
-
-use std::sync::atomic::{
-    AtomicPtr,
-    Ordering,
+    cstr::from_c_str, rtc_peerconnection::RawRTCPeerConnection,
+    rtc_session_description::RawRTCSessionDescription, Promisify, PromisifyExt,
+    RTCSessionDescription,
 };
 
 extern "C" {
@@ -91,31 +80,21 @@ impl<'a> PromisifyExt for SetDescriptionObserver<'a> {
 
         let desc: RawRTCSessionDescription = self.desc.try_into()?;
         if self.kind == SetDescriptionKind::Local {
-            unsafe {
-                rtc_set_local_description(
-                    self.pc,
-                    &desc,
-                    set_description_callback,
-                    ctx,
-                )
-            };
+            unsafe { rtc_set_local_description(self.pc, &desc, set_description_callback, ctx) };
         } else {
-            unsafe {
-                rtc_set_remote_description(
-                    self.pc,
-                    &desc,
-                    set_description_callback,
-                    ctx,
-                )
-            };
+            unsafe { rtc_set_remote_description(self.pc, &desc, set_description_callback, ctx) };
         }
 
         Ok(())
     }
 
     fn wake(&self) -> Option<Result<Self::Output>> {
-        unsafe { self.ret.swap(std::ptr::null_mut(), Ordering::Relaxed).as_mut() }
-            .map(|ptr| unsafe { *Box::from_raw(ptr) })
+        unsafe {
+            self.ret
+                .swap(std::ptr::null_mut(), Ordering::Relaxed)
+                .as_mut()
+        }
+        .map(|ptr| unsafe { *Box::from_raw(ptr) })
     }
 }
 

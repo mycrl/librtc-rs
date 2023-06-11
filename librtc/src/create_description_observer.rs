@@ -1,29 +1,18 @@
-use futures::task::AtomicWaker;
-use libc::*;
-use anyhow::{
-    anyhow,
-    Result,
+use std::{
+    ffi::{c_char, c_void},
+    sync::{
+        atomic::{AtomicPtr, Ordering},
+        Arc,
+    },
 };
 
-use super::{
-    Promisify,
-    PromisifyExt,
-};
+use anyhow::{anyhow, Result};
+use futures::task::AtomicWaker;
 
 use crate::{
-    cstr::*,
-    rtc_peerconnection::*,
-    rtc_session_description::*,
-};
-
-use std::{
-    convert::TryFrom,
-    sync::Arc,
-};
-
-use std::sync::atomic::{
-    AtomicPtr,
-    Ordering,
+    cstr::from_c_str, rtc_peerconnection::RawRTCPeerConnection,
+    rtc_session_description::RawRTCSessionDescription, Promisify, PromisifyExt,
+    RTCSessionDescription,
 };
 
 extern "C" {
@@ -64,8 +53,7 @@ extern "C" fn create_description_callback(
     desc: *const RawRTCSessionDescription,
     ctx: *mut c_void,
 ) {
-    let mut ctx =
-        unsafe { Box::from_raw(ctx as *mut CreateDescriptionContext) };
+    let mut ctx = unsafe { Box::from_raw(ctx as *mut CreateDescriptionContext) };
     (ctx.callback)(
         unsafe { error.as_ref() }
             .map(|_| {
@@ -73,9 +61,7 @@ extern "C" fn create_description_callback(
                     .map_err(|e| anyhow!(e.to_string()))
                     .and_then(|s| Err(anyhow!(s)))
             })
-            .unwrap_or_else(|| {
-                RTCSessionDescription::try_from(unsafe { &*desc })
-            }),
+            .unwrap_or_else(|| RTCSessionDescription::try_from(unsafe { &*desc })),
     );
 }
 
@@ -102,30 +88,27 @@ impl PromisifyExt for CreateDescriptionObserver {
         })) as *mut c_void;
 
         if self.kind == CreateDescriptionKind::Offer {
-            unsafe {
-                rtc_create_offer(self.pc, create_description_callback, ctx)
-            };
+            unsafe { rtc_create_offer(self.pc, create_description_callback, ctx) };
         } else {
-            unsafe {
-                rtc_create_answer(self.pc, create_description_callback, ctx)
-            };
+            unsafe { rtc_create_answer(self.pc, create_description_callback, ctx) };
         }
 
         Ok(())
     }
 
     fn wake(&self) -> Option<Result<Self::Output>> {
-        unsafe { self.ret.swap(std::ptr::null_mut(), Ordering::Relaxed).as_mut() }
-            .map(|ptr| unsafe { *Box::from_raw(ptr) })
+        unsafe {
+            self.ret
+                .swap(std::ptr::null_mut(), Ordering::Relaxed)
+                .as_mut()
+        }
+        .map(|ptr| unsafe { *Box::from_raw(ptr) })
     }
 }
 
 pub type CreateDescriptionFuture = Promisify<CreateDescriptionObserver>;
 impl CreateDescriptionFuture {
-    pub(crate) fn create(
-        pc: *const RawRTCPeerConnection,
-        kind: CreateDescriptionKind,
-    ) -> Self {
+    pub(crate) fn create(pc: *const RawRTCPeerConnection, kind: CreateDescriptionKind) -> Self {
         Promisify::new(CreateDescriptionObserver {
             ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
             kind,

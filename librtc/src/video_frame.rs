@@ -1,9 +1,6 @@
-use crate::media_stream_track::*;
-use libc::*;
-use std::{
-    slice::from_raw_parts,
-    sync::Arc,
-};
+use std::{ffi::c_void, slice::from_raw_parts, sync::Arc};
+
+use crate::media_stream_track::rtc_free_frame;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -38,12 +35,7 @@ unsafe impl Send for VideoFrame {}
 unsafe impl Sync for VideoFrame {}
 
 impl VideoFrame {
-    pub fn from_default_layout(
-        width: u32,
-        height: u32,
-        timestamp: usize,
-        buf: &[u8],
-    ) -> Self {
+    pub fn from_default_layout(width: u32, height: u32, timestamp: usize, buf: &[u8]) -> Self {
         assert!(buf.len() >= (width as f64 * height as f64 * 1.5) as usize);
         let size_u = ((width / 2) * (height / 2)) as usize;
         let size_y = (width * height) as usize;
@@ -67,9 +59,7 @@ impl VideoFrame {
     /// create video frame from raw video frame type.
     pub(crate) fn from_raw(raw: *const RawVideoFrame) -> Arc<Self> {
         assert!(!raw.is_null());
-        Arc::new(Self {
-            raw,
-        })
+        Arc::new(Self { raw })
     }
 
     /// Create i420 frame structure from memory buffer.

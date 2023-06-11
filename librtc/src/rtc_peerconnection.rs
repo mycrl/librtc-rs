@@ -1,23 +1,21 @@
-use tokio::sync::Mutex;
-use std::sync::Arc;
-use libc::*;
-use anyhow::{
-    anyhow,
-    Result,
+use std::{
+    ffi::{c_char, c_void},
+    sync::Arc,
 };
 
+use anyhow::{anyhow, Result};
+use tokio::sync::Mutex;
+
 use crate::{
-    cstr::*,
-    media_stream::*,
-    media_stream_track::*,
-    observer::*,
-    rtc_datachannel::*,
-    rtc_icecandidate::*,
     auto_ptr::HeapPointer,
-    rtc_peerconnection_configure::*,
-    rtc_session_description::*,
-    create_description_observer::*,
-    set_description_observer::*,
+    create_description_observer::{CreateDescriptionFuture, CreateDescriptionKind},
+    cstr::{free_cstring, to_c_str},
+    observer::EVENTS,
+    rtc_datachannel::RawDataChannelOptions,
+    rtc_icecandidate::RawRTCIceCandidate,
+    set_description_observer::{SetDescriptionFuture, SetDescriptionKind},
+    DataChannel, DataChannelOptions, MediaStream, MediaStreamTrack, Observer, RTCConfiguration,
+    RTCDataChannel, RTCIceCandidate, RTCSessionDescription,
 };
 
 #[allow(improper_ctypes)]
@@ -45,9 +43,7 @@ extern "C" {
         options: *const crate::rtc_datachannel::RawDataChannelOptions,
     ) -> *const crate::rtc_datachannel::RawRTCDataChannel;
 
-    pub(crate) fn rtc_close(
-        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
-    );
+    pub(crate) fn rtc_close(peer: *const crate::rtc_peerconnection::RawRTCPeerConnection);
 }
 
 pub(crate) type RawRTCPeerConnection = c_void;
@@ -72,17 +68,10 @@ impl RTCPeerConnection {
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
-    pub fn new(
-        config: &RTCConfiguration,
-        iobserver: Observer,
-    ) -> Result<Arc<Self>> {
+    pub fn new(config: &RTCConfiguration, iobserver: Observer) -> Result<Arc<Self>> {
         let observer = HeapPointer::new();
         let raw = unsafe {
-            rtc_create_peer_connection(
-                config.get_raw(),
-                &EVENTS,
-                observer.set(iobserver),
-            )
+            rtc_create_peer_connection(config.get_raw(), &EVENTS, observer.set(iobserver))
         };
 
         if raw.is_null() {
@@ -164,10 +153,7 @@ impl RTCPeerConnection {
     /// a list of potential connection methods. This is covered in more
     /// detail in the articles WebRTC connectivity and Signaling and video
     /// calling.
-    pub fn add_ice_candidate<'b>(
-        &'b self,
-        candidate: &'b RTCIceCandidate,
-    ) -> Result<()> {
+    pub fn add_ice_candidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<()> {
         let raw: RawRTCIceCandidate = candidate.try_into()?;
         let ret = unsafe { rtc_add_ice_candidate(self.raw, &raw) };
         if !ret {
@@ -179,18 +165,8 @@ impl RTCPeerConnection {
 
     /// The RTCPeerConnection method addTrack() adds a new media track to the
     /// set of tracks which will be transmitted to the other peer.
-    pub async fn add_track(
-        &self,
-        track: MediaStreamTrack,
-        stream: Arc<MediaStream>,
-    ) {
-        unsafe {
-            rtc_add_media_stream_track(
-                self.raw,
-                track.get_raw(),
-                stream.get_id(),
-            )
-        }
+    pub async fn add_track(&self, track: MediaStreamTrack, stream: Arc<MediaStream>) {
+        unsafe { rtc_add_media_stream_track(self.raw, track.get_raw(), stream.get_id()) }
 
         self.tracks.lock().await.push((track, stream));
     }
@@ -198,11 +174,7 @@ impl RTCPeerConnection {
     /// The createDataChannel() method on the RTCPeerConnection interface
     /// creates a new channel linked with the remote peer, over which any kind
     /// of data may be transmitted.
-    pub fn create_data_channel(
-        &self,
-        label: &str,
-        opt: &DataChannelOptions,
-    ) -> RTCDataChannel {
+    pub fn create_data_channel(&self, label: &str, opt: &DataChannelOptions) -> RTCDataChannel {
         let c_label = to_c_str(label).unwrap();
         let opt: RawDataChannelOptions = opt.into();
         let raw = unsafe { rtc_create_data_channel(self.raw, c_label, &opt) };

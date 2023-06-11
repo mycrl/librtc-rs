@@ -1,17 +1,18 @@
-use crate::media_stream_track::*;
-use libc::*;
 use std::{
+    ffi::{c_int, c_void},
     slice::from_raw_parts,
     sync::Arc,
 };
+
+use crate::media_stream_track::rtc_free_frame;
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct RawAudioFrame {
     remote: bool,
-    size: size_t,
-    frames: size_t,
-    channels: size_t,
+    size: usize,
+    frames: usize,
+    channels: usize,
     sample_rate: c_int,
     timestamp: i64,
     buf: *const i16,
@@ -30,9 +31,7 @@ impl AudioFrame {
     /// crate AudiFrame from raw type.
     pub(crate) fn from_raw(raw: *const RawAudioFrame) -> Arc<Self> {
         assert!(!raw.is_null());
-        Arc::new(Self {
-            raw,
-        })
+        Arc::new(Self { raw })
     }
 
     pub(crate) fn get_raw(&self) -> *const RawAudioFrame {
@@ -50,7 +49,7 @@ impl AudioFrame {
         Self {
             raw: Box::into_raw(Box::new(RawAudioFrame {
                 sample_rate: sample_rate as c_int,
-                channels: channels as size_t,
+                channels: channels as usize,
                 timestamp: timestamp as i64,
                 buf: buf.as_ptr(),
                 size: buf.len(),

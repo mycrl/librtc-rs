@@ -1,14 +1,18 @@
-use std::sync::Arc;
+use std::{
+    ffi::{c_char, c_void},
+    sync::Arc,
+};
+
 use anyhow::Result;
-use crate::*;
-use libc::*;
+
+use crate::{AudioTrack, VideoTrack};
 
 extern "C" {
     pub(crate) fn rtc_free_frame(frame: *const c_void);
     pub(crate) fn rtc_remove_media_stream_track_frame_h(
         track: *const crate::media_stream_track::RawMediaStreamTrack,
     );
-    
+
     pub(crate) fn rtc_free_media_stream_track(
         track: *const crate::media_stream_track::RawMediaStreamTrack,
     );
@@ -65,12 +69,8 @@ impl MediaStreamTrack {
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Self {
         assert!(!raw.is_null());
         match unsafe { (*raw).kind } {
-            MediaStreamTrackKind::Audio => {
-                Self::Audio(AudioTrack::from_raw(raw))
-            },
-            MediaStreamTrackKind::Video => {
-                Self::Video(VideoTrack::from_raw(raw))
-            },
+            MediaStreamTrackKind::Audio => Self::Audio(AudioTrack::from_raw(raw)),
+            MediaStreamTrackKind::Video => Self::Video(VideoTrack::from_raw(raw)),
         }
     }
 

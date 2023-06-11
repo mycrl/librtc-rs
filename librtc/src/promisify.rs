@@ -1,17 +1,16 @@
-use futures::task::AtomicWaker;
 use std::{
-    result::Result,
     future::Future,
-    sync::Arc,
     pin::Pin,
-    task::*,
+    result::Result,
+    sync::{
+        atomic::{AtomicPtr, Ordering},
+        Arc,
+    },
+    task::{Context, Poll},
     thread,
 };
 
-use std::sync::atomic::{
-    AtomicPtr,
-    Ordering,
-};
+use futures::task::AtomicWaker;
 
 pub trait PromisifyExt {
     type Err;
@@ -142,35 +141,28 @@ where
 {
     type Output = R;
 
-    fn poll(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Self::Output> {
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut this = self.as_mut();
         this.waker.register(cx.waker());
         match &this.handle {
             Some(handle) => {
                 if handle.is_finished() {
-                    let ret =
-                        this.ret.swap(std::ptr::null_mut(), Ordering::Relaxed);
+                    let ret = this.ret.swap(std::ptr::null_mut(), Ordering::Relaxed);
                     return Poll::Ready(unsafe { *Box::from_raw(ret) });
                 }
-            },
+            }
             None => {
                 let ret = this.ret.clone();
                 let waker = this.waker.clone();
                 let process = this.process.take();
                 let _ = this.handle.insert(thread::spawn(move || {
                     if let Some(func) = process {
-                        ret.store(
-                            Box::into_raw(Box::new(func())),
-                            Ordering::Relaxed,
-                        );
+                        ret.store(Box::into_raw(Box::new(func())), Ordering::Relaxed);
 
                         waker.wake();
                     }
                 }));
-            },
+            }
         };
 
         Poll::Pending

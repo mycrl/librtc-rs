@@ -1,14 +1,15 @@
-use tokio::sync::Mutex;
-use libc::*;
-use crate::{
-    sink::*,
-    cstr::*,
-};
-
 use std::{
     collections::HashMap,
+    ffi::{c_char, c_int, c_void},
     slice::from_raw_parts,
     sync::Arc,
+};
+
+use tokio::sync::Mutex;
+
+use crate::{
+    cstr::{free_cstring, to_c_str},
+    Sinker,
 };
 
 #[allow(improper_ctypes)]
@@ -33,9 +34,7 @@ extern "C" {
         channel: *const crate::rtc_datachannel::RawRTCDataChannel,
     );
 
-    pub(crate) fn rtc_free_data_channel(
-        channel: *const crate::rtc_datachannel::RawRTCDataChannel,
-    );
+    pub(crate) fn rtc_free_data_channel(channel: *const crate::rtc_datachannel::RawRTCDataChannel);
 }
 
 /// Indicates the state of the data channel connection.
@@ -168,13 +167,7 @@ impl DataChannel {
     /// Sends data across the data channel to the remote peer.
     pub fn send(&self, buf: &[u8]) {
         assert!(!unsafe { &*self.raw }.remote);
-        unsafe {
-            rtc_send_data_channel_msg(
-                self.raw,
-                buf.as_ptr(),
-                buf.len() as c_int,
-            )
-        }
+        unsafe { rtc_send_data_channel_msg(self.raw, buf.as_ptr(), buf.len() as c_int) }
     }
 
     /// Returns a string which indicates the state of the data channel's
@@ -193,9 +186,7 @@ impl DataChannel {
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
-            unsafe {
-                rtc_set_data_channel_msg_h(self.raw, on_channal_data, self)
-            }
+            unsafe { rtc_set_data_channel_msg_h(self.raw, on_channal_data, self) }
         }
 
         sinks.insert(id, sink);

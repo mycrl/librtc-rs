@@ -3,28 +3,15 @@ mod signaling;
 use clap::*;
 use librtc_rs::*;
 use signaling::*;
-use std::{
-    sync::Arc,
-    mem::ManuallyDrop,
-};
+use std::{mem::ManuallyDrop, sync::Arc};
 
-use futures_util::{
-    stream::*,
-    SinkExt,
-    StreamExt,
-};
+use futures_util::{stream::*, SinkExt, StreamExt};
 
 use tokio_tungstenite::{
-    tungstenite::protocol::Message,
-    MaybeTlsStream,
-    WebSocketStream,
-    connect_async,
+    connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
 
-use tokio::{
-    net::TcpStream,
-    sync::Mutex,
-};
+use tokio::{net::TcpStream, sync::Mutex};
 
 // Implementation of the video track sink.
 struct VideoSinkImpl {
@@ -70,9 +57,7 @@ impl librtc_rs::SinkExt for ChannelSinkImpl {
 
 // peerconnection event handler, handle peerconnection event callback.
 struct ObserverImpl {
-    ws_writer: Arc<
-        Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>,
-    >,
+    ws_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     video_track: MediaStreamTrack,
     audio_track: MediaStreamTrack,
 }
@@ -86,9 +71,7 @@ impl ObserverExt for ObserverImpl {
             writer
                 .lock()
                 .await
-                .send(Message::Text(
-                    Payload::from(candidate).to_string().unwrap(),
-                ))
+                .send(Message::Text(Payload::from(candidate).to_string().unwrap()))
                 .await
                 .unwrap();
         });
@@ -130,7 +113,7 @@ impl ObserverExt for ObserverImpl {
                             )
                             .await;
                     }
-                },
+                }
                 MediaStreamTrack::Audio(track) => {
                     if let MediaStreamTrack::Audio(at) = audio_track {
                         track
@@ -142,7 +125,7 @@ impl ObserverExt for ObserverImpl {
                             )
                             .await;
                     }
-                },
+                }
             }
 
             // Next, we will continue to use this container to prevent automatic
@@ -231,6 +214,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Drive the webrtc main thread and block the current site until the webrtc
     // thread exits.
-    librtc_rs::run().await;
+    librtc_rs::run();
     Ok(())
 }

@@ -1,25 +1,21 @@
-use tokio::sync::Mutex;
-use anyhow::{
-    anyhow,
-    Result,
-};
+use std::{collections::HashMap, ffi::c_char, sync::Arc};
 
-use std::{
-    collections::HashMap,
-    sync::Arc,
-};
+use anyhow::{anyhow, Result};
+use tokio::sync::Mutex;
 
 use crate::{
-    media_stream_track::*,
-    video_frame::*,
-    sink::*,
-    cstr::*,
+    cstr::{free_cstring, to_c_str},
+    media_stream_track::{
+        rtc_free_media_stream_track, rtc_remove_media_stream_track_frame_h, RawMediaStreamTrack,
+    },
+    video_frame::RawVideoFrame,
+    Sinker, VideoFrame,
 };
 
 #[allow(improper_ctypes)]
 extern "C" {
     pub(crate) fn rtc_create_video_track(
-        label: *const libc::c_char,
+        label: *const c_char,
     ) -> *const crate::media_stream_track::RawMediaStreamTrack;
 
     pub(crate) fn rtc_add_video_track_frame(
@@ -84,9 +80,7 @@ impl VideoTrack {
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
-            unsafe {
-                rtc_set_video_track_frame_h(self.raw, on_video_frame, self)
-            }
+            unsafe { rtc_set_video_track_frame_h(self.raw, on_video_frame, self) }
         }
 
         sinks.insert(id, sink);

@@ -1,8 +1,9 @@
 use std::fmt::Debug;
-use super::{
-    media_stream_track::*,
-    rtc_datachannel::*,
-    rtc_icecandidate::*,
+
+use crate::{
+    media_stream_track::RawMediaStreamTrack, rtc_datachannel::RawRTCDataChannel,
+    rtc_icecandidate::RawRTCIceCandidate, DataChannel, MediaStreamTrack, RTCDataChannel,
+    RTCIceCandidate,
 };
 
 /// This state essentially represents the aggregate state of all ICE
@@ -225,28 +226,19 @@ extern "C" fn on_signaling_change(ctx: *mut Observer, state: SignalingState) {
 }
 
 #[no_mangle]
-extern "C" fn on_connection_change(
-    ctx: *mut Observer,
-    state: PeerConnectionState,
-) {
+extern "C" fn on_connection_change(ctx: *mut Observer, state: PeerConnectionState) {
     assert!(!ctx.is_null());
     unsafe { &mut *ctx }.data.on_connection_change(state);
 }
 
 #[no_mangle]
-extern "C" fn on_ice_gathering_change(
-    ctx: *mut Observer,
-    state: IceGatheringState,
-) {
+extern "C" fn on_ice_gathering_change(ctx: *mut Observer, state: IceGatheringState) {
     assert!(!ctx.is_null());
     unsafe { &mut *ctx }.data.on_ice_gathering_change(state);
 }
 
 #[no_mangle]
-extern "C" fn on_ice_candidate(
-    ctx: *mut Observer,
-    candidate: *const RawRTCIceCandidate,
-) {
+extern "C" fn on_ice_candidate(ctx: *mut Observer, candidate: *const RawRTCIceCandidate) {
     assert!(!ctx.is_null());
     assert!(!candidate.is_null());
     let candidate = RTCIceCandidate::try_from(unsafe { &*candidate }).unwrap();
@@ -260,19 +252,13 @@ extern "C" fn on_renegotiation_needed(ctx: *mut Observer) {
 }
 
 #[no_mangle]
-extern "C" fn on_ice_connection_change(
-    ctx: *mut Observer,
-    state: IceConnectionState,
-) {
+extern "C" fn on_ice_connection_change(ctx: *mut Observer, state: IceConnectionState) {
     assert!(!ctx.is_null());
     unsafe { &mut *ctx }.data.on_ice_connection_change(state);
 }
 
 #[no_mangle]
-extern "C" fn on_datachannel(
-    ctx: *mut Observer,
-    channel: *const RawRTCDataChannel,
-) {
+extern "C" fn on_datachannel(ctx: *mut Observer, channel: *const RawRTCDataChannel) {
     assert!(!ctx.is_null());
     assert!(!channel.is_null());
     let channel = DataChannel::from_raw(channel);

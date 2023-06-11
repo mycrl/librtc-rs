@@ -1,6 +1,6 @@
-use super::cstr::*;
-use std::convert::*;
-use libc::*;
+use std::ffi::{c_char, c_int};
+
+use crate::cstr::{free_cstring, from_c_str, to_c_str};
 
 #[repr(C)]
 pub(crate) struct RawRTCIceCandidate {

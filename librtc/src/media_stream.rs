@@ -1,9 +1,10 @@
+use std::{ffi::c_char, sync::Arc};
+
 use anyhow::Result;
-use std::sync::Arc;
-use libc::*;
-use super::{
-    media_stream_track::*,
-    cstr::*,
+
+use crate::{
+    cstr::{free_cstring, to_c_str},
+    MediaStreamTrack,
 };
 
 /// The MediaStream interface represents a stream of media content.

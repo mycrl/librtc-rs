@@ -1,9 +1,6 @@
+use std::ffi::{c_char, CStr, CString};
+
 use anyhow::Result;
-use libc::*;
-use std::ffi::{
-    CString,
-    CStr,
-};
 
 /// ```no_run
 /// let c_str = to_c_str("test").unwrap();

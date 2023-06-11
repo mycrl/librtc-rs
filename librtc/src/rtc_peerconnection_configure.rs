@@ -1,9 +1,7 @@
-use std::convert::*;
-use libc::*;
-use super::{
-    auto_ptr::*,
-    cstr::*,
-};
+use std::ffi::{c_char, c_int};
+
+use crate::auto_ptr::{ArrayExt, HeapPointer};
+use crate::cstr::{free_cstring, to_c_str};
 
 /// How to handle negotiation of candidates when remote peer is not compatible
 /// with standard SDP BUNDLE.
@@ -243,21 +241,14 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
             .unwrap_or((std::ptr::null_mut(), 0, 0));
         RawRTCPeerConnectionConfigure {
             bundle_policy: self.bundle_policy.map(|i| i as c_int).unwrap_or(0),
-            ice_transport_policy: self
-                .ice_transport_policy
-                .map(|i| i as c_int)
-                .unwrap_or(0),
+            ice_transport_policy: self.ice_transport_policy.map(|i| i as c_int).unwrap_or(0),
             peer_identity: self
                 .peer_identity
                 .as_ref()
                 .map(|s| to_c_str(s).unwrap())
                 .unwrap_or(std::ptr::null_mut()),
-            rtcp_mux_policy: self
-                .rtcp_mux_policy
-                .map(|i| i as c_int)
-                .unwrap_or(0),
-            ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0)
-                as c_int,
+            rtcp_mux_policy: self.rtcp_mux_policy.map(|i| i as c_int).unwrap_or(0),
+            ice_candidate_pool_size: self.ice_candidate_pool_size.unwrap_or(0) as c_int,
             ice_servers_capacity: ice_servers_capacity as c_int,
             ice_servers_size: ice_servers_size as c_int,
             ice_servers,

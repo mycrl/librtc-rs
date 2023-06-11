@@ -1,27 +1,23 @@
-use tokio::sync::Mutex;
-use anyhow::{
-    Result,
-    anyhow,
-};
+use std::{collections::HashMap, ffi::c_char, sync::Arc};
 
-use std::{
-    collections::HashMap,
-    sync::Arc,
-};
+use anyhow::{anyhow, Result};
+use tokio::sync::Mutex;
 
 use crate::{
-    media_stream_track::*,
-    audio_frame::*,
-    sink::*,
-    cstr::*,
+    audio_frame::RawAudioFrame,
+    cstr::{free_cstring, to_c_str},
+    media_stream_track::{
+        rtc_free_media_stream_track, rtc_remove_media_stream_track_frame_h, RawMediaStreamTrack,
+    },
+    AudioFrame, Sinker,
 };
 
 #[allow(improper_ctypes)]
 extern "C" {
     pub(crate) fn rtc_create_audio_track(
-        label: *const libc::c_char,
+        label: *const c_char,
     ) -> *const crate::media_stream_track::RawMediaStreamTrack;
-    
+
     pub(crate) fn rtc_add_audio_track_frame(
         track: *const crate::media_stream_track::RawMediaStreamTrack,
         frame: *const crate::audio_frame::RawAudioFrame,
@@ -84,9 +80,7 @@ impl AudioTrack {
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
         if sinks.is_empty() {
-            unsafe {
-                rtc_set_audio_track_frame_h(self.raw, on_audio_frame, self)
-            }
+            unsafe { rtc_set_audio_track_frame_h(self.raw, on_audio_frame, self) }
         }
 
         sinks.insert(id, sink);
