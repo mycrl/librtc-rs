@@ -214,6 +214,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Drive the webrtc main thread and block the current site until the webrtc
     // thread exits.
-    librtc_rs::run();
+    librtc_rs::run().await;
     Ok(())
 }
