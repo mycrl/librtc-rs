@@ -59,8 +59,9 @@ extern "C" {
     pub(crate) fn rtc_exit();
 }
 
-pub async fn run() {
-    SpawnBlocking::new(|| unsafe { rtc_run() }).await
+pub fn run() {
+    // SpawnBlocking::new(|| unsafe { rtc_run() }).await
+    unsafe { rtc_run() }
 }
 
 pub fn exit() {

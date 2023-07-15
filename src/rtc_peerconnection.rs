@@ -56,9 +56,7 @@ pub(crate) type RawRTCPeerConnection = c_void;
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
     tracks: Mutex<Vec<(MediaStreamTrack, Arc<MediaStream>)>>,
-
-    #[allow(dead_code)]
-    observer: HeapPointer<Observer>,
+    #[allow(dead_code)] observer: HeapPointer<Observer>,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -167,7 +165,6 @@ impl RTCPeerConnection {
     /// set of tracks which will be transmitted to the other peer.
     pub async fn add_track(&self, track: MediaStreamTrack, stream: Arc<MediaStream>) {
         unsafe { rtc_add_media_stream_track(self.raw, track.get_raw(), stream.get_id()) }
-
         self.tracks.lock().await.push((track, stream));
     }
 

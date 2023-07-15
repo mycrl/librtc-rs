@@ -1,17 +1,22 @@
-mod signaling;
-
 use clap::*;
 use librtc_rs::*;
-use signaling::*;
+use serde::*;
 use std::{mem::ManuallyDrop, sync::Arc};
 
 use futures_util::{stream::*, SinkExt, StreamExt};
 
+use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{
     connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
 
-use tokio::{net::TcpStream, sync::Mutex};
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "payload", rename_all = "lowercase")]
+enum Payload {
+    Offer(RTCSessionDescription),
+    Answer(RTCSessionDescription),
+    Candidate(RTCIceCandidate),
+}
 
 // Implementation of the video track sink.
 struct VideoSinkImpl {
@@ -71,7 +76,9 @@ impl ObserverExt for ObserverImpl {
             writer
                 .lock()
                 .await
-                .send(Message::Text(Payload::from(candidate).to_string().unwrap()))
+                .send(Message::Text(
+                    serde_json::to_string(&Payload::Candidate(candidate)).unwrap(),
+                ))
                 .await
                 .unwrap();
         });
@@ -177,34 +184,41 @@ async fn main() -> Result<(), anyhow::Error> {
     pc.add_track(video_track, stream.clone()).await;
     pc.add_track(audio_track, stream.clone()).await;
 
+    let _ = ManuallyDrop::new(pc.clone());
+
     tokio::spawn(async move {
         // Read messages from the websocket until unreadable or an error occurs.
         while let Some(Ok(msg)) = reader.next().await {
             // Only websocket messages of type text are accepted, because
             // signaling messages will only be of type text.
             if let Message::Text(msg) = msg {
-                let payload = Payload::from_str(&msg)?;
+                println!("===================================== {}", msg);
+                let ret = serde_json::from_str::<Payload>(&msg);
+                println!("===================================== {:?}", ret);
 
-                // Since the session initiator is not here, only offer and
-                // candidate messages will be received.
-                if payload.kind == "offer" {
-                    // Receive offer message, set it to peerconnection, and
-                    // create answer.
-                    pc.set_remote_description(&Payload::try_into(payload)?)
-                        .await?;
-                    let answer = pc.create_answer().await?;
-                    pc.set_local_description(&answer).await?;
+                match ret? {
+                    Payload::Offer(offer) => {
+                        // Receive offer message, set it to peerconnection, and
+                        // create answer.
+                        pc.set_remote_description(&offer).await?;
+                        let answer = pc.create_answer().await?;
+                        pc.set_local_description(&answer).await?;
 
-                    // Reply the created answer to the peer via websocket.
-                    writer
-                        .lock()
-                        .await
-                        .send(Message::Text(Payload::from(answer).to_string()?))
-                        .await?;
-                } else if payload.kind == "candidate" {
-                    // Processing the candidate message will be much simpler,
-                    // just submit it to peerconnection.
-                    pc.add_ice_candidate(&Payload::try_into(payload)?)?;
+                        // Reply the created answer to the peer via websocket.
+                        writer
+                            .lock()
+                            .await
+                            .send(Message::Text(serde_json::to_string(&Payload::Answer(
+                                answer,
+                            ))?))
+                            .await?;
+                    }
+                    Payload::Candidate(candidate) => {
+                        // Processing the candidate message will be much simpler,
+                        // just submit it to peerconnection.
+                        pc.add_ice_candidate(&candidate)?;
+                    }
+                    _ => {}
                 }
             }
         }
@@ -214,6 +228,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Drive the webrtc main thread and block the current site until the webrtc
     // thread exits.
-    librtc_rs::run().await;
+    librtc_rs::run();
     Ok(())
 }

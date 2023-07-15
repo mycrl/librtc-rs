@@ -1,5 +1,7 @@
 use std::ffi::{c_char, c_int};
 
+use serde::{Deserialize, Serialize};
+
 use crate::cstr::{free_cstring, from_c_str, to_c_str};
 
 #[repr(C)]
@@ -32,7 +34,7 @@ impl Drop for RawRTCIceCandidate {
 ///
 /// For details on how the ICE process works, see Lifetime of a WebRTC session.
 /// The article WebRTC connectivity provides additional useful details.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RTCIceCandidate {
     /// A string describing the properties of the candidate, taken directly
     /// from the SDP attribute "candidate". The candidate string specifies

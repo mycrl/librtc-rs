@@ -158,7 +158,6 @@ where
                 let _ = this.handle.insert(thread::spawn(move || {
                     if let Some(func) = process {
                         ret.store(Box::into_raw(Box::new(func())), Ordering::Relaxed);
-
                         waker.wake();
                     }
                 }));

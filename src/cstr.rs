@@ -28,6 +28,7 @@ pub(crate) fn from_c_str(str: *const c_char) -> Result<String> {
 /// free_cstring(c_str);
 /// ```
 pub(crate) fn free_cstring(str: *const c_char) {
-    assert!(!str.is_null());
-    drop(unsafe { CString::from_raw(str as *mut c_char) })
+    if !str.is_null() {
+        drop(unsafe { CString::from_raw(str as *mut c_char) })
+    }
 }

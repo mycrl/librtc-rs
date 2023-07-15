@@ -4,12 +4,13 @@ use std::{
 };
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 use crate::cstr::{free_cstring, from_c_str, to_c_str};
 
 /// An enum describing the session description's type.
 #[repr(i32)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum RTCSessionDescriptionType {
     /// The session description object describes the initial proposal in an
     /// offer/answer exchange. The session negotiation process begins with an
@@ -52,8 +53,9 @@ impl Drop for RawRTCSessionDescription {
 /// Each RTCSessionDescription consists of a description type indicating which
 /// part of the offer/answer negotiation process it describes and of the SDP
 /// descriptor of the session.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RTCSessionDescription {
+    #[serde(rename = "kind")]
     pub kind: RTCSessionDescriptionType,
     /// A string containing the SDP describing the session.
     pub sdp: String,
