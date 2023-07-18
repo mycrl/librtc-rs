@@ -11,6 +11,7 @@ use crate::cstr::{free_cstring, from_c_str, to_c_str};
 /// An enum describing the session description's type.
 #[repr(i32)]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum RTCSessionDescriptionType {
     /// The session description object describes the initial proposal in an
     /// offer/answer exchange. The session negotiation process begins with an
@@ -55,7 +56,7 @@ impl Drop for RawRTCSessionDescription {
 /// descriptor of the session.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RTCSessionDescription {
-    #[serde(rename = "kind")]
+    #[serde(rename = "type")]
     pub kind: RTCSessionDescriptionType,
     /// A string containing the SDP describing the session.
     pub sdp: String,
