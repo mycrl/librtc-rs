@@ -9,12 +9,8 @@ pub(crate) struct RawVideoFrame {
     width: u32,
     height: u32,
     timestamp: i64,
-    data_y: *const u8,
-    stride_y: u32,
-    data_u: *const u8,
-    stride_u: u32,
-    data_v: *const u8,
-    stride_v: u32,
+    planes: [*const u8; 4],
+    strides: [u32; 4],
 }
 
 /// VideoFrame represents the frame of the video,
@@ -35,23 +31,6 @@ unsafe impl Send for VideoFrame {}
 unsafe impl Sync for VideoFrame {}
 
 impl VideoFrame {
-    pub fn from_default_layout(width: u32, height: u32, timestamp: usize, buf: &[u8]) -> Self {
-        assert!(buf.len() >= (width as f64 * height as f64 * 1.5) as usize);
-        let size_u = ((width / 2) * (height / 2)) as usize;
-        let size_y = (width * height) as usize;
-        Self::new(
-            width,
-            height,
-            timestamp,
-            &buf[..size_y],
-            width as usize,
-            &buf[size_y..size_y + size_u],
-            (width / 2) as usize,
-            &buf[size_y + size_u..],
-            (width / 2) as usize,
-        )
-    }
-
     pub(crate) fn get_raw(&self) -> *const RawVideoFrame {
         self.raw
     }
@@ -70,25 +49,17 @@ impl VideoFrame {
         width: u32,
         height: u32,
         timestamp: usize,
-        data_y: &[u8],
-        stride_y: usize,
-        data_u: &[u8],
-        stride_u: usize,
-        data_v: &[u8],
-        stride_v: usize,
+        planes: [&[u8]; 4],
+        strides: [u32; 4]
     ) -> Self {
         Self {
             raw: Box::into_raw(Box::new(RawVideoFrame {
+                planes: planes.map(|item| item.as_ptr()),
+                timestamp: timestamp as i64,
                 remote: false,
+                strides,
                 width,
                 height,
-                timestamp: timestamp as i64,
-                data_y: data_y.as_ptr(),
-                stride_y: stride_y as u32,
-                data_u: data_u.as_ptr(),
-                stride_u: stride_u as u32,
-                data_v: data_v.as_ptr(),
-                stride_v: stride_v as u32,
             })),
         }
     }
@@ -106,40 +77,40 @@ impl VideoFrame {
     /// get i420 frame y buffer
     pub fn data_y(&self) -> &[u8] {
         let raw = unsafe { &*self.raw };
-        let size = (raw.stride_y * raw.height) as usize;
-        unsafe { from_raw_parts(raw.data_y, size) }
+        let size = (raw.strides[0] * raw.height) as usize;
+        unsafe { from_raw_parts(raw.planes[0], size) }
     }
 
     /// get i420 frame y stride
     pub fn stride_y(&self) -> usize {
         let raw = unsafe { &*self.raw };
-        raw.stride_y as usize
+        raw.strides[0] as usize
     }
 
     /// get i420 frame u buffer
     pub fn data_u(&self) -> &[u8] {
         let raw = unsafe { &*self.raw };
-        let size = (raw.stride_u * (raw.height / 2)) as usize;
-        unsafe { from_raw_parts(raw.data_u, size) }
+        let size = (raw.strides[1] * (raw.height / 2)) as usize;
+        unsafe { from_raw_parts(raw.planes[1], size) }
     }
 
     /// get i420 frame u stride
     pub fn stride_u(&self) -> usize {
         let raw = unsafe { &*self.raw };
-        raw.stride_u as usize
+        raw.strides[1] as usize
     }
 
     /// get i420 frame v buffer
     pub fn data_v(&self) -> &[u8] {
         let raw = unsafe { &*self.raw };
-        let size = (raw.stride_v * (raw.height / 2)) as usize;
-        unsafe { from_raw_parts(raw.data_v, size) }
+        let size = (raw.strides[2] * (raw.height / 2)) as usize;
+        unsafe { from_raw_parts(raw.planes[2], size) }
     }
 
     /// get i420 frame v stride
     pub fn stride_v(&self) -> usize {
         let raw = unsafe { &*self.raw };
-        raw.stride_v as usize
+        raw.strides[2] as usize
     }
 }
 
