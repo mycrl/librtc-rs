@@ -53,17 +53,3 @@ pub use rtc_peerconnection_configure::{
 };
 pub use rtc_session_description::{RTCSessionDescription, RTCSessionDescriptionType};
 pub use set_description_observer::SetDescriptionObserver;
-
-extern "C" {
-    pub(crate) fn rtc_run();
-    pub(crate) fn rtc_exit();
-}
-
-pub fn run() {
-    // SpawnBlocking::new(|| unsafe { rtc_run() }).await
-    unsafe { rtc_run() }
-}
-
-pub fn exit() {
-    unsafe { rtc_exit() }
-}

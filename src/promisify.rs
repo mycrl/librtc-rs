@@ -124,7 +124,7 @@ where
     ///
     /// assert_eq!(ret, "hello");
     /// ```
-    pub(crate) fn new(func: T) -> Self {
+    pub fn new(func: T) -> Self {
         Self {
             ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
             waker: Arc::new(AtomicWaker::new()),

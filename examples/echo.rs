@@ -5,7 +5,7 @@ use std::{mem::ManuallyDrop, sync::Arc};
 
 use futures_util::{stream::*, SinkExt, StreamExt};
 
-use tokio::{net::TcpStream, sync::Mutex};
+use tokio::{net::TcpStream, sync::Mutex, runtime::Handle};
 use tokio_tungstenite::{
     connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
@@ -65,6 +65,7 @@ struct ObserverImpl {
     ws_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     video_track: MediaStreamTrack,
     audio_track: MediaStreamTrack,
+    handle: Handle,
 }
 
 impl ObserverExt for ObserverImpl {
@@ -72,7 +73,7 @@ impl ObserverExt for ObserverImpl {
     // generated ice candidate should be sent to the peer.
     fn on_ice_candidate(&mut self, candidate: RTCIceCandidate) {
         let writer = self.ws_writer.clone();
-        tokio::spawn(async move {
+        self.handle.spawn(async move {
             writer
                 .lock()
                 .await
@@ -86,7 +87,7 @@ impl ObserverExt for ObserverImpl {
 
     // This event is triggered when the peer creates a data channel.
     fn on_data_channel(&mut self, channel: RTCDataChannel) {
-        tokio::spawn(async move {
+        self.handle.spawn(async move {
             // Register a data sink for this data channel.
             channel
                 .register_sink(0, Sinker::new(ChannelSinkImpl {}))
@@ -107,7 +108,7 @@ impl ObserverExt for ObserverImpl {
         let audio_track = self.audio_track.clone();
 
         // Register sinks for audio and video tracks.
-        tokio::spawn(async move {
+        self.handle.spawn(async move {
             match &mut track {
                 MediaStreamTrack::Video(track) => {
                     if let MediaStreamTrack::Video(vt) = video_track {
@@ -177,6 +178,7 @@ async fn main() -> Result<(), anyhow::Error> {
             video_track: video_track.clone(),
             audio_track: audio_track.clone(),
             ws_writer: writer.clone(),
+            handle: Handle::current(),
         }),
     )?;
 
@@ -192,9 +194,7 @@ async fn main() -> Result<(), anyhow::Error> {
             // Only websocket messages of type text are accepted, because
             // signaling messages will only be of type text.
             if let Message::Text(msg) = msg {
-                println!("===================================== {}", msg);
                 let ret = serde_json::from_str::<Payload>(&msg);
-                println!("===================================== {:?}", ret);
 
                 match ret? {
                     Payload::Offer(offer) => {
@@ -226,8 +226,6 @@ async fn main() -> Result<(), anyhow::Error> {
         Ok::<(), anyhow::Error>(())
     });
 
-    // Drive the webrtc main thread and block the current site until the webrtc
-    // thread exits.
-    librtc_rs::run();
+    std::future::pending::<()>().await;
     Ok(())
 }

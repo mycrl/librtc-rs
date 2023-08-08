@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use tokio::sync::Mutex;
 
 use crate::{
-    cstr::{free_cstring, to_c_str, from_c_str},
+    cstr::{free_cstring, to_c_str},
     media_stream_track::{
         rtc_free_media_stream_track, rtc_remove_media_stream_track_frame_h, RawMediaStreamTrack,
     },
