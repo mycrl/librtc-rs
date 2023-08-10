@@ -4,12 +4,15 @@ use minifb::{Window, WindowOptions};
 use serde::*;
 use std::{
     mem::ManuallyDrop,
-    sync::{mpsc, Arc},
+    ptr::null_mut,
+    sync::{
+        atomic::{AtomicPtr, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 
 use futures_util::{stream::*, SinkExt, StreamExt};
-
 use tokio::{net::TcpStream, runtime::Handle, sync::Mutex};
 use tokio_tungstenite::{
     connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
@@ -23,18 +26,17 @@ enum Payload {
     Candidate(RTCIceCandidate),
 }
 
-// Implementation of the video track sink.
-struct VideoSinkImpl {
+struct VideoPlayer {
+    ready: bool,
     label: String,
-    is_init: bool,
-    sender: Option<mpsc::Sender<Vec<u8>>>,
+    buf: Arc<AtomicPtr<Vec<u8>>>,
 }
 
-impl VideoSinkImpl {
+impl VideoPlayer {
     fn new(label: String) -> Self {
         Self {
-            is_init: false,
-            sender: None,
+            buf: Arc::new(AtomicPtr::new(null_mut())),
+            ready: false,
             label,
         }
     }
@@ -43,57 +45,59 @@ impl VideoSinkImpl {
         let width = frame.width() as usize;
         let height = frame.height() as usize;
 
-        if !self.is_init {
-            self.is_init = true;
+        if self.ready == false {
+            self.ready = true;
 
+            let buf = self.buf.clone();
             let label = self.label.clone();
-            let (sender, receiver) = mpsc::channel();
-            self.sender = Some(sender);
-
+            let delay = Duration::from_millis(1000 / 60);
             std::thread::spawn(move || {
-                let mut window = Window::new(&label, width, height, WindowOptions::default())?;
+                let mut window = Window::new(
+                    &format!("video::{}", label),
+                    width,
+                    height,
+                    WindowOptions::default(),
+                )?;
 
-                window.limit_update_rate(Some(Duration::from_millis(1000 / 60)));
-                let mut frame = vec![0u8; width * height * 4];
-
+                window.limit_update_rate(Some(delay));
                 loop {
-                    if let Ok(f) = receiver.try_recv() {
-                        frame = f;
-                    }
-
+                    std::thread::sleep(delay);
+                    let frame = unsafe { &*buf.load(Ordering::Relaxed) };
                     let (_, shorts, _) = unsafe { frame.align_to::<u32>() };
                     window.update_with_buffer(shorts, width, height)?;
-                    std::thread::sleep(Duration::from_millis(1000 / 60));
                 }
 
                 #[allow(unreachable_code)]
                 Ok::<(), anyhow::Error>(())
             });
-        } else {
-            if let Some(sender) = self.sender.as_mut() {
-                let mut buf = vec![0u8; width * height * 4];
-                unsafe {
-                    libyuv::i420_to_argb(
-                        frame.data_y().as_ptr(),
-                        frame.stride_y() as i32,
-                        frame.data_u().as_ptr(),
-                        frame.stride_u() as i32,
-                        frame.data_v().as_ptr(),
-                        frame.stride_v() as i32,
-                        buf.as_mut_ptr(),
-                        (width * 4) as i32,
-                        width as i32,
-                        height as i32,
-                    );
-                }
+        }
 
-                let _ = sender.send(buf);
-            }
+        let mut buf = vec![0u8; width * height * 4];
+        unsafe {
+            libyuv::i420_to_argb(
+                frame.data_y().as_ptr(),
+                frame.stride_y() as i32,
+                frame.data_u().as_ptr(),
+                frame.stride_u() as i32,
+                frame.data_v().as_ptr(),
+                frame.stride_v() as i32,
+                buf.as_mut_ptr(),
+                (width * 4) as i32,
+                width as i32,
+                height as i32,
+            );
+        }
+
+        let buf_ptr = Box::into_raw(Box::new(buf));
+        let ret = self.buf.swap(buf_ptr, Ordering::Relaxed);
+        if !ret.is_null() {
+            drop(unsafe { Box::from_raw(ret) });
         }
     }
 }
 
-impl librtc_rs::SinkExt for VideoSinkImpl {
+// Implementation of the video track sink.
+impl librtc_rs::SinkExt for VideoPlayer {
     type Item = Arc<VideoFrame>;
 
     // Triggered when a video frame is received.
@@ -102,7 +106,6 @@ impl librtc_rs::SinkExt for VideoSinkImpl {
     }
 }
 
-// Implementation of the audio track sink.
 struct AudioSinkImpl {
     track: Arc<AudioTrack>,
 }
@@ -113,6 +116,7 @@ impl AudioSinkImpl {
     }
 }
 
+// Implementation of the audio track sink.
 impl librtc_rs::SinkExt for AudioSinkImpl {
     type Item = Arc<AudioFrame>;
 
@@ -185,10 +189,7 @@ impl ObserverExt for ObserverImpl {
             match &mut track {
                 MediaStreamTrack::Video(track) => {
                     track
-                        .register_sink(
-                            0,
-                            Sinker::new(VideoSinkImpl::new(track.label().to_string())),
-                        )
+                        .register_sink(0, Sinker::new(VideoPlayer::new(track.label().to_string())))
                         .await;
                 }
                 MediaStreamTrack::Audio(track) => {
