@@ -66,6 +66,7 @@ impl<T> HeapPointer<T> {
     }
 
     /// get inner type T the raw ptr.
+    #[allow(unused)]
     pub fn get(&self) -> &Option<*mut T> {
         self.data.get()
     }

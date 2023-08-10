@@ -1,6 +1,6 @@
 use std::ffi::{c_char, c_int};
 
-use crate::auto_ptr::{ArrayExt, HeapPointer};
+use crate::auto_ptr::ArrayExt;
 use crate::cstr::{free_cstring, to_c_str};
 
 /// How to handle negotiation of candidates when remote peer is not compatible
@@ -219,9 +219,6 @@ pub struct RTCConfiguration {
     /// before you start trying to connect, so that they're already available
     /// for inspection when RTCPeerConnection.setLocalDescription() is called.
     pub ice_candidate_pool_size: Option<u8>,
-
-    // box mannager
-    raw_ptr: HeapPointer<RawRTCPeerConnectionConfigure>,
 }
 
 unsafe impl Send for RTCConfiguration {}
@@ -257,10 +254,7 @@ impl Into<RawRTCPeerConnectionConfigure> for &RTCConfiguration {
 }
 
 impl RTCConfiguration {
-    pub(crate) fn get_raw(&self) -> *const RawRTCPeerConnectionConfigure {
-        match self.raw_ptr.get() {
-            None => self.raw_ptr.set(self.into()),
-            Some(ptr) => *ptr,
-        }
+    pub(crate) fn get_raw(&self) -> RawRTCPeerConnectionConfigure {
+        self.into()
     }
 }

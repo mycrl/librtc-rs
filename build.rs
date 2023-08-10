@@ -1,4 +1,10 @@
+use dotenv::dotenv;
+
 fn main() {
+    dotenv().unwrap();
+
     println!("cargo:rustc-link-lib=dylib={}", "rtc");
-    println!("cargo:rustc-link-search=all=E:/librtcrs/target/debug/examples");
+    if let Ok(path) = std::env::var("LIBRTC_PATH") {
+        println!("cargo:rustc-link-search=all={}", path);
+    }
 }

@@ -5,7 +5,7 @@ use std::{mem::ManuallyDrop, sync::Arc};
 
 use futures_util::{stream::*, SinkExt, StreamExt};
 
-use tokio::{net::TcpStream, sync::Mutex, runtime::Handle};
+use tokio::{net::TcpStream, runtime::Handle, sync::Mutex};
 use tokio_tungstenite::{
     connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
@@ -186,46 +186,38 @@ async fn main() -> Result<(), anyhow::Error> {
     pc.add_track(video_track, stream.clone()).await;
     pc.add_track(audio_track, stream.clone()).await;
 
-    let _ = ManuallyDrop::new(pc.clone());
+    // Read messages from the websocket until unreadable or an error occurs.
+    while let Some(Ok(msg)) = reader.next().await {
+        // Only websocket messages of type text are accepted, because
+        // signaling messages will only be of type text.
+        if let Message::Text(msg) = msg {
+            let ret = serde_json::from_str::<Payload>(&msg);
+            match ret? {
+                Payload::Offer(offer) => {
+                    // Receive offer message, set it to peerconnection, and
+                    // create answer.
+                    pc.set_remote_description(&offer).await?;
+                    let answer = pc.create_answer().await?;
+                    pc.set_local_description(&answer).await?;
 
-    tokio::spawn(async move {
-        // Read messages from the websocket until unreadable or an error occurs.
-        while let Some(Ok(msg)) = reader.next().await {
-            // Only websocket messages of type text are accepted, because
-            // signaling messages will only be of type text.
-            if let Message::Text(msg) = msg {
-                let ret = serde_json::from_str::<Payload>(&msg);
-
-                match ret? {
-                    Payload::Offer(offer) => {
-                        // Receive offer message, set it to peerconnection, and
-                        // create answer.
-                        pc.set_remote_description(&offer).await?;
-                        let answer = pc.create_answer().await?;
-                        pc.set_local_description(&answer).await?;
-
-                        // Reply the created answer to the peer via websocket.
-                        writer
-                            .lock()
-                            .await
-                            .send(Message::Text(serde_json::to_string(&Payload::Answer(
-                                answer,
-                            ))?))
-                            .await?;
-                    }
-                    Payload::Candidate(candidate) => {
-                        // Processing the candidate message will be much simpler,
-                        // just submit it to peerconnection.
-                        pc.add_ice_candidate(&candidate)?;
-                    }
-                    _ => {}
+                    // Reply the created answer to the peer via websocket.
+                    writer
+                        .lock()
+                        .await
+                        .send(Message::Text(serde_json::to_string(&Payload::Answer(
+                            answer,
+                        ))?))
+                        .await?;
                 }
+                Payload::Candidate(candidate) => {
+                    // Processing the candidate message will be much simpler,
+                    // just submit it to peerconnection.
+                    pc.add_ice_candidate(&candidate)?;
+                }
+                _ => {}
             }
         }
+    }
 
-        Ok::<(), anyhow::Error>(())
-    });
-
-    std::future::pending::<()>().await;
     Ok(())
 }

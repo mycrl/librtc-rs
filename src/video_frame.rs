@@ -50,7 +50,7 @@ impl VideoFrame {
         height: u32,
         timestamp: usize,
         planes: [&[u8]; 4],
-        strides: [u32; 4]
+        strides: [u32; 4],
     ) -> Self {
         Self {
             raw: Box::into_raw(Box::new(RawVideoFrame {

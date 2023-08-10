@@ -13,6 +13,7 @@ use crate::{
     observer::EVENTS,
     rtc_datachannel::RawDataChannelOptions,
     rtc_icecandidate::RawRTCIceCandidate,
+    rtc_peerconnection_configure::RawRTCPeerConnectionConfigure,
     set_description_observer::{SetDescriptionFuture, SetDescriptionKind},
     DataChannel, DataChannelOptions, MediaStream, MediaStreamTrack, Observer, RTCConfiguration,
     RTCDataChannel, RTCIceCandidate, RTCSessionDescription,
@@ -56,7 +57,10 @@ pub(crate) type RawRTCPeerConnection = c_void;
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
     tracks: Mutex<Vec<(MediaStreamTrack, Arc<MediaStream>)>>,
-    #[allow(dead_code)] observer: HeapPointer<Observer>,
+    #[allow(dead_code)]
+    observer: HeapPointer<Observer>,
+    #[allow(dead_code)]
+    config: HeapPointer<RawRTCPeerConnectionConfigure>,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -66,10 +70,15 @@ impl RTCPeerConnection {
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
-    pub fn new(config: &RTCConfiguration, iobserver: Observer) -> Result<Arc<Self>> {
+    pub fn new(config_: &RTCConfiguration, observer_: Observer) -> Result<Arc<Self>> {
         let observer = HeapPointer::new();
+        let config = HeapPointer::new();
         let raw = unsafe {
-            rtc_create_peer_connection(config.get_raw(), &EVENTS, observer.set(iobserver))
+            rtc_create_peer_connection(
+                config.set(config_.get_raw()),
+                &EVENTS,
+                observer.set(observer_),
+            )
         };
 
         if raw.is_null() {
@@ -77,8 +86,9 @@ impl RTCPeerConnection {
         } else {
             Ok(Arc::new(Self {
                 tracks: Mutex::new(Vec::with_capacity(10)),
-                raw: unsafe { &*raw },
                 observer,
+                config,
+                raw,
             }))
         }
     }
