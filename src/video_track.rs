@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use tokio::sync::Mutex;
 
 use crate::{
-    cstr::{free_cstring, to_c_str},
+    cstr::{c_str_to_str, free_cstring, to_c_str},
     media_stream_track::{
         rtc_free_media_stream_track, rtc_remove_media_stream_track_frame_h, RawMediaStreamTrack,
     },
@@ -44,6 +44,10 @@ unsafe impl Send for VideoTrack {}
 unsafe impl Sync for VideoTrack {}
 
 impl VideoTrack {
+    pub fn label(&self) -> &str {
+        c_str_to_str(unsafe { (*self.raw).label }).expect("get video track label string to failed")
+    }
+
     /// Create a new video track, may fail to create, such as
     /// insufficient memory.
     pub fn new(label: &str) -> Result<Arc<Self>> {

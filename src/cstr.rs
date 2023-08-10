@@ -21,6 +21,10 @@ pub(crate) fn from_c_str(str: *const c_char) -> Result<String> {
     Ok(unsafe { CStr::from_ptr(str).to_str()?.to_string() })
 }
 
+pub(crate) fn c_str_to_str(str: *const c_char) -> Result<&'static str> {
+    Ok(unsafe { CStr::from_ptr(str).to_str()? })
+}
+
 /// ```no_run
 /// let c_str = to_c_str("test").unwrap();
 /// assert!(!c_str.is_null());

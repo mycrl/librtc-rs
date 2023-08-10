@@ -1,7 +1,12 @@
 use clap::*;
 use librtc_rs::*;
+use minifb::{Window, WindowOptions};
 use serde::*;
-use std::{mem::ManuallyDrop, sync::Arc};
+use std::{
+    mem::ManuallyDrop,
+    sync::{mpsc, Arc},
+    time::Duration,
+};
 
 use futures_util::{stream::*, SinkExt, StreamExt};
 
@@ -20,7 +25,72 @@ enum Payload {
 
 // Implementation of the video track sink.
 struct VideoSinkImpl {
-    video_track: Arc<VideoTrack>,
+    label: String,
+    is_init: bool,
+    sender: Option<mpsc::Sender<Vec<u8>>>,
+}
+
+impl VideoSinkImpl {
+    fn new(label: String) -> Self {
+        Self {
+            is_init: false,
+            sender: None,
+            label,
+        }
+    }
+
+    fn on_frame(&mut self, frame: &VideoFrame) {
+        let width = frame.width() as usize;
+        let height = frame.height() as usize;
+
+        if !self.is_init {
+            self.is_init = true;
+
+            let label = self.label.clone();
+            let (sender, receiver) = mpsc::channel();
+            self.sender = Some(sender);
+
+            std::thread::spawn(move || {
+                let mut window = Window::new(&label, width, height, WindowOptions::default())?;
+
+                window.limit_update_rate(Some(Duration::from_millis(1000 / 60)));
+                let mut frame = vec![0u8; width * height * 4];
+
+                loop {
+                    if let Ok(f) = receiver.try_recv() {
+                        frame = f;
+                    }
+
+                    let (_, shorts, _) = unsafe { frame.align_to::<u32>() };
+                    window.update_with_buffer(shorts, width, height)?;
+                    std::thread::sleep(Duration::from_millis(1000 / 60));
+                }
+
+                #[allow(unreachable_code)]
+                Ok::<(), anyhow::Error>(())
+            });
+        } else {
+            if let Some(sender) = self.sender.as_mut() {
+                let mut buf = vec![0u8; width * height * 4];
+                unsafe {
+                    libyuv::i420_to_argb(
+                        frame.data_y().as_ptr(),
+                        frame.stride_y() as i32,
+                        frame.data_u().as_ptr(),
+                        frame.stride_u() as i32,
+                        frame.data_v().as_ptr(),
+                        frame.stride_v() as i32,
+                        buf.as_mut_ptr(),
+                        (width * 4) as i32,
+                        width as i32,
+                        height as i32,
+                    );
+                }
+
+                let _ = sender.send(buf);
+            }
+        }
+    }
 }
 
 impl librtc_rs::SinkExt for VideoSinkImpl {
@@ -28,14 +98,19 @@ impl librtc_rs::SinkExt for VideoSinkImpl {
 
     // Triggered when a video frame is received.
     fn on_data(&mut self, frame: Arc<VideoFrame>) {
-        // Echo the video frame to the peer's video track.
-        self.video_track.add_frame(frame.as_ref());
+        self.on_frame(frame.as_ref());
     }
 }
 
 // Implementation of the audio track sink.
 struct AudioSinkImpl {
-    audio_track: Arc<AudioTrack>,
+    track: Arc<AudioTrack>,
+}
+
+impl AudioSinkImpl {
+    fn new(track: Arc<AudioTrack>) -> Self {
+        Self { track }
+    }
 }
 
 impl librtc_rs::SinkExt for AudioSinkImpl {
@@ -44,7 +119,7 @@ impl librtc_rs::SinkExt for AudioSinkImpl {
     // Triggered when an audio frame is received.
     fn on_data(&mut self, frame: Arc<AudioFrame>) {
         // Echo the audio frame to the peer's audio track.
-        self.audio_track.add_frame(frame.as_ref());
+        self.track.add_frame(frame.as_ref());
     }
 }
 
@@ -63,7 +138,6 @@ impl librtc_rs::SinkExt for ChannelSinkImpl {
 // peerconnection event handler, handle peerconnection event callback.
 struct ObserverImpl {
     ws_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    video_track: MediaStreamTrack,
     audio_track: MediaStreamTrack,
     handle: Handle,
 }
@@ -104,33 +178,23 @@ impl ObserverExt for ObserverImpl {
     // This event is triggered when the peer creates a video track or audio
     // track.
     fn on_track(&mut self, mut track: MediaStreamTrack) {
-        let video_track = self.video_track.clone();
         let audio_track = self.audio_track.clone();
 
         // Register sinks for audio and video tracks.
         self.handle.spawn(async move {
             match &mut track {
                 MediaStreamTrack::Video(track) => {
-                    if let MediaStreamTrack::Video(vt) = video_track {
-                        track
-                            .register_sink(
-                                0,
-                                Sinker::new(VideoSinkImpl {
-                                    video_track: vt.clone(),
-                                }),
-                            )
-                            .await;
-                    }
+                    track
+                        .register_sink(
+                            0,
+                            Sinker::new(VideoSinkImpl::new(track.label().to_string())),
+                        )
+                        .await;
                 }
                 MediaStreamTrack::Audio(track) => {
                     if let MediaStreamTrack::Audio(at) = audio_track {
                         track
-                            .register_sink(
-                                0,
-                                Sinker::new(AudioSinkImpl {
-                                    audio_track: at.clone(),
-                                }),
-                            )
+                            .register_sink(0, Sinker::new(AudioSinkImpl::new(at.clone())))
                             .await;
                     }
                 }
@@ -167,7 +231,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Create an audio track and video track as the output of echo.
     let stream = MediaStream::new("media_stream")?;
-    let video_track = MediaStreamTrack::create_video_track("video_track")?;
     let audio_track = MediaStreamTrack::create_audio_track("audio_track")?;
 
     // Create a peer connection with default configuration.
@@ -175,7 +238,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let pc = RTCPeerConnection::new(
         &config,
         Observer::new(ObserverImpl {
-            video_track: video_track.clone(),
             audio_track: audio_track.clone(),
             ws_writer: writer.clone(),
             handle: Handle::current(),
@@ -183,7 +245,6 @@ async fn main() -> Result<(), anyhow::Error> {
     )?;
 
     // Add the created audio track and video track to the peer connection.
-    pc.add_track(video_track, stream.clone()).await;
     pc.add_track(audio_track, stream.clone()).await;
 
     // Read messages from the websocket until unreadable or an error occurs.

@@ -31,8 +31,11 @@ features = [
     "rt" 
 ]
 
+[build-dependencies]
+dotenv = "0.15.0"
+
 [[example]]
-name = "echo"
+name = "simple"
 
 [dev-dependencies]
 tokio = { version = "1.20.0", features = ["full"] }
@@ -40,6 +43,6 @@ tokio-tungstenite = "*"
 futures-util = "0.3"
 serde_json = "1.0.61"
 clap = { version = "4.0.27", features = ["derive"] }
-
-[build-dependencies]
-dotenv = "0.15.0"
+minifb = "0.24"
+libyuv = "0.1.2"
+cpal = "0.15.2"
