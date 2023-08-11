@@ -26,6 +26,7 @@ enum Payload {
     Candidate(RTCIceCandidate),
 }
 
+// Remote video track player window.
 struct VideoPlayer {
     ready: bool,
     label: String,
@@ -106,18 +107,18 @@ impl librtc_rs::SinkExt for VideoPlayer {
     }
 }
 
-struct AudioSinkImpl {
+struct AudioPlayer {
     track: Arc<AudioTrack>,
 }
 
-impl AudioSinkImpl {
+impl AudioPlayer {
     fn new(track: Arc<AudioTrack>) -> Self {
         Self { track }
     }
 }
 
 // Implementation of the audio track sink.
-impl librtc_rs::SinkExt for AudioSinkImpl {
+impl librtc_rs::SinkExt for AudioPlayer {
     type Item = Arc<AudioFrame>;
 
     // Triggered when an audio frame is received.
@@ -195,7 +196,7 @@ impl ObserverExt for ObserverImpl {
                 MediaStreamTrack::Audio(track) => {
                     if let MediaStreamTrack::Audio(at) = audio_track {
                         track
-                            .register_sink(0, Sinker::new(AudioSinkImpl::new(at.clone())))
+                            .register_sink(0, Sinker::new(AudioPlayer::new(at.clone())))
                             .await;
                     }
                 }
@@ -246,7 +247,7 @@ async fn main() -> Result<(), anyhow::Error> {
     )?;
 
     // Add the created audio track and video track to the peer connection.
-    pc.add_track(audio_track, stream.clone()).await;
+    pc.add_track(audio_track, stream.clone()).await?;
 
     // Read messages from the websocket until unreadable or an error occurs.
     while let Some(Ok(msg)) = reader.next().await {

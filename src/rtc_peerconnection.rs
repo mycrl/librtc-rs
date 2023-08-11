@@ -1,5 +1,5 @@
 use std::{
-    ffi::{c_char, c_void},
+    ffi::{c_char, c_int, c_void},
     sync::Arc,
 };
 
@@ -36,7 +36,12 @@ extern "C" {
         peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
         track: *const crate::media_stream_track::RawMediaStreamTrack,
         id: *const c_char,
-    );
+    ) -> c_int;
+
+    pub(crate) fn rtc_remove_media_stream_track(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+    ) -> c_int;
 
     pub(crate) fn rtc_create_data_channel(
         peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
@@ -173,9 +178,23 @@ impl RTCPeerConnection {
 
     /// The RTCPeerConnection method addTrack() adds a new media track to the
     /// set of tracks which will be transmitted to the other peer.
-    pub async fn add_track(&self, track: MediaStreamTrack, stream: Arc<MediaStream>) {
-        unsafe { rtc_add_media_stream_track(self.raw, track.get_raw(), stream.get_id()) }
+    pub async fn add_track(&self, track: MediaStreamTrack, stream: Arc<MediaStream>) -> Result<()> {
+        let ret = unsafe { rtc_add_media_stream_track(self.raw, track.get_raw(), stream.get_id()) };
+        if ret != 0 {
+            return Err(anyhow!("add track failed!, code={}", ret));
+        }
+
         self.tracks.lock().await.push((track, stream));
+        Ok(())
+    }
+
+    pub async fn remove_track(&self, track: MediaStreamTrack) -> Result<()> {
+        let ret = unsafe { rtc_remove_media_stream_track(self.raw, track.get_raw()) };
+        if ret != 0 {
+            return Err(anyhow!("remove track failed!, code={}", ret));
+        }
+
+        Ok(())
     }
 
     /// The createDataChannel() method on the RTCPeerConnection interface
