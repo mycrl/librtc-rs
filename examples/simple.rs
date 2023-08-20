@@ -1,7 +1,6 @@
 use clap::*;
-use librtc_rs::*;
 use minifb::{Window, WindowOptions};
-use serde::*;
+use serde::{Deserialize, Serialize};
 use std::{
     mem::ManuallyDrop,
     ptr::null_mut,
@@ -11,6 +10,7 @@ use std::{
     },
     time::Duration,
 };
+use webrtc::*;
 
 use futures_util::{stream::*, SinkExt, StreamExt};
 use tokio::{net::TcpStream, runtime::Handle, sync::Mutex};
@@ -42,10 +42,14 @@ impl VideoPlayer {
         }
     }
 
+    // Process video frames decoded from video track.
     fn on_frame(&mut self, frame: &VideoFrame) {
         let width = frame.width() as usize;
         let height = frame.height() as usize;
 
+        // Check whether the window has been created. If not, create the
+        // window first. The reason for this is that it must be created
+        // according to the size of the video frame
         if self.ready == false {
             self.ready = true;
 
@@ -60,6 +64,8 @@ impl VideoPlayer {
                     WindowOptions::default(),
                 )?;
 
+                // Renders the latest frame from the framebuffer at a
+                // fixed rate of 60 frames.
                 window.limit_update_rate(Some(delay));
                 loop {
                     std::thread::sleep(delay);
@@ -73,6 +79,9 @@ impl VideoPlayer {
             });
         }
 
+        // The frame format of the video track output is fixed to I420,
+        // but the window only accepts ARGB, so here you need to
+        // convert I420 to ARGB.
         let mut buf = vec![0u8; width * height * 4];
         unsafe {
             libyuv::i420_to_argb(
@@ -89,6 +98,8 @@ impl VideoPlayer {
             );
         }
 
+        // Write the converted video frame into the frame buffer and
+        // release the memory of the previous frame.
         let buf_ptr = Box::into_raw(Box::new(buf));
         let ret = self.buf.swap(buf_ptr, Ordering::Relaxed);
         if !ret.is_null() {
@@ -98,7 +109,7 @@ impl VideoPlayer {
 }
 
 // Implementation of the video track sink.
-impl librtc_rs::SinkExt for VideoPlayer {
+impl webrtc::SinkExt for VideoPlayer {
     type Item = Arc<VideoFrame>;
 
     // Triggered when a video frame is received.
@@ -118,7 +129,7 @@ impl AudioPlayer {
 }
 
 // Implementation of the audio track sink.
-impl librtc_rs::SinkExt for AudioPlayer {
+impl webrtc::SinkExt for AudioPlayer {
     type Item = Arc<AudioFrame>;
 
     // Triggered when an audio frame is received.
@@ -131,7 +142,7 @@ impl librtc_rs::SinkExt for AudioPlayer {
 // data channel sink implementation.
 struct ChannelSinkImpl;
 
-impl librtc_rs::SinkExt for ChannelSinkImpl {
+impl webrtc::SinkExt for ChannelSinkImpl {
     type Item = Vec<u8>;
 
     // Triggered when the data channel receives data.

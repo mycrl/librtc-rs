@@ -188,6 +188,17 @@ impl RTCPeerConnection {
         Ok(())
     }
 
+    /// The `remove_track` method tells the local end of the connection to stop
+    /// sending media from the specified track, without actually removing
+    /// the corresponding RTCRtpSender from the list of senders as reported
+    /// by `senders`. If the track is already stopped, or is not in the
+    /// connection's senders list, this method has no effect.
+    ///
+    /// If the connection has already been negotiated (signalingState is set to
+    /// "stable"), it is marked as needing to be negotiated again; the remote
+    /// peer won't experience the change until this negotiation occurs. A
+    /// negotiationneeded event is sent to the RTCPeerConnection to let the
+    /// local end know this negotiation must occur.
     pub async fn remove_track(&self, track: MediaStreamTrack) -> Result<()> {
         let ret = unsafe { rtc_remove_media_stream_track(self.raw, track.get_raw()) };
         if ret != 0 {

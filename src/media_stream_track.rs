@@ -41,6 +41,7 @@ pub(crate) struct RawMediaStreamTrack {
     video_source: *const c_void,
     video_sink: *const c_void,
     // audio
+    audio_source: *const c_void,
     audio_sink: *const c_void,
 }
 

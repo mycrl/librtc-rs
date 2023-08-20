@@ -27,19 +27,11 @@ mod sink;
 mod video_frame;
 mod video_track;
 
+pub use audio_frame::AudioFrame;
 pub use audio_track::AudioTrack;
+pub use create_description_observer::CreateDescriptionObserver;
 pub use media_stream::MediaStream;
 pub use media_stream_track::{MediaStreamTrack, MediaStreamTrackKind};
-pub use video_track::VideoTrack;
-
-pub use sink::{SinkExt, Sinker};
-
-pub use audio_frame::AudioFrame;
-pub use rtc_icecandidate::RTCIceCandidate;
-pub use rtc_peerconnection::RTCPeerConnection;
-pub use video_frame::VideoFrame;
-
-pub use create_description_observer::CreateDescriptionObserver;
 pub use observer::{
     IceConnectionState, IceGatheringState, Observer, ObserverExt, PeerConnectionState,
     SignalingState,
@@ -48,8 +40,13 @@ pub use promisify::{Promisify, PromisifyExt, SpawnBlocking};
 pub use rtc_datachannel::{
     DataChannel, DataChannelOptions, DataChannelPriority, DataChannelState, RTCDataChannel,
 };
+pub use rtc_icecandidate::RTCIceCandidate;
+pub use rtc_peerconnection::RTCPeerConnection;
 pub use rtc_peerconnection_configure::{
     BundlePolicy, IceTransportPolicy, RTCConfiguration, RTCIceServer, RtcpMuxPolicy,
 };
 pub use rtc_session_description::{RTCSessionDescription, RTCSessionDescriptionType};
 pub use set_description_observer::SetDescriptionObserver;
+pub use sink::{SinkExt, Sinker};
+pub use video_frame::VideoFrame;
+pub use video_track::VideoTrack;
