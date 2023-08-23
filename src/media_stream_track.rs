@@ -43,6 +43,8 @@ pub(crate) struct RawMediaStreamTrack {
     // audio
     audio_source: *const c_void,
     audio_sink: *const c_void,
+
+    sender: *const c_void,
 }
 
 /// The MediaStreamTrack interface represents a single media track within
