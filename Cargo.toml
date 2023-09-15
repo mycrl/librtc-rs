@@ -33,6 +33,8 @@ features = [
 
 [build-dependencies]
 dotenv = "0.15.0"
+anyhow = "1.0.52"
+cc = "1.0.83"
 
 [[example]]
 name = "simple"
