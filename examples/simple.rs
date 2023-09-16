@@ -10,8 +10,8 @@ use std::{
     },
     time::Duration,
 };
-use webrtc::*;
 
+use librtc::*;
 use futures_util::{stream::*, SinkExt, StreamExt};
 use tokio::{net::TcpStream, runtime::Handle, sync::Mutex};
 use tokio_tungstenite::{
@@ -109,7 +109,7 @@ impl VideoPlayer {
 }
 
 // Implementation of the video track sink.
-impl webrtc::SinkExt for VideoPlayer {
+impl librtc::SinkExt for VideoPlayer {
     type Item = Arc<VideoFrame>;
 
     // Triggered when a video frame is received.
@@ -129,7 +129,7 @@ impl AudioPlayer {
 }
 
 // Implementation of the audio track sink.
-impl webrtc::SinkExt for AudioPlayer {
+impl librtc::SinkExt for AudioPlayer {
     type Item = Arc<AudioFrame>;
 
     // Triggered when an audio frame is received.
@@ -142,7 +142,7 @@ impl webrtc::SinkExt for AudioPlayer {
 // data channel sink implementation.
 struct ChannelSinkImpl;
 
-impl webrtc::SinkExt for ChannelSinkImpl {
+impl librtc::SinkExt for ChannelSinkImpl {
     type Item = Vec<u8>;
 
     // Triggered when the data channel receives data.
