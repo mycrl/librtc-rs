@@ -158,10 +158,10 @@ struct ObserverImpl {
     handle: Handle,
 }
 
-impl ObserverExt for ObserverImpl {
+impl Observer for ObserverImpl {
     // peerconnection emits ice candidate event, when this event occurs, the
     // generated ice candidate should be sent to the peer.
-    fn on_ice_candidate(&mut self, candidate: RTCIceCandidate) {
+    fn on_ice_candidate(&self, candidate: RTCIceCandidate) {
         let writer = self.ws_writer.clone();
         self.handle.spawn(async move {
             writer
@@ -176,7 +176,7 @@ impl ObserverExt for ObserverImpl {
     }
 
     // This event is triggered when the peer creates a data channel.
-    fn on_data_channel(&mut self, channel: RTCDataChannel) {
+    fn on_data_channel(&self, channel: RTCDataChannel) {
         self.handle.spawn(async move {
             // Register a data sink for this data channel.
             channel
@@ -193,7 +193,7 @@ impl ObserverExt for ObserverImpl {
 
     // This event is triggered when the peer creates a video track or audio
     // track.
-    fn on_track(&mut self, mut track: MediaStreamTrack) {
+    fn on_track(&self, mut track: MediaStreamTrack) {
         let audio_track = self.audio_track.clone();
 
         // Register sinks for audio and video tracks.
@@ -250,11 +250,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let config = RTCConfiguration::default();
     let pc = RTCPeerConnection::new(
         &config,
-        Observer::new(ObserverImpl {
+        ObserverImpl {
             audio_track: audio_track.clone(),
             ws_writer: writer.clone(),
             handle: Handle::current(),
-        }),
+        },
     )?;
 
     // Add the created audio track and video track to the peer connection.

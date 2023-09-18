@@ -33,7 +33,7 @@ pub use create_description_observer::CreateDescriptionObserver;
 pub use media_stream::MediaStream;
 pub use media_stream_track::{MediaStreamTrack, MediaStreamTrackKind};
 pub use observer::{
-    IceConnectionState, IceGatheringState, Observer, ObserverExt, PeerConnectionState,
+    IceConnectionState, IceGatheringState, Observer, PeerConnectionState,
     SignalingState,
 };
 pub use promisify::{Promisify, PromisifyExt, SpawnBlocking};

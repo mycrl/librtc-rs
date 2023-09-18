@@ -131,15 +131,16 @@ pub enum IceConnectionState {
 
 /// PeerConnection callback interface, used for RTCPeerConnection events.
 /// Application should implement these methods.
-pub trait ObserverExt {
+#[allow(unused)]
+pub trait Observer {
     /// A signalingstatechange event is sent to an RTCPeerConnection to notify
     /// it that its signaling state, as indicated by the signalingState
     /// property, has changed.
-    fn on_signaling_change(&mut self, _state: SignalingState) {}
+    fn on_signaling_change(&self, state: SignalingState) {}
     /// The connectionstatechange event is sent to the onconnectionstatechange
     /// event handler on an RTCPeerConnection object after a new track has been
     /// added to an RTCRtpReceiver which is part of the connection.
-    fn on_connection_change(&mut self, _state: PeerConnectionState) {}
+    fn on_connection_change(&self, state: PeerConnectionState) {}
     /// The icegatheringstatechange event is sent to the
     /// onicegatheringstatechange event handler on an RTCPeerConnection when
     /// the state of the ICE candidate gathering process changes. This
@@ -151,42 +152,41 @@ pub trait ObserverExt {
     /// collecting candidate configurations for the connection has begun. When
     /// the value changes to complete, all of the transports that make up the
     /// RTCPeerConnection have finished gathering ICE candidates.
-    fn on_ice_gathering_change(&mut self, _state: IceGatheringState) {}
+    fn on_ice_gathering_change(&self, state: IceGatheringState) {}
     /// An icecandidate event is sent to an RTCPeerConnection when an
     /// RTCIceCandidate has been identified and added to the local peer by a
     /// call to RTCPeerConnection.setLocalDescription(). The event handler
     /// should transmit the candidate to the remote peer over the signaling
     /// channel so the remote peer can add it to its set of remote candidates.
-    fn on_ice_candidate(&mut self, _candidate: RTCIceCandidate) {}
+    fn on_ice_candidate(&self, candidate: RTCIceCandidate) {}
     /// A negotiationneeded event is sent to the RTCPeerConnection when
     /// negotiation of the connection through the signaling channel is
     /// required. This occurs both during the initial setup of the connection
     /// as well as any time a change to the communication environment requires
     /// reconfiguring the connection.
-    fn on_renegotiation_needed(&mut self) {}
+    fn on_renegotiation_needed(&self) {}
     /// An iceconnectionstatechange event is sent to an RTCPeerConnection
     /// object each time the ICE connection state changes during the
     /// negotiation process. The new ICE connection state is available in the
     /// object's iceConnectionState property.
-    fn on_ice_connection_change(&mut self, _state: IceConnectionState) {}
+    fn on_ice_connection_change(&self, state: IceConnectionState) {}
     /// The track event is sent to the ontrack event handler on
     /// RTCPeerConnections after a new track has been added to an
     /// RTCRtpReceiver which is part of the connection.
-    fn on_track(&mut self, _track: MediaStreamTrack) {}
+    fn on_track(&self, track: MediaStreamTrack) {}
     /// A datachannel event is sent to an RTCPeerConnection instance when an
     /// RTCDataChannel has been added to the connection, as a result of the
     /// remote peer calling RTCPeerConnection.createDataChannel().
-    fn on_data_channel(&mut self, _channel: RTCDataChannel) {}
+    fn on_data_channel(&self, channel: RTCDataChannel) {}
 }
 
 /// wrapper observer trait impl.
-pub struct Observer {
-    data: Box<dyn ObserverExt>,
+pub struct ObserverRef {
+    data: Box<dyn Observer>,
 }
 
-impl Observer {
-    /// create observer trait impl wrapper.
-    pub fn new<T: ObserverExt + 'static>(data: T) -> Self {
+impl ObserverRef {
+    pub fn new<T: Observer + 'static>(data: T) -> Self {
         Self {
             data: Box::new(data),
         }
@@ -197,14 +197,14 @@ impl Observer {
 #[repr(C)]
 #[rustfmt::skip]
 pub(crate) struct TEvents {
-    on_signaling_change: extern "C" fn(*mut Observer, SignalingState),
-    on_datachannel: extern "C" fn(*mut Observer, *const RawRTCDataChannel),
-    on_ice_gathering_change: extern "C" fn(*mut Observer, IceGatheringState),
-    on_ice_candidate: extern "C" fn(*mut Observer, *const RawRTCIceCandidate),
-    on_renegotiation_needed: extern "C" fn(*mut Observer),
-    on_ice_connection_change: extern "C" fn(*mut Observer, IceConnectionState),
-    on_track: extern "C" fn(*mut Observer, *const RawMediaStreamTrack),
-    on_connection_change: extern "C" fn(*mut Observer, PeerConnectionState),
+    on_signaling_change: extern "C" fn(*mut ObserverRef, SignalingState),
+    on_datachannel: extern "C" fn(*mut ObserverRef, *const RawRTCDataChannel),
+    on_ice_gathering_change: extern "C" fn(*mut ObserverRef, IceGatheringState),
+    on_ice_candidate: extern "C" fn(*mut ObserverRef, *const RawRTCIceCandidate),
+    on_renegotiation_needed: extern "C" fn(*mut ObserverRef),
+    on_ice_connection_change: extern "C" fn(*mut ObserverRef, IceConnectionState),
+    on_track: extern "C" fn(*mut ObserverRef, *const RawMediaStreamTrack),
+    on_connection_change: extern "C" fn(*mut ObserverRef, PeerConnectionState),
 }
 
 /// events callback const ref.
@@ -219,56 +219,46 @@ pub(crate) const EVENTS: TEvents = TEvents {
     on_connection_change,
 };
 
-#[no_mangle]
-extern "C" fn on_signaling_change(ctx: *mut Observer, state: SignalingState) {
+extern "C" fn on_signaling_change(ctx: *mut ObserverRef, state: SignalingState) {
     assert!(!ctx.is_null());
-    unsafe { &mut *ctx }.data.on_signaling_change(state);
+    (unsafe { &mut *ctx }).data.on_signaling_change(state);
 }
 
-#[no_mangle]
-extern "C" fn on_connection_change(ctx: *mut Observer, state: PeerConnectionState) {
+extern "C" fn on_connection_change(ctx: *mut ObserverRef, state: PeerConnectionState) {
     assert!(!ctx.is_null());
-    unsafe { &mut *ctx }.data.on_connection_change(state);
+    (unsafe { &mut *ctx }).data.on_connection_change(state);
 }
 
-#[no_mangle]
-extern "C" fn on_ice_gathering_change(ctx: *mut Observer, state: IceGatheringState) {
+extern "C" fn on_ice_gathering_change(ctx: *mut ObserverRef, state: IceGatheringState) {
     assert!(!ctx.is_null());
-    unsafe { &mut *ctx }.data.on_ice_gathering_change(state);
+    (unsafe { &mut *ctx }).data.on_ice_gathering_change(state);
 }
 
-#[no_mangle]
-extern "C" fn on_ice_candidate(ctx: *mut Observer, candidate: *const RawRTCIceCandidate) {
+extern "C" fn on_ice_candidate(ctx: *mut ObserverRef, candidate: *const RawRTCIceCandidate) {
     assert!(!ctx.is_null());
     assert!(!candidate.is_null());
     let candidate = RTCIceCandidate::try_from(unsafe { &*candidate }).unwrap();
-    unsafe { &mut *ctx }.data.on_ice_candidate(candidate);
+    (unsafe { &mut *ctx }).data.on_ice_candidate(candidate);
 }
 
-#[no_mangle]
-extern "C" fn on_renegotiation_needed(ctx: *mut Observer) {
+extern "C" fn on_renegotiation_needed(ctx: *mut ObserverRef) {
     assert!(!ctx.is_null());
-    unsafe { &mut *ctx }.data.on_renegotiation_needed();
+    (unsafe { &mut *ctx }).data.on_renegotiation_needed();
 }
 
-#[no_mangle]
-extern "C" fn on_ice_connection_change(ctx: *mut Observer, state: IceConnectionState) {
+extern "C" fn on_ice_connection_change(ctx: *mut ObserverRef, state: IceConnectionState) {
     assert!(!ctx.is_null());
-    unsafe { &mut *ctx }.data.on_ice_connection_change(state);
+    (unsafe { &mut *ctx }).data.on_ice_connection_change(state);
 }
 
-#[no_mangle]
-extern "C" fn on_datachannel(ctx: *mut Observer, channel: *const RawRTCDataChannel) {
-    assert!(!ctx.is_null());
-    assert!(!channel.is_null());
+extern "C" fn on_datachannel(ctx: *mut ObserverRef, channel: *const RawRTCDataChannel) {
+    assert!(!ctx.is_null() && !channel.is_null());
     let channel = DataChannel::from_raw(channel);
-    unsafe { &mut *ctx }.data.on_data_channel(channel);
+    (unsafe { &mut *ctx }).data.on_data_channel(channel);
 }
 
-#[no_mangle]
-extern "C" fn on_track(ctx: *mut Observer, track: *const RawMediaStreamTrack) {
-    assert!(!ctx.is_null());
-    assert!(!track.is_null());
+extern "C" fn on_track(ctx: *mut ObserverRef, track: *const RawMediaStreamTrack) {
+    assert!(!ctx.is_null() && !track.is_null());
     let track = MediaStreamTrack::from_raw(track);
-    unsafe { &mut *ctx }.data.on_track(track);
+    (unsafe { &mut *ctx }).data.on_track(track);
 }

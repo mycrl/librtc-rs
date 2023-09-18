@@ -10,13 +10,13 @@ use crate::{
     auto_ptr::HeapPointer,
     create_description_observer::{CreateDescriptionFuture, CreateDescriptionKind},
     cstr::{free_cstring, to_c_str},
-    observer::EVENTS,
+    observer::{EVENTS, ObserverRef},
     rtc_datachannel::RawDataChannelOptions,
     rtc_icecandidate::RawRTCIceCandidate,
     rtc_peerconnection_configure::RawRTCPeerConnectionConfigure,
     set_description_observer::{SetDescriptionFuture, SetDescriptionKind},
-    DataChannel, DataChannelOptions, MediaStream, MediaStreamTrack, Observer, RTCConfiguration,
-    RTCDataChannel, RTCIceCandidate, RTCSessionDescription,
+    DataChannel, DataChannelOptions, MediaStream, MediaStreamTrack, RTCConfiguration,
+    RTCDataChannel, RTCIceCandidate, RTCSessionDescription, Observer,
 };
 
 #[allow(improper_ctypes)]
@@ -24,7 +24,7 @@ extern "C" {
     pub(crate) fn rtc_create_peer_connection(
         config: *const crate::rtc_peerconnection_configure::RawRTCPeerConnectionConfigure,
         events: *const crate::observer::TEvents,
-        observer: *mut crate::observer::Observer,
+        observer: *mut crate::observer::ObserverRef,
     ) -> *const crate::rtc_peerconnection::RawRTCPeerConnection;
 
     pub(crate) fn rtc_add_ice_candidate(
@@ -63,7 +63,7 @@ pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
     tracks: Mutex<Vec<(MediaStreamTrack, Arc<MediaStream>)>>,
     #[allow(dead_code)]
-    observer: HeapPointer<Observer>,
+    observer: HeapPointer<ObserverRef>,
     #[allow(dead_code)]
     config: HeapPointer<RawRTCPeerConnectionConfigure>,
 }
@@ -75,14 +75,14 @@ impl RTCPeerConnection {
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
-    pub fn new(config_: &RTCConfiguration, observer_: Observer) -> Result<Arc<Self>> {
+    pub fn new<T: Observer + 'static>(config_: &RTCConfiguration, observer_: T) -> Result<Arc<Self>> {
         let observer = HeapPointer::new();
         let config = HeapPointer::new();
         let raw = unsafe {
             rtc_create_peer_connection(
                 config.set(config_.get_raw()),
                 &EVENTS,
-                observer.set(observer_),
+                observer.set(ObserverRef::new(observer_)),
             )
         };
 
