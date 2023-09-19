@@ -73,9 +73,6 @@ fn main() {
     println!("cargo:rerun-if-changed=./build.rs");
 
     let version = "v0.1.x";
-    let is_debug = env::var("DEBUG")
-        .map(|label| label == "true")
-        .unwrap_or(true);
     let output_dir = env::var("OUT_DIR").unwrap();
     let temp = env::var("TEMP").unwrap();
 
