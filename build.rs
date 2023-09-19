@@ -39,10 +39,10 @@ fn exec(command: &str, work_dir: &str) -> std::io::Result<()> {
     Ok(String::from_utf8(output.stdout)?)
 }
 
-fn lib_name(module: &str, is_debug: bool, is_path: bool) -> String {
+fn lib_name(module: &str, is_path: bool) -> String {
     if is_path {
         format!(
-            "{}{}-{}-{}-{}.{}",
+            "{}{}-{}-{}-release.{}",
             if cfg!(target_os = "windows") {
                 ""
             } else {
@@ -51,7 +51,6 @@ fn lib_name(module: &str, is_debug: bool, is_path: bool) -> String {
             module,
             env::var("CARGO_CFG_TARGET_OS").unwrap(),
             env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
-            if is_debug { "debug" } else { "release" },
             if cfg!(target_os = "windows") {
                 "lib"
             } else {
@@ -60,11 +59,10 @@ fn lib_name(module: &str, is_debug: bool, is_path: bool) -> String {
         )
     } else {
         format!(
-            "{}-{}-{}-{}",
+            "{}-{}-{}-release",
             module,
             env::var("CARGO_CFG_TARGET_OS").unwrap(),
             env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
-            if is_debug { "debug" } else { "release" },
         )
     }
 }
@@ -81,10 +79,7 @@ fn main() {
     let output_dir = env::var("OUT_DIR").unwrap();
     let temp = env::var("TEMP").unwrap();
 
-    for lib_name in [
-        lib_name("rtc", is_debug, true),
-        lib_name("webrtc", is_debug, true),
-    ] {
+    for lib_name in [lib_name("rtc", true), lib_name("webrtc", true)] {
         if !is_exsit(&join(&output_dir, &lib_name)) {
             exec(&format!(
                 "Invoke-WebRequest -Uri https://github.com/mycrl/librtc/releases/download/{}/{} -OutFile {}",
@@ -135,14 +130,8 @@ fn main() {
 
     println!("cargo:rustc-link-lib=avcodec");
     println!("cargo:rustc-link-lib=avutil");
-    println!(
-        "cargo:rustc-link-lib=static={}",
-        lib_name("webrtc", is_debug, false)
-    );
-    println!(
-        "cargo:rustc-link-lib=static={}",
-        lib_name("rtc", is_debug, false)
-    );
+    println!("cargo:rustc-link-lib=static={}", lib_name("webrtc", false));
+    println!("cargo:rustc-link-lib=static={}", lib_name("rtc", false));
 
     #[cfg(target_os = "windows")]
     {

@@ -33,8 +33,7 @@ pub use create_description_observer::CreateDescriptionObserver;
 pub use media_stream::MediaStream;
 pub use media_stream_track::{MediaStreamTrack, MediaStreamTrackKind};
 pub use observer::{
-    IceConnectionState, IceGatheringState, Observer, PeerConnectionState,
-    SignalingState,
+    IceConnectionState, IceGatheringState, Observer, PeerConnectionState, SignalingState,
 };
 pub use promisify::{Promisify, PromisifyExt, SpawnBlocking};
 pub use rtc_datachannel::{

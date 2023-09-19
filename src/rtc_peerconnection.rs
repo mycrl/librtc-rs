@@ -10,13 +10,13 @@ use crate::{
     auto_ptr::HeapPointer,
     create_description_observer::{CreateDescriptionFuture, CreateDescriptionKind},
     cstr::{free_cstring, to_c_str},
-    observer::{EVENTS, ObserverRef},
+    observer::{ObserverRef, EVENTS},
     rtc_datachannel::RawDataChannelOptions,
     rtc_icecandidate::RawRTCIceCandidate,
     rtc_peerconnection_configure::RawRTCPeerConnectionConfigure,
     set_description_observer::{SetDescriptionFuture, SetDescriptionKind},
-    DataChannel, DataChannelOptions, MediaStream, MediaStreamTrack, RTCConfiguration,
-    RTCDataChannel, RTCIceCandidate, RTCSessionDescription, Observer,
+    DataChannel, DataChannelOptions, MediaStream, MediaStreamTrack, Observer, RTCConfiguration,
+    RTCDataChannel, RTCIceCandidate, RTCSessionDescription,
 };
 
 #[allow(improper_ctypes)]
@@ -75,7 +75,10 @@ impl RTCPeerConnection {
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
-    pub fn new<T: Observer + 'static>(config_: &RTCConfiguration, observer_: T) -> Result<Arc<Self>> {
+    pub fn new<T: Observer + 'static>(
+        config_: &RTCConfiguration,
+        observer_: T,
+    ) -> Result<Arc<Self>> {
         let observer = HeapPointer::new();
         let config = HeapPointer::new();
         let raw = unsafe {
