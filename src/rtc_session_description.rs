@@ -3,10 +3,9 @@ use std::{
     ffi::c_char,
 };
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::cstr::{free_cstring, from_c_str, to_c_str};
+use crate::cstr::{free_cstring, from_c_str, to_c_str, StringError};
 
 /// An enum describing the session description's type.
 #[repr(i32)]
@@ -66,7 +65,7 @@ unsafe impl Send for RTCSessionDescription {}
 unsafe impl Sync for RTCSessionDescription {}
 
 impl TryInto<RawRTCSessionDescription> for &RTCSessionDescription {
-    type Error = anyhow::Error;
+    type Error = StringError;
 
     fn try_into(self) -> Result<RawRTCSessionDescription, Self::Error> {
         Ok(RawRTCSessionDescription {
@@ -77,7 +76,7 @@ impl TryInto<RawRTCSessionDescription> for &RTCSessionDescription {
 }
 
 impl TryFrom<&RawRTCSessionDescription> for RTCSessionDescription {
-    type Error = anyhow::Error;
+    type Error = StringError;
 
     fn try_from(value: &RawRTCSessionDescription) -> Result<Self, Self::Error> {
         Ok(RTCSessionDescription {

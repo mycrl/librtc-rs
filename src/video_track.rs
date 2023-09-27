@@ -1,10 +1,12 @@
-use std::{collections::HashMap, ffi::c_char, sync::Arc};
-
-use anyhow::{anyhow, Result};
-use tokio::sync::Mutex;
+use std::{
+    collections::HashMap,
+    ffi::c_char,
+    sync::{Arc, RwLock},
+};
 
 use crate::{
     cstr::{c_str_to_str, free_cstring, to_c_str},
+    media_stream::MediaStreamError,
     media_stream_track::{
         rtc_free_media_stream_track, rtc_remove_media_stream_track_frame_h, RawMediaStreamTrack,
     },
@@ -37,7 +39,7 @@ extern "C" {
 /// a MediaStreamTrack.
 pub struct VideoTrack {
     pub(crate) raw: *const RawMediaStreamTrack,
-    sinks: Mutex<HashMap<u8, Sinker<Arc<VideoFrame>>>>,
+    sinks: RwLock<HashMap<u8, Sinker<Arc<VideoFrame>>>>,
 }
 
 unsafe impl Send for VideoTrack {}
@@ -50,16 +52,16 @@ impl VideoTrack {
 
     /// Create a new video track, may fail to create, such as
     /// insufficient memory.
-    pub fn new(label: &str) -> Result<Arc<Self>> {
+    pub fn new(label: &str) -> Result<Arc<Self>, MediaStreamError> {
         let raw = unsafe {
-            let c_label = to_c_str(label)?;
+            let c_label = to_c_str(label).map_err(|e| MediaStreamError::StringError(e))?;
             let ptr = rtc_create_video_track(c_label);
             free_cstring(c_label);
             ptr
         };
 
         if raw.is_null() {
-            Err(anyhow!("create video track failed!"))
+            Err(MediaStreamError::CreateTrackFailed)
         } else {
             Ok(Self::from_raw(raw))
         }
@@ -78,8 +80,8 @@ impl VideoTrack {
     /// Register video track frame sink, one track can register multiple sinks.
     /// The sink id cannot be repeated, otherwise the sink implementation will
     /// be overwritten.
-    pub async fn register_sink(&self, id: u8, sink: Sinker<Arc<VideoFrame>>) {
-        let mut sinks = self.sinks.lock().await;
+    pub fn register_sink(&self, id: u8, sink: Sinker<Arc<VideoFrame>>) {
+        let mut sinks = self.sinks.write().unwrap();
 
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
@@ -92,8 +94,8 @@ impl VideoTrack {
 
     /// Delete the registered sink, if it exists, it will return the deleted
     /// sink.
-    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<VideoFrame>>> {
-        let mut sinks = self.sinks.lock().await;
+    pub fn remove_sink(&self, id: u8) -> Option<Sinker<Arc<VideoFrame>>> {
+        let mut sinks = self.sinks.write().unwrap();
         let value = sinks.remove(&id);
         if sinks.is_empty() {
             unsafe { rtc_remove_media_stream_track_frame_h(self.raw) }
@@ -106,16 +108,14 @@ impl VideoTrack {
     pub(crate) fn from_raw(raw: *const RawMediaStreamTrack) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sinks: Mutex::new(HashMap::new()),
+            sinks: RwLock::new(HashMap::new()),
             raw,
         })
     }
 
     fn on_data(this: &Self, frame: Arc<VideoFrame>) {
-        if let Ok(mut sinks) = this.sinks.try_lock() {
-            for sinker in sinks.values_mut() {
-                sinker.sink.on_data(frame.clone());
-            }
+        for sinker in this.sinks.read().unwrap().values() {
+            sinker.sink.on_data(frame.clone());
         }
     }
 }

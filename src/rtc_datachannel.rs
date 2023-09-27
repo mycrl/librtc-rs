@@ -2,10 +2,8 @@ use std::{
     collections::HashMap,
     ffi::{c_char, c_int, c_void},
     slice::from_raw_parts,
-    sync::Arc,
+    sync::{Arc, RwLock},
 };
-
-use tokio::sync::Mutex;
 
 use crate::{
     cstr::{free_cstring, to_c_str},
@@ -154,7 +152,7 @@ impl Into<RawDataChannelOptions> for &DataChannelOptions {
 /// connection can have up to a theoretical maximum of 65,534 data channels.
 pub struct DataChannel {
     raw: *const RawRTCDataChannel,
-    sinks: Mutex<HashMap<u8, Sinker<Vec<u8>>>>,
+    sinks: RwLock<HashMap<u8, Sinker<Vec<u8>>>>,
 }
 
 unsafe impl Send for DataChannel {}
@@ -179,9 +177,9 @@ impl DataChannel {
     /// Register channel data sink, one channel can register multiple sinks.
     /// The sink id cannot be repeated, otherwise the sink implementation will
     /// be overwritten.
-    pub async fn register_sink(&self, id: u8, sink: Sinker<Vec<u8>>) {
+    pub fn register_sink(&self, id: u8, sink: Sinker<Vec<u8>>) {
         assert!(unsafe { &*self.raw }.remote);
-        let mut sinks = self.sinks.lock().await;
+        let mut sinks = self.sinks.write().unwrap();
 
         // Register for the first time, register the callback function to
         // webrtc native, and then do not need to register again.
@@ -194,9 +192,9 @@ impl DataChannel {
 
     /// Delete the registered sink, if it exists, it will return the deleted
     /// sink.
-    pub async fn remove_sink(&self, id: u8) -> Option<Sinker<Vec<u8>>> {
+    pub fn remove_sink(&self, id: u8) -> Option<Sinker<Vec<u8>>> {
         assert!(unsafe { &*self.raw }.remote);
-        let mut sinks = self.sinks.lock().await;
+        let mut sinks = self.sinks.write().unwrap();
         let value = sinks.remove(&id);
         if sinks.is_empty() {
             unsafe { rtc_remove_data_channel_msg_h(self.raw) }
@@ -209,16 +207,14 @@ impl DataChannel {
     pub(crate) fn from_raw(raw: *const RawRTCDataChannel) -> Arc<Self> {
         assert!(!raw.is_null());
         Arc::new(Self {
-            sinks: Mutex::new(HashMap::new()),
+            sinks: RwLock::new(HashMap::new()),
             raw,
         })
     }
 
     fn on_data(this: &Self, data: Vec<u8>) {
-        if let Ok(mut sinks) = this.sinks.try_lock() {
-            for sinker in sinks.values_mut() {
-                sinker.sink.on_data(data.clone());
-            }
+        for sinker in this.sinks.read().unwrap().values() {
+            sinker.sink.on_data(data.clone());
         }
     }
 }

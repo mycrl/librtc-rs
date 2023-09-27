@@ -1,18 +1,20 @@
 use std::{
+    error::Error,
     ffi::{c_char, c_void},
+    fmt,
     sync::{
         atomic::{AtomicPtr, Ordering},
         Arc,
     },
 };
 
-use anyhow::{anyhow, Result};
 use futures::task::AtomicWaker;
 
 use crate::{
-    cstr::from_c_str, rtc_peerconnection::RawRTCPeerConnection,
-    rtc_session_description::RawRTCSessionDescription, Promisify, PromisifyExt,
-    RTCSessionDescription,
+    cstr::{from_c_str, StringError},
+    rtc_peerconnection::RawRTCPeerConnection,
+    rtc_session_description::RawRTCSessionDescription,
+    Promisify, PromisifyExt, RTCSessionDescription,
 };
 
 extern "C" {
@@ -31,6 +33,20 @@ extern "C" {
     );
 }
 
+#[derive(Debug)]
+pub enum SetDescriptionError {
+    StringError(StringError),
+    SetFailed(String),
+}
+
+impl Error for SetDescriptionError {}
+
+impl fmt::Display for SetDescriptionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd)]
 pub(crate) enum SetDescriptionKind {
     Local,
@@ -38,7 +54,7 @@ pub(crate) enum SetDescriptionKind {
 }
 
 struct SetDescriptionContext {
-    callback: Box<dyn FnMut(Result<()>)>,
+    callback: Box<dyn FnMut(Result<(), SetDescriptionError>)>,
 }
 
 #[no_mangle]
@@ -48,8 +64,8 @@ extern "C" fn set_description_callback(error: *const c_char, ctx: *mut c_void) {
         unsafe { error.as_ref() }
             .map(|_| {
                 from_c_str(error)
-                    .map_err(|e| anyhow!(e.to_string()))
-                    .and_then(|s| Err(anyhow!(s)))
+                    .map_err(|e| SetDescriptionError::StringError(e))
+                    .and_then(|s| Err(SetDescriptionError::SetFailed(s)))
             })
             .unwrap_or_else(|| Ok(())),
     );
@@ -59,17 +75,17 @@ pub struct SetDescriptionObserver<'a> {
     kind: SetDescriptionKind,
     desc: &'a RTCSessionDescription,
     pc: *const RawRTCPeerConnection,
-    ret: Arc<AtomicPtr<Result<()>>>,
+    ret: Arc<AtomicPtr<Result<(), SetDescriptionError>>>,
 }
 
 unsafe impl Send for SetDescriptionObserver<'_> {}
 unsafe impl Sync for SetDescriptionObserver<'_> {}
 
 impl<'a> PromisifyExt for SetDescriptionObserver<'a> {
-    type Err = anyhow::Error;
+    type Err = SetDescriptionError;
     type Output = ();
 
-    fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()> {
+    fn handle(&self, waker: Arc<AtomicWaker>) -> Result<(), Self::Err> {
         let ret = self.ret.clone();
         let ctx = Box::into_raw(Box::new(SetDescriptionContext {
             callback: Box::new(move |res| {
@@ -78,7 +94,10 @@ impl<'a> PromisifyExt for SetDescriptionObserver<'a> {
             }),
         })) as *mut c_void;
 
-        let desc: RawRTCSessionDescription = self.desc.try_into()?;
+        let desc: RawRTCSessionDescription = self
+            .desc
+            .try_into()
+            .map_err(|e| SetDescriptionError::StringError(e))?;
         if self.kind == SetDescriptionKind::Local {
             unsafe { rtc_set_local_description(self.pc, &desc, set_description_callback, ctx) };
         } else {
@@ -88,7 +107,7 @@ impl<'a> PromisifyExt for SetDescriptionObserver<'a> {
         Ok(())
     }
 
-    fn wake(&self) -> Option<Result<Self::Output>> {
+    fn wake(&self) -> Option<Result<Self::Output, Self::Err>> {
         unsafe {
             self.ret
                 .swap(std::ptr::null_mut(), Ordering::Relaxed)

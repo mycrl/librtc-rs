@@ -3,7 +3,7 @@ pub trait SinkExt: Send {
     type Item;
 
     /// on data for sink push.
-    fn on_data(&mut self, item: Self::Item);
+    fn on_data(&self, item: Self::Item);
 }
 
 /// A sink trait type wrapper.

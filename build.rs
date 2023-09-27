@@ -100,17 +100,17 @@ fn main() {
     #[cfg(target_os = "windows")]
     {
         ffmpeg_prefix = join(&output_dir, "./ffmpeg-5.1.2-full_build-shared");
-        if !is_exsit(&ffmpeg_prefix) {
-            exec(
-                "Invoke-WebRequest \
-                    -Uri https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-5.1.2-full_build-shared.7z \
-                    -OutFile ffmpeg.7z; \
-                7z x ffmpeg.7z -aoa; \
-                del ffmpeg.7z",
-                &output_dir,
-            )
-            .unwrap();
-        }
+        //        if !is_exsit(&ffmpeg_prefix) {
+        //            exec(
+        //                "Invoke-WebRequest \
+        //                    -Uri https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-5.1.2-full_build-shared.7z \
+        //                    -OutFile ffmpeg.7z; \
+        //                7z x ffmpeg.7z -aoa; \
+        //                del ffmpeg.7z",
+        //                &output_dir,
+        //            )
+        //            .unwrap();
+        //        }
     }
 
     #[cfg(target_os = "linux")]

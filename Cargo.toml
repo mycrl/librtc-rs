@@ -20,16 +20,8 @@ categories = [
 ]
 
 [dependencies]
-anyhow = "1.0.52"
 futures = "0.3"
 serde = { version = "1.0", features = ["derive"] }
-
-[dependencies.tokio]
-version = "1.20.0"
-features = [ 
-    "sync",
-    "rt" 
-]
 
 [build-dependencies]
 dotenv = "0.15.0"
@@ -47,3 +39,4 @@ clap = { version = "4.0.27", features = ["derive"] }
 minifb = "0.25"
 libyuv = "0.1.2"
 cpal = "0.15.2"
+anyhow = "1.0.52"

@@ -5,7 +5,7 @@ use std::{
     mem::ManuallyDrop,
     ptr::null_mut,
     sync::{
-        atomic::{AtomicPtr, Ordering},
+        atomic::{AtomicBool, AtomicPtr, Ordering},
         Arc,
     },
     time::Duration,
@@ -28,7 +28,7 @@ enum Payload {
 
 // Remote video track player window.
 struct VideoPlayer {
-    ready: bool,
+    ready: AtomicBool,
     label: String,
     buf: Arc<AtomicPtr<Vec<u8>>>,
 }
@@ -37,21 +37,21 @@ impl VideoPlayer {
     fn new(label: String) -> Self {
         Self {
             buf: Arc::new(AtomicPtr::new(null_mut())),
-            ready: false,
+            ready: AtomicBool::new(false),
             label,
         }
     }
 
     // Process video frames decoded from video track.
-    fn on_frame(&mut self, frame: &VideoFrame) {
+    fn on_frame(&self, frame: &VideoFrame) {
         let width = frame.width() as usize;
         let height = frame.height() as usize;
 
         // Check whether the window has been created. If not, create the
         // window first. The reason for this is that it must be created
         // according to the size of the video frame
-        if self.ready == false {
-            self.ready = true;
+        if self.ready.load(Ordering::Relaxed) == false {
+            self.ready.store(true, Ordering::Relaxed);
 
             let buf = self.buf.clone();
             let label = self.label.clone();
@@ -113,7 +113,7 @@ impl librtc::SinkExt for VideoPlayer {
     type Item = Arc<VideoFrame>;
 
     // Triggered when a video frame is received.
-    fn on_data(&mut self, frame: Arc<VideoFrame>) {
+    fn on_data(&self, frame: Arc<VideoFrame>) {
         self.on_frame(frame.as_ref());
     }
 }
@@ -133,7 +133,7 @@ impl librtc::SinkExt for AudioPlayer {
     type Item = Arc<AudioFrame>;
 
     // Triggered when an audio frame is received.
-    fn on_data(&mut self, frame: Arc<AudioFrame>) {
+    fn on_data(&self, frame: Arc<AudioFrame>) {
         // Echo the audio frame to the peer's audio track.
         self.track.add_frame(frame.as_ref());
     }
@@ -146,7 +146,7 @@ impl librtc::SinkExt for ChannelSinkImpl {
     type Item = Vec<u8>;
 
     // Triggered when the data channel receives data.
-    fn on_data(&mut self, data: Vec<u8>) {
+    fn on_data(&self, data: Vec<u8>) {
         println!("on channel data: {:?}", data);
     }
 }
@@ -177,18 +177,14 @@ impl Observer for ObserverImpl {
 
     // This event is triggered when the peer creates a data channel.
     fn on_data_channel(&self, channel: RTCDataChannel) {
-        self.handle.spawn(async move {
-            // Register a data sink for this data channel.
-            channel
-                .register_sink(0, Sinker::new(ChannelSinkImpl {}))
-                .await;
+        // Register a data sink for this data channel.
+        channel.register_sink(0, Sinker::new(ChannelSinkImpl {}));
 
-            // Next, we will continue to use this container to prevent automatic
-            // release. This is a bad implementation, and it will not be
-            // implemented in a normal process, but for a simpler implementation
-            // example, this bad method will be used here.
-            let _ = ManuallyDrop::new(channel);
-        });
+        // Next, we will continue to use this container to prevent automatic
+        // release. This is a bad implementation, and it will not be
+        // implemented in a normal process, but for a simpler implementation
+        // example, this bad method will be used here.
+        let _ = ManuallyDrop::new(channel);
     }
 
     // This event is triggered when the peer creates a video track or audio
@@ -197,28 +193,22 @@ impl Observer for ObserverImpl {
         let audio_track = self.audio_track.clone();
 
         // Register sinks for audio and video tracks.
-        self.handle.spawn(async move {
-            match &mut track {
-                MediaStreamTrack::Video(track) => {
-                    track
-                        .register_sink(0, Sinker::new(VideoPlayer::new(track.label().to_string())))
-                        .await;
-                }
-                MediaStreamTrack::Audio(track) => {
-                    if let MediaStreamTrack::Audio(at) = audio_track {
-                        track
-                            .register_sink(0, Sinker::new(AudioPlayer::new(at.clone())))
-                            .await;
-                    }
+        match &mut track {
+            MediaStreamTrack::Video(track) => {
+                track.register_sink(0, Sinker::new(VideoPlayer::new(track.label().to_string())));
+            }
+            MediaStreamTrack::Audio(track) => {
+                if let MediaStreamTrack::Audio(at) = audio_track {
+                    track.register_sink(0, Sinker::new(AudioPlayer::new(at.clone())));
                 }
             }
+        }
 
-            // Next, we will continue to use this container to prevent automatic
-            // release. This is a bad implementation, and it will not be
-            // implemented in a normal process, but for a simpler implementation
-            // example, this bad method will be used here.
-            let _ = ManuallyDrop::new(track);
-        });
+        // Next, we will continue to use this container to prevent automatic
+        // release. This is a bad implementation, and it will not be
+        // implemented in a normal process, but for a simpler implementation
+        // example, this bad method will be used here.
+        let _ = ManuallyDrop::new(track);
     }
 }
 
@@ -258,7 +248,7 @@ async fn main() -> Result<(), anyhow::Error> {
     )?;
 
     // Add the created audio track and video track to the peer connection.
-    pc.add_track(audio_track, stream.clone()).await?;
+    pc.add_track(audio_track, stream.clone())?;
 
     // Read messages from the websocket until unreadable or an error occurs.
     while let Some(Ok(msg)) = reader.next().await {

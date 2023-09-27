@@ -1,15 +1,14 @@
 use std::{
+    error::Error,
     ffi::{c_char, c_int, c_void},
-    sync::Arc,
+    fmt,
+    sync::{Arc, Mutex},
 };
-
-use anyhow::{anyhow, Result};
-use tokio::sync::Mutex;
 
 use crate::{
     auto_ptr::HeapPointer,
     create_description_observer::{CreateDescriptionFuture, CreateDescriptionKind},
-    cstr::{free_cstring, to_c_str},
+    cstr::{free_cstring, to_c_str, StringError},
     observer::{ObserverRef, EVENTS},
     rtc_datachannel::RawDataChannelOptions,
     rtc_icecandidate::RawRTCIceCandidate,
@@ -54,6 +53,23 @@ extern "C" {
 
 pub(crate) type RawRTCPeerConnection = c_void;
 
+#[derive(Debug)]
+pub enum RTCError {
+    CreateRTCFailed,
+    AddTrackFailed(i32),
+    AddIceCandidateFailed,
+    RemoveTrackFailed(i32),
+    StringError(StringError),
+}
+
+impl Error for RTCError {}
+
+impl fmt::Display for RTCError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 /// The RTCPeerConnection interface represents a WebRTC connection between
 /// the local computer and a remote peer.
 ///
@@ -78,7 +94,7 @@ impl RTCPeerConnection {
     pub fn new<T: Observer + 'static>(
         config_: &RTCConfiguration,
         observer_: T,
-    ) -> Result<Arc<Self>> {
+    ) -> Result<Arc<Self>, RTCError> {
         let observer = HeapPointer::new();
         let config = HeapPointer::new();
         let raw = unsafe {
@@ -90,7 +106,7 @@ impl RTCPeerConnection {
         };
 
         if raw.is_null() {
-            Err(anyhow!("create peerconnection failed!"))
+            Err(RTCError::CreateRTCFailed)
         } else {
             Ok(Arc::new(Self {
                 tracks: Mutex::new(Vec::with_capacity(10)),
@@ -169,11 +185,11 @@ impl RTCPeerConnection {
     /// a list of potential connection methods. This is covered in more
     /// detail in the articles WebRTC connectivity and Signaling and video
     /// calling.
-    pub fn add_ice_candidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<()> {
-        let raw: RawRTCIceCandidate = candidate.try_into()?;
+    pub fn add_ice_candidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<(), RTCError> {
+        let raw: RawRTCIceCandidate = candidate.try_into().map_err(|e| RTCError::StringError(e))?;
         let ret = unsafe { rtc_add_ice_candidate(self.raw, &raw) };
         if !ret {
-            return Err(anyhow!("add ice candidate failed!"));
+            return Err(RTCError::AddIceCandidateFailed);
         }
 
         Ok(())
@@ -181,13 +197,17 @@ impl RTCPeerConnection {
 
     /// The RTCPeerConnection method addTrack() adds a new media track to the
     /// set of tracks which will be transmitted to the other peer.
-    pub async fn add_track(&self, track: MediaStreamTrack, stream: Arc<MediaStream>) -> Result<()> {
+    pub fn add_track(
+        &self,
+        track: MediaStreamTrack,
+        stream: Arc<MediaStream>,
+    ) -> Result<(), RTCError> {
         let ret = unsafe { rtc_add_media_stream_track(self.raw, track.get_raw(), stream.get_id()) };
         if ret != 0 {
-            return Err(anyhow!("add track failed!, code={}", ret));
+            return Err(RTCError::AddTrackFailed(ret));
         }
 
-        self.tracks.lock().await.push((track, stream));
+        self.tracks.lock().unwrap().push((track, stream));
         Ok(())
     }
 
@@ -202,10 +222,10 @@ impl RTCPeerConnection {
     /// peer won't experience the change until this negotiation occurs. A
     /// negotiationneeded event is sent to the RTCPeerConnection to let the
     /// local end know this negotiation must occur.
-    pub async fn remove_track(&self, track: MediaStreamTrack) -> Result<()> {
+    pub fn remove_track(&self, track: MediaStreamTrack) -> Result<(), RTCError> {
         let ret = unsafe { rtc_remove_media_stream_track(self.raw, track.get_raw()) };
         if ret != 0 {
-            return Err(anyhow!("remove track failed!, code={}", ret));
+            return Err(RTCError::RemoveTrackFailed(ret));
         }
 
         Ok(())
