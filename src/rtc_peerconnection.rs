@@ -1,18 +1,18 @@
 use std::{
-    ffi::{c_char, c_void},
-    sync::Arc,
+    error::Error,
+    ffi::{c_char, c_int, c_void},
+    fmt,
+    sync::{Arc, Mutex},
 };
-
-use anyhow::{anyhow, Result};
-use tokio::sync::Mutex;
 
 use crate::{
     auto_ptr::HeapPointer,
     create_description_observer::{CreateDescriptionFuture, CreateDescriptionKind},
-    cstr::{free_cstring, to_c_str},
-    observer::EVENTS,
+    cstr::{free_cstring, to_c_str, StringError},
+    observer::{ObserverRef, EVENTS},
     rtc_datachannel::RawDataChannelOptions,
     rtc_icecandidate::RawRTCIceCandidate,
+    rtc_peerconnection_configure::RawRTCPeerConnectionConfigure,
     set_description_observer::{SetDescriptionFuture, SetDescriptionKind},
     DataChannel, DataChannelOptions, MediaStream, MediaStreamTrack, Observer, RTCConfiguration,
     RTCDataChannel, RTCIceCandidate, RTCSessionDescription,
@@ -23,7 +23,7 @@ extern "C" {
     pub(crate) fn rtc_create_peer_connection(
         config: *const crate::rtc_peerconnection_configure::RawRTCPeerConnectionConfigure,
         events: *const crate::observer::TEvents,
-        observer: *mut crate::observer::Observer,
+        observer: *mut crate::observer::ObserverRef,
     ) -> *const crate::rtc_peerconnection::RawRTCPeerConnection;
 
     pub(crate) fn rtc_add_ice_candidate(
@@ -35,7 +35,12 @@ extern "C" {
         peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
         track: *const crate::media_stream_track::RawMediaStreamTrack,
         id: *const c_char,
-    );
+    ) -> c_int;
+
+    pub(crate) fn rtc_remove_media_stream_track(
+        peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
+        track: *const crate::media_stream_track::RawMediaStreamTrack,
+    ) -> c_int;
 
     pub(crate) fn rtc_create_data_channel(
         peer: *const crate::rtc_peerconnection::RawRTCPeerConnection,
@@ -48,6 +53,23 @@ extern "C" {
 
 pub(crate) type RawRTCPeerConnection = c_void;
 
+#[derive(Debug)]
+pub enum RTCError {
+    CreateRTCFailed,
+    AddTrackFailed(i32),
+    AddIceCandidateFailed,
+    RemoveTrackFailed(i32),
+    StringError(StringError),
+}
+
+impl Error for RTCError {}
+
+impl fmt::Display for RTCError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 /// The RTCPeerConnection interface represents a WebRTC connection between
 /// the local computer and a remote peer.
 ///
@@ -56,9 +78,10 @@ pub(crate) type RawRTCPeerConnection = c_void;
 pub struct RTCPeerConnection {
     raw: *const RawRTCPeerConnection,
     tracks: Mutex<Vec<(MediaStreamTrack, Arc<MediaStream>)>>,
-
     #[allow(dead_code)]
-    observer: HeapPointer<Observer>,
+    observer: HeapPointer<ObserverRef>,
+    #[allow(dead_code)]
+    config: HeapPointer<RawRTCPeerConnectionConfigure>,
 }
 
 unsafe impl Send for RTCPeerConnection {}
@@ -68,19 +91,28 @@ impl RTCPeerConnection {
     /// The RTCPeerConnection constructor returns a newly-created
     /// RTCPeerConnection, which represents a connection between the local
     /// device and a remote peer.
-    pub fn new(config: &RTCConfiguration, iobserver: Observer) -> Result<Arc<Self>> {
+    pub fn new<T: Observer + 'static>(
+        config_: &RTCConfiguration,
+        observer_: T,
+    ) -> Result<Arc<Self>, RTCError> {
         let observer = HeapPointer::new();
+        let config = HeapPointer::new();
         let raw = unsafe {
-            rtc_create_peer_connection(config.get_raw(), &EVENTS, observer.set(iobserver))
+            rtc_create_peer_connection(
+                config.set(config_.get_raw()),
+                &EVENTS,
+                observer.set(ObserverRef::new(observer_)),
+            )
         };
 
         if raw.is_null() {
-            Err(anyhow!("create peerconnection failed!"))
+            Err(RTCError::CreateRTCFailed)
         } else {
             Ok(Arc::new(Self {
                 tracks: Mutex::new(Vec::with_capacity(10)),
-                raw: unsafe { &*raw },
                 observer,
+                config,
+                raw,
             }))
         }
     }
@@ -153,11 +185,11 @@ impl RTCPeerConnection {
     /// a list of potential connection methods. This is covered in more
     /// detail in the articles WebRTC connectivity and Signaling and video
     /// calling.
-    pub fn add_ice_candidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<()> {
-        let raw: RawRTCIceCandidate = candidate.try_into()?;
+    pub fn add_ice_candidate<'b>(&'b self, candidate: &'b RTCIceCandidate) -> Result<(), RTCError> {
+        let raw: RawRTCIceCandidate = candidate.try_into().map_err(|e| RTCError::StringError(e))?;
         let ret = unsafe { rtc_add_ice_candidate(self.raw, &raw) };
         if !ret {
-            return Err(anyhow!("add ice candidate failed!"));
+            return Err(RTCError::AddIceCandidateFailed);
         }
 
         Ok(())
@@ -165,10 +197,38 @@ impl RTCPeerConnection {
 
     /// The RTCPeerConnection method addTrack() adds a new media track to the
     /// set of tracks which will be transmitted to the other peer.
-    pub async fn add_track(&self, track: MediaStreamTrack, stream: Arc<MediaStream>) {
-        unsafe { rtc_add_media_stream_track(self.raw, track.get_raw(), stream.get_id()) }
+    pub fn add_track(
+        &self,
+        track: MediaStreamTrack,
+        stream: Arc<MediaStream>,
+    ) -> Result<(), RTCError> {
+        let ret = unsafe { rtc_add_media_stream_track(self.raw, track.get_raw(), stream.get_id()) };
+        if ret != 0 {
+            return Err(RTCError::AddTrackFailed(ret));
+        }
 
-        self.tracks.lock().await.push((track, stream));
+        self.tracks.lock().unwrap().push((track, stream));
+        Ok(())
+    }
+
+    /// The `remove_track` method tells the local end of the connection to stop
+    /// sending media from the specified track, without actually removing
+    /// the corresponding RTCRtpSender from the list of senders as reported
+    /// by `senders`. If the track is already stopped, or is not in the
+    /// connection's senders list, this method has no effect.
+    ///
+    /// If the connection has already been negotiated (signalingState is set to
+    /// "stable"), it is marked as needing to be negotiated again; the remote
+    /// peer won't experience the change until this negotiation occurs. A
+    /// negotiationneeded event is sent to the RTCPeerConnection to let the
+    /// local end know this negotiation must occur.
+    pub fn remove_track(&self, track: MediaStreamTrack) -> Result<(), RTCError> {
+        let ret = unsafe { rtc_remove_media_stream_track(self.raw, track.get_raw()) };
+        if ret != 0 {
+            return Err(RTCError::RemoveTrackFailed(ret));
+        }
+
+        Ok(())
     }
 
     /// The createDataChannel() method on the RTCPeerConnection interface

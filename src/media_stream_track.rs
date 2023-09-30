@@ -3,9 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Result;
-
-use crate::{AudioTrack, VideoTrack};
+use crate::{media_stream::MediaStreamError, AudioTrack, VideoTrack};
 
 extern "C" {
     pub(crate) fn rtc_free_frame(frame: *const c_void);
@@ -41,7 +39,10 @@ pub(crate) struct RawMediaStreamTrack {
     video_source: *const c_void,
     video_sink: *const c_void,
     // audio
+    audio_source: *const c_void,
     audio_sink: *const c_void,
+
+    sender: *const c_void,
 }
 
 /// The MediaStreamTrack interface represents a single media track within
@@ -56,11 +57,11 @@ pub enum MediaStreamTrack {
 }
 
 impl MediaStreamTrack {
-    pub fn create_video_track(label: &str) -> Result<Self> {
+    pub fn create_video_track(label: &str) -> Result<Self, MediaStreamError> {
         Ok(Self::Video(VideoTrack::new(label)?))
     }
 
-    pub fn create_audio_track(label: &str) -> Result<Self> {
+    pub fn create_audio_track(label: &str) -> Result<Self, MediaStreamError> {
         Ok(Self::Audio(AudioTrack::new(label)?))
     }
 

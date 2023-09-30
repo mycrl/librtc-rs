@@ -1,18 +1,20 @@
 use std::{
+    error::Error,
     ffi::{c_char, c_void},
+    fmt,
     sync::{
         atomic::{AtomicPtr, Ordering},
         Arc,
     },
 };
 
-use anyhow::{anyhow, Result};
 use futures::task::AtomicWaker;
 
 use crate::{
-    cstr::from_c_str, rtc_peerconnection::RawRTCPeerConnection,
-    rtc_session_description::RawRTCSessionDescription, Promisify, PromisifyExt,
-    RTCSessionDescription,
+    cstr::{from_c_str, StringError},
+    rtc_peerconnection::RawRTCPeerConnection,
+    rtc_session_description::RawRTCSessionDescription,
+    Promisify, PromisifyExt, RTCSessionDescription,
 };
 
 extern "C" {
@@ -37,6 +39,20 @@ extern "C" {
     );
 }
 
+#[derive(Debug)]
+pub enum CreateDescriptionError {
+    StringError(StringError),
+    CreateFailed(String),
+}
+
+impl Error for CreateDescriptionError {}
+
+impl fmt::Display for CreateDescriptionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd)]
 pub(crate) enum CreateDescriptionKind {
     Offer,
@@ -44,7 +60,7 @@ pub(crate) enum CreateDescriptionKind {
 }
 
 struct CreateDescriptionContext {
-    callback: Box<dyn FnMut(Result<RTCSessionDescription>)>,
+    callback: Box<dyn FnMut(Result<RTCSessionDescription, CreateDescriptionError>)>,
 }
 
 #[no_mangle]
@@ -58,17 +74,20 @@ extern "C" fn create_description_callback(
         unsafe { error.as_ref() }
             .map(|_| {
                 from_c_str(error)
-                    .map_err(|e| anyhow!(e.to_string()))
-                    .and_then(|s| Err(anyhow!(s)))
+                    .map_err(|e| CreateDescriptionError::StringError(e))
+                    .and_then(|s| Err(CreateDescriptionError::CreateFailed(s)))
             })
-            .unwrap_or_else(|| RTCSessionDescription::try_from(unsafe { &*desc })),
+            .unwrap_or_else(|| {
+                RTCSessionDescription::try_from(unsafe { &*desc })
+                    .map_err(|e| CreateDescriptionError::StringError(e))
+            }),
     );
 }
 
 pub struct CreateDescriptionObserver {
     kind: CreateDescriptionKind,
     pc: *const RawRTCPeerConnection,
-    ret: Arc<AtomicPtr<Result<RTCSessionDescription>>>,
+    ret: Arc<AtomicPtr<Result<RTCSessionDescription, CreateDescriptionError>>>,
 }
 
 unsafe impl Send for CreateDescriptionObserver {}
@@ -76,9 +95,9 @@ unsafe impl Sync for CreateDescriptionObserver {}
 
 impl PromisifyExt for CreateDescriptionObserver {
     type Output = RTCSessionDescription;
-    type Err = anyhow::Error;
+    type Err = CreateDescriptionError;
 
-    fn handle(&self, waker: Arc<AtomicWaker>) -> Result<()> {
+    fn handle(&self, waker: Arc<AtomicWaker>) -> Result<(), Self::Err> {
         let ret = self.ret.clone();
         let ctx = Box::into_raw(Box::new(CreateDescriptionContext {
             callback: Box::new(move |res| {
@@ -96,7 +115,7 @@ impl PromisifyExt for CreateDescriptionObserver {
         Ok(())
     }
 
-    fn wake(&self) -> Option<Result<Self::Output>> {
+    fn wake(&self) -> Option<Result<Self::Output, Self::Err>> {
         unsafe {
             self.ret
                 .swap(std::ptr::null_mut(), Ordering::Relaxed)

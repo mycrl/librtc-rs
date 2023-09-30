@@ -124,7 +124,7 @@ where
     ///
     /// assert_eq!(ret, "hello");
     /// ```
-    pub(crate) fn new(func: T) -> Self {
+    pub fn new(func: T) -> Self {
         Self {
             ret: Arc::new(AtomicPtr::new(std::ptr::null_mut())),
             waker: Arc::new(AtomicWaker::new()),
@@ -158,7 +158,6 @@ where
                 let _ = this.handle.insert(thread::spawn(move || {
                     if let Some(func) = process {
                         ret.store(Box::into_raw(Box::new(func())), Ordering::Relaxed);
-
                         waker.wake();
                     }
                 }));

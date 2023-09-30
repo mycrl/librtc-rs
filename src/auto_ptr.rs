@@ -66,6 +66,7 @@ impl<T> HeapPointer<T> {
     }
 
     /// get inner type T the raw ptr.
+    #[allow(unused)]
     pub fn get(&self) -> &Option<*mut T> {
         self.data.get()
     }
@@ -84,13 +85,6 @@ pub(crate) trait ArrayExt<T> {
 }
 
 impl<T> ArrayExt<T> for Vec<T> {
-    /// ```no_run
-    /// let vec = vec![0u8; 10];
-    /// let (ptr, size, capacity) = vec.into_c_layout();
-    /// assert!(ptr.is_null());
-    /// assert_eq!(capacity, 10);
-    /// assert_eq!(size, 10);
-    /// ```
     fn into_c_layout(self) -> (*mut T, usize, usize) {
         let mut me = ManuallyDrop::new(self);
         (me.as_mut_ptr(), me.len(), me.capacity())

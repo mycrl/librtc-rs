@@ -72,9 +72,11 @@
             if (candidate && socket.readyState == 1) {
                 socket.send(JSON.stringify({
                     kind: 'candidate',
-                    sdpMLineIndex: candidate.sdpMLineIndex,
-                    candidate: candidate.candidate,
-                    sdpMid: candidate.sdpMid,
+                    payload: {
+                        sdp_mline_index: candidate.sdpMLineIndex,
+                        candidate: candidate.candidate,
+                        sdp_mid: candidate.sdpMid,
+                    }
                 }));
             }
         });
@@ -86,25 +88,22 @@
              * parsed into an object using json parser, and the kind of the 
              * message is extracted.
              */
-            const {kind, ...payload} = JSON.parse(data);
+            const {kind, payload} = JSON.parse(data);
             if (kind == 'answer') {
                 /**
                  * After receiving the answer sent by the remote end, submit 
                  * the answer to the peer connection.
                  */
-                await pc.setRemoteDescription({
-                    type: 'answer',
-                    sdp: payload.sdp,
-                });
+                await pc.setRemoteDescription(payload);
             } else if (kind == 'candidate') {
                 /**
                  * The ice candidate received from the remote end is also 
                  * submitted to the peer connection.
                  */
                 await pc.addIceCandidate({
-                    sdpMLineIndex: payload.sdpMLineIndex,
+                    sdpMLineIndex: payload.sdp_mline_index,
                     candidate: payload.candidate,
-                    sdpMid: payload.sdpMid,
+                    sdpMid: payload.sdp_mid,
                 });
             }
         });
@@ -137,7 +136,10 @@
             await pc.setLocalDescription(offer);
             socket.send(JSON.stringify({
                 kind: 'offer',
-                sdp: offer.sdp
+                payload: {
+                    type: 'offer',
+                    sdp: offer.sdp
+                }
             }));
         });
     </script>

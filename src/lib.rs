@@ -27,42 +27,26 @@ mod sink;
 mod video_frame;
 mod video_track;
 
-pub use audio_track::AudioTrack;
-pub use media_stream::MediaStream;
-pub use media_stream_track::{MediaStreamTrack, MediaStreamTrackKind};
-pub use video_track::VideoTrack;
-
-pub use sink::{SinkExt, Sinker};
-
 pub use audio_frame::AudioFrame;
-pub use rtc_icecandidate::RTCIceCandidate;
-pub use rtc_peerconnection::RTCPeerConnection;
-pub use video_frame::VideoFrame;
-
-pub use create_description_observer::CreateDescriptionObserver;
+pub use audio_track::AudioTrack;
+pub use create_description_observer::{CreateDescriptionError, CreateDescriptionObserver};
+pub use cstr::StringError;
+pub use media_stream::{MediaStream, MediaStreamError};
+pub use media_stream_track::{MediaStreamTrack, MediaStreamTrackKind};
 pub use observer::{
-    IceConnectionState, IceGatheringState, Observer, ObserverExt, PeerConnectionState,
-    SignalingState,
+    IceConnectionState, IceGatheringState, Observer, PeerConnectionState, SignalingState,
 };
 pub use promisify::{Promisify, PromisifyExt, SpawnBlocking};
 pub use rtc_datachannel::{
     DataChannel, DataChannelOptions, DataChannelPriority, DataChannelState, RTCDataChannel,
 };
+pub use rtc_icecandidate::RTCIceCandidate;
+pub use rtc_peerconnection::{RTCError, RTCPeerConnection};
 pub use rtc_peerconnection_configure::{
     BundlePolicy, IceTransportPolicy, RTCConfiguration, RTCIceServer, RtcpMuxPolicy,
 };
 pub use rtc_session_description::{RTCSessionDescription, RTCSessionDescriptionType};
-pub use set_description_observer::SetDescriptionObserver;
-
-extern "C" {
-    pub(crate) fn rtc_run();
-    pub(crate) fn rtc_exit();
-}
-
-pub async fn run() {
-    SpawnBlocking::new(|| unsafe { rtc_run() }).await
-}
-
-pub fn exit() {
-    unsafe { rtc_exit() }
-}
+pub use set_description_observer::{SetDescriptionError, SetDescriptionObserver};
+pub use sink::{SinkExt, Sinker};
+pub use video_frame::VideoFrame;
+pub use video_track::VideoTrack;
