@@ -16,10 +16,6 @@
 <br/>
 <br/>
 
-> NOTE: this rust library needs to depend on [librtc](https://github.com/mycrl/librtc), a dynamic link library.
-
----
-
 The rust high-level abstraction binding of Google WebRTC M110. With WebRTC, you can add real-time communication capabilities to your application that works on top of an open standard. It supports video, voice, and generic data to be sent between peers, allowing developers to build powerful voice- and video-communication solutions.
 
 ---
